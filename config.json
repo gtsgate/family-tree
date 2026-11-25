@@ -28,7 +28,7 @@
   "primaryCalendar": "gregorian",
   "lineageStyle": "plain",
   "showDivorce": false,
-  "treeDefaultDepth": 3,
+  "treeDefaultDepth": 50,
   "privacyDefaults": {
     "femaleNameStatus": "known",
     "photos": "all"

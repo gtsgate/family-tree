@@ -22,6 +22,7 @@ register({
     'tree.familyOf': 'The family of {name}',
     'tree.ancestorsOf': 'The ancestors of {name}',
     'tree.branch': 'Branch',
+    'tree.familyOf': 'Family of {name}',
     'tree.branchCurrent': 'Shown now: {name}',
     'tree.branchCount': '{name} ({n})',
     'tree.view': 'Display',
@@ -39,7 +40,7 @@ register({
     'tree.fit': 'Fit the whole tree on screen',
     'tree.center': 'Back to {name}',
     'tree.chartLabel': 'Family tree chart. Drag to move around; use the zoom buttons, the mouse wheel or the + and − keys to zoom; arrow keys move the view.',
-    'tree.chartHint': 'Drag to move · wheel or pinch to zoom · tap a person for options',
+    'tree.chartHint': 'Drag or scroll to move around · pinch or Ctrl + wheel to zoom · tap a person for options',
     'tree.listLabel': 'Family tree outline',
     'tree.expandNode': 'Show the family of {name}',
     'tree.expandNodeUp': 'Show the parents of {name}',
@@ -77,6 +78,7 @@ register({
     'tree.familyOf': 'عائلة {name}',
     'tree.ancestorsOf': 'آباء وأجداد {name}',
     'tree.branch': 'الفرع',
+    'tree.familyOf': 'عائلة {name}',
     'tree.branchCurrent': 'المعروض الآن: {name}',
     'tree.branchCount': '{name} ({n})',
     'tree.view': 'طريقة العرض',
@@ -94,7 +96,7 @@ register({
     'tree.fit': 'عرض الشجرة كاملة على الشاشة',
     'tree.center': 'العودة إلى {name}',
     'tree.chartLabel': 'مخطط شجرة العائلة. السحب للتنقّل، وللتكبير والتصغير أزرار التكبير أو عجلة الفأرة أو مفتاحا + و −، ومفاتيح الأسهم لتحريك العرض.',
-    'tree.chartHint': 'السحب للتنقّل · العجلة أو إصبعان للتكبير · لمسة على الاسم لعرض الخيارات',
+    'tree.chartHint': 'السحب أو التمرير للتنقّل · إصبعان أو Ctrl مع العجلة للتكبير · لمسة على الاسم لعرض الخيارات',
     'tree.listLabel': 'قائمة شجرة العائلة',
     'tree.expandNode': 'إظهار عائلة {name}',
     'tree.expandNodeUp': 'إظهار والدَي {name}',
@@ -335,11 +337,19 @@ function dims() {
   try { k = parseFloat(getComputedStyle(document.documentElement).fontSize) / 17 || 1; } catch { /* ignore */ }
   k = Math.min(1.3, Math.max(1, k));
   const r = (v) => Math.round(v * k);
-  return { CW: r(184), CH: r(92), RH: r(62), SG: r(26), HG: r(22), GG: r(44), VG: r(88), BUS: r(16), PAD: 48, k };
+  return { CW: r(184), CH: r(92), RH: r(62), SG: r(26), HG: r(22), GG: r(44), VG: r(64), BUS: r(14), PAD: 40, k };
 }
 
 function layout(vis, D) {
   const { CW, CH, SG, HG, GG, VG, BUS, PAD } = D;
+  // Compact layout: a family whose children have no (shown) children of their own is drawn as a vertical
+  // column under the parents ("comb"), instead of one long row — keeps big families narrow and scrollable.
+  const TRUNK = Math.round(14 * D.k);   // trunk line offset from the column's inline-start edge
+  const SI = Math.round(34 * D.k);      // column indent: where the children's cards start
+  const SGAP = Math.round(22 * D.k);    // vertical gap between stacked cards
+  const ALSO = Math.round(32 * D.k);    // extra room under a card that shows "also married to…" pills
+  const extra = (c) => (!c.ref && (c.spouses || []).some((x) => x.also && x.also.length) ? ALSO : 0);
+  const isLeaf = (c) => c.ref || !c.gs || c.gs.length === 0;
   const groupsAt = new Array(vis.maxDepth + 1).fill(0); // most union groups hanging from one person, per generation
   const measure = (n) => {
     const cards = n.ref ? 1 : 1 + n.spouses.length;
@@ -350,11 +360,14 @@ function layout(vis, D) {
       const k = gr.spouse ? n.spouses.findIndex((c) => c.union === gr.union) + 1 : 0;
       gr.px = k > 0 ? CW * k + SG * (k - 1) + SG / 2 : CW / 2;
       for (const c of gr.children) measure(c);
-      gr.w = gr.children.reduce((a, c) => a + c.W, 0) + HG * (gr.children.length - 1);
+      gr.stack = vis.dir === 'down' && gr.children.length >= 2 && gr.children.every(isLeaf);
+      gr.w = gr.stack
+        ? SI + Math.max(...gr.children.map((c) => c.W))
+        : gr.children.reduce((a, c) => a + c.W, 0) + HG * (gr.children.length - 1);
     }
     let end = -Infinity;
     for (const gr of n.gs) {
-      let x = gr.px - gr.w / 2;
+      let x = gr.stack ? gr.px - TRUNK : gr.px - gr.w / 2; // a column's trunk drops straight from the parents
       if (end > -Infinity) x = Math.max(x, end + GG);
       gr.x = x;
       end = x + gr.w;
@@ -380,17 +393,25 @@ function layout(vis, D) {
   } else {
     for (let d = 0, y = PAD; d <= vis.maxDepth; d++) { tops[d] = y; y += CH + vis.gapAfter[d]; }
   }
-  const place = (n, x0) => {
+  let bottom = 0;
+  const place = (n, x0, y0) => {
     n.x = x0 + n.off;
-    n.y = tops[n.depth];
+    n.y = y0 ?? tops[n.depth];
+    bottom = Math.max(bottom, n.y + CH + extra(n));
     for (const gr of n.gs) {
+      if (gr.stack) {
+        gr.trunkX = x0 + gr.rx + TRUNK;
+        let y = tops[n.depth + 1];
+        for (const c of gr.children) { place(c, x0 + gr.rx + SI, y); y += CH + extra(c) + SGAP; }
+        continue;
+      }
       let cx = x0 + gr.rx;
       for (const c of gr.children) { place(c, cx); cx += c.W + HG; }
     }
   };
   place(vis.root, PAD);
   vis.W = Math.ceil(vis.root.W + 2 * PAD);
-  vis.H = Math.ceil(Math.max(...tops) + CH + PAD);
+  vis.H = Math.ceil(Math.max(Math.max(...tops) + CH, bottom) + PAD);
 }
 
 // ---------------------------------------------------------------------------------------------------------
@@ -622,6 +643,16 @@ function drawChart(vis, ctx, D) {
         const startY = gr.spouse ? n.y + CH / 2 : n.y + CH;
         // the last union (furthest along the row) gets the highest bus so lines never cross
         const busY = r1(ng > 1 ? n.y + CH + first + (ng - 1 - gi) * step : n.y + CH + gap / 2);
+        if (gr.stack) {
+          // comb: parents → bus → trunk down the column, a short branch to each child's card
+          const tX = gr.trunkX;
+          const mids = gr.children.map((c) => c.y + CH / 2);
+          let d = `M${r1(X(px))} ${r1(startY)}V${busY}H${r1(X(tX))}V${r1(mids[mids.length - 1])}`;
+          gr.children.forEach((c, i) => { d += `M${r1(X(tX))} ${r1(mids[i])}H${r1(X(c.x))}`; });
+          links.push(d);
+          if (gr.spouse) knots.push([X(px), n.y + CH / 2]);
+          return;
+        }
         const centers = gr.children.map((c) => c.x + CW / 2);
         const lo = Math.min(px, ...centers);
         const hi = Math.max(px, ...centers);
@@ -753,9 +784,12 @@ function mountChart(stage, vis, ctx) {
   };
   const initial = () => {
     const fs = Math.min((vw - 32) / vis.W, (vh - 32) / vis.H);
-    const minRead = vw < 700 ? 0.68 : 0.78;
-    if (fs >= minRead) fit();
-    else centerRoot(Math.min(1, Math.max(fs, minRead)));
+    const minRead = vw < 700 ? 0.55 : 0.62;
+    if (fs >= minRead) { fit(); return; }
+    // Too big to fit readably: show every generation top-to-bottom if possible (scroll sideways for the branches),
+    // starting at the root.
+    const fh = (vh - 40) / vis.H;
+    centerRoot(Math.min(1, Math.max(minRead, fh)));
   };
   let quietFocus = false; // programmatic focus: the view is already placed, do not auto-pan
   const flash = (pid) => {
@@ -864,8 +898,19 @@ function mountChart(stage, vis, ctx) {
     let dy = e.deltaY;
     if (e.deltaMode === 1) dy *= 16;
     else if (e.deltaMode === 2) dy *= vh;
-    const p = local(e);
-    zoomAt(Math.exp(-dy * (e.ctrlKey ? 0.01 : 0.0016)), p.x, p.y);
+    // Wheel / two-finger swipe scrolls the tree; pinch (ctrlKey on trackpads) or Ctrl/⌘ + wheel zooms.
+    if (e.ctrlKey || e.metaKey) {
+      const p = local(e);
+      zoomAt(Math.exp(-dy * 0.01), p.x, p.y);
+      return;
+    }
+    let dx = e.deltaX;
+    if (e.deltaMode === 1) dx *= 16;
+    else if (e.deltaMode === 2) dx *= vw;
+    if (e.shiftKey && !dx) { dx = dy; dy = 0; }
+    tx -= dx;
+    ty -= dy;
+    schedule();
   };
   const onKey = (e) => {
     if (e.ctrlKey || e.metaKey || e.altKey) return;
@@ -1146,7 +1191,7 @@ function build(root, params, query) {
   const rootId = rootP.id;
   const dir = query.dir === 'up' ? 'up' : 'down';
   const explicitView = query.view === 'list' || query.view === 'chart' ? query.view : null;
-  const view = explicitView || (window.innerWidth < 700 ? 'list' : 'chart');
+  const view = explicitView || 'chart'; // the whole tree as a scrollable chart on every screen (list is one tap away)
   if (params.id && params.id !== rootId) {
     // merged person → show the surviving record and fix the address quietly
     try { history.replaceState(history.state, '', treeHash(rootId, { view: explicitView, dir, focus: query.focus })); } catch { /* ignore */ }
@@ -1171,7 +1216,15 @@ function build(root, params, query) {
   };
   const branches = (() => { try { return g.branches(); } catch { return []; } })();
   const inBranches = branches.some((b) => b.person.id === rootId);
-  const branchSelect = branches.length > 1 || (branches.length && !inBranches)
+  const branchButtons = branches.length > 1 && branches.length <= 4 && inBranches
+    ? h('div', { class: ['segmented', 'tree-seg', 'tree-branches'], attrs: { role: 'group', 'aria-label': t('tree.branch') } },
+      branches.map((b) => h('button', {
+        type: 'button',
+        attrs: { 'aria-pressed': String(b.person.id === rootId) },
+        on: { click: () => { if (b.person.id !== rootId) location.hash = treeHash(b.person.id, { view: explicitView, dir }); } },
+      }, icon('tree', { size: 16 }), h('span', { class: 'tree-seg-label' }, t('tree.familyOf', { name: bi(b.label) || nameOf(b.person) })))))
+    : null;
+  const branchSelect = branchButtons || (branches.length > 1 || (branches.length && !inBranches)
     ? h('label', { class: 'tree-branch' },
       h('span', { class: 'tree-branch-label' }, t('tree.branch')),
       h('select', {
@@ -1180,7 +1233,7 @@ function build(root, params, query) {
       },
       inBranches ? null : h('option', { value: rootId, selected: true }, t('tree.branchCurrent', { name: nameOf(rootP) })),
       branches.map((b) => h('option', { value: b.person.id, selected: b.person.id === rootId }, t('tree.branchCount', { name: bi(b.label) || nameOf(b.person), n: b.count })))))
-    : null;
+    : null);
 
   const seg = (label, cls, items) => h('div', { class: ['segmented', 'tree-seg', cls], attrs: { role: 'group', 'aria-label': label } },
     items.map((it) => h('button', {
