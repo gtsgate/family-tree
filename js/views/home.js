@@ -43,7 +43,7 @@ register({
     'home.signature': '— {owner}',
     'home.meetOwner': 'Get to know me',
     'home.searchLabel': 'Search the family',
-    'home.searchPlaceholder': 'A name in Arabic or English…',
+    'home.searchPlaceholder': 'Search for a name…',
     'home.searchBtn': 'Search',
     'home.explore': 'Explore the tree',
     'home.addFamily': 'Add my family',
@@ -92,7 +92,7 @@ register({
     'home.signature': '— {owner}',
     'home.meetOwner': 'التعرّف إليّ',
     'home.searchLabel': 'البحث في العائلة',
-    'home.searchPlaceholder': 'الاسم بالعربية أو الإنجليزية…',
+    'home.searchPlaceholder': 'البحث عن اسم…',
     'home.searchBtn': 'بحث',
     'home.explore': 'استكشاف الشجرة',
     'home.addFamily': 'إضافة عائلتي',
@@ -222,6 +222,14 @@ function askText(p, gaps) {
   return t('home.askText', { name: lineageOf(p), missing, link: store.siteLink(`#/p/${encodeURIComponent(p.id)}`) });
 }
 
+/** "I know this": open the dialog that fills the most important gap (parents / children → add them; else correct info). */
+function knowThis(p, gaps) {
+  const first = gaps[0];
+  if (first === 'parents') return openDialog('openAddRelative', p.id, 'parent');
+  if (first === 'children') return openDialog('openAddRelative', p.id, 'child');
+  return openDialog('openEditPerson', p.id);
+}
+
 /** The "help complete the tree" list (cards with "I know this" / "Ask on WhatsApp"). */
 export function helpList(graph, startId, { limit = 5 } = {}) {
   const tasks = helpTasks(graph, startId, limit);
@@ -238,7 +246,7 @@ export function helpList(graph, startId, { limit = 5 } = {}) {
     h('div', { class: 'home-help-actions' },
       h('button', {
         type: 'button', class: 'btn btn-sm btn-primary',
-        on: { click: () => openDialog('openEditPerson', p.id) },
+        on: { click: () => knowThis(p, gaps) },
       }, icon('edit', { size: 16 }), t('home.iKnow')),
       h('a', {
         class: 'btn btn-sm home-wa', href: whatsappUrl(askText(p, gaps)), target: '_blank', rel: 'noopener',

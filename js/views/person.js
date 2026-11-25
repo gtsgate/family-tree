@@ -12,20 +12,22 @@ import { nameOf, lineageOf, avatar, badges, personChip, yearsOf, spinner } from 
 import { navigate } from '../app.js';
 import { personPicker } from '../forms/picker.js';
 import {
-  openAddRelativeSheet, openAddRelative, openEditPerson, openMoreOptions, openMerge,
+  openAddRelativeSheet, openAddRelative, openEditPerson, openMoreOptions, openMerge, openMarriageDetails,
 } from '../forms/dialogs.js';
 import { formatDate } from '../core/dates.js';
 import { isAutoEnglish } from '../core/translit.js';
 import { personName, displayName } from '../core/names.js';
 import { findRelationship, relationLabel } from '../core/kinship.js';
-import { isPersonId } from '../core/schema.js';
+import { isPersonId, isUnionId } from '../core/schema.js';
 
 register({
   en: {
     'person.notFoundTitle': 'This person is not in the tree',
     'person.notFoundText': 'The link may be old, or the record was merged or removed. Search for them by name:',
     'person.search': 'Search the family tree',
-    'person.knownAs': 'Known as {nick}',
+    'person.knownAs.m': 'Known as {nick}',
+    'person.knownAs.f': 'Known as {nick}',
+    'person.knownAs.u': 'Known as {nick}',
     'person.rip.m': 'May God have mercy on him',
     'person.rip.f': 'May God have mercy on her',
     'person.rip.u': 'May God have mercy on them',
@@ -95,14 +97,19 @@ register({
     'person.noDetails': 'No details have been added yet.',
     'person.addDetails': 'Add details',
     'person.needsInfo': 'Information needed',
+    'person.marriageDetails': 'Marriage details',
     'person.iKnow': 'I know this',
     'person.duplicateOf': 'This record may be the same person as:',
     'person.merge': 'Merge the two records',
     'person.lastUpdated': 'Last updated {date}',
     'person.inIssue': 'proposal #{n}',
-    'person.pending.draftNew': '{name} is new in your proposal and has not been sent yet.',
+    'person.pending.draftNew.m': '{name} is new in your proposal and has not been sent yet.',
+    'person.pending.draftNew.f': '{name} is new in your proposal and has not been sent yet.',
+    'person.pending.draftNew.u': '{name} is new in your proposal and has not been sent yet.',
     'person.pending.draft': 'You have changes to {name} that have not been sent yet.',
-    'person.pending.sentNew': '{name} was sent and is waiting for approval. Everyone will see it once approved.',
+    'person.pending.sentNew.m': '{name} was sent and is waiting for approval. Everyone will see him once approved.',
+    'person.pending.sentNew.f': '{name} was sent and is waiting for approval. Everyone will see her once approved.',
+    'person.pending.sentNew.u': '{name} was sent and is waiting for approval. Everyone will see this record once approved.',
     'person.pending.sent': 'Your changes to {name} were sent and are waiting for approval.',
     'person.pending.review': 'Review & send',
     'person.pending.mine': 'My page',
@@ -111,7 +118,9 @@ register({
     'person.notFoundTitle': 'هذا الشخص غير موجود في الشجرة',
     'person.notFoundText': 'ربما الرابط قديم، أو دُمج السجل مع سجل آخر أو أُزيل. يمكن البحث بالاسم:',
     'person.search': 'البحث في شجرة العائلة',
-    'person.knownAs': 'يُعرف بـ{nick}',
+    'person.knownAs.m': 'يُعرف بـ{nick}',
+    'person.knownAs.f': 'تُعرف بـ{nick}',
+    'person.knownAs.u': 'معروف باسم {nick}',
     'person.rip.m': 'رحمه الله',
     'person.rip.f': 'رحمها الله',
     'person.rip.u': 'رحمه الله',
@@ -181,14 +190,19 @@ register({
     'person.noDetails': 'لم تُضف تفاصيل بعد.',
     'person.addDetails': 'إضافة تفاصيل',
     'person.needsInfo': 'معلومات مطلوبة',
+    'person.marriageDetails': 'تفاصيل الزواج',
     'person.iKnow': 'لديّ هذه المعلومة',
     'person.duplicateOf': 'قد يكون هذا السجل للشخص نفسه في:',
     'person.merge': 'دمج السجلين',
     'person.lastUpdated': 'آخر تحديث: {date}',
     'person.inIssue': 'المقترح رقم {n}',
-    'person.pending.draftNew': '{name} جديد في مقترحك ولم يُرسل بعد.',
+    'person.pending.draftNew.m': '{name} جديد في مقترحك ولم يُرسل بعد.',
+    'person.pending.draftNew.f': '{name} جديدة في مقترحك ولم تُرسل بعد.',
+    'person.pending.draftNew.u': 'السجلّ «{name}» جديد في مقترحك ولم يُرسل بعد.',
     'person.pending.draft': 'لديك تعديلات على {name} لم تُرسل بعد.',
-    'person.pending.sentNew': 'أُرسل {name} وينتظر الموافقة، وسيظهر للجميع بعدها.',
+    'person.pending.sentNew.m': 'أُرسل {name} وينتظر الموافقة، وسيظهر للجميع بعدها.',
+    'person.pending.sentNew.f': 'أُرسلت {name} وتنتظر الموافقة، وستظهر للجميع بعدها.',
+    'person.pending.sentNew.u': 'أُرسل السجلّ «{name}» وينتظر الموافقة، وسيظهر للجميع بعدها.',
     'person.pending.sent': 'أُرسلت تعديلاتك على {name} وهي بانتظار الموافقة.',
     'person.pending.review': 'مراجعة وإرسال',
     'person.pending.mine': 'صفحتي',
@@ -207,6 +221,20 @@ function call(fn, ...args) {
 
 // ---------------------------------------------------------------------------------------------------------
 // Pieces
+
+/**
+ * Free text written in both languages in one string ("… التفاصيل. Added from the full name …") → one paragraph per
+ * language, the current language first, so mixed-direction text never wraps into a jumbled bidi line.
+ */
+function bilingualParts(text) {
+  const s = String(text || '').trim();
+  if (!s) return [];
+  const m = /^([\s\S]*[\u0600-\u06FF][^A-Za-z]*?)(?:\s+[—–-]\s+|\s+)([A-Za-z][^\u0600-\u06FF]*)$/.exec(s);
+  if (!m) return [s];
+  const ar = m[1].trim();
+  const en = m[2].trim();
+  return lang() === 'ar' ? [ar, en] : [en, ar];
+}
 
 function sectionCard(key, iconName, title, count, ...content) {
   return h('section', { class: ['card', 'person-sec', `person-sec-${key}`], attrs: { 'aria-labelledby': `psec-${key}` } },
@@ -275,7 +303,7 @@ function pendingBanner(P) {
   if (!kind) return null;
   const created = store.isCreated(P.id);
   const name = nameOf(P);
-  const key = kind === 'draft' ? (created ? 'person.pending.draftNew' : 'person.pending.draft') : (created ? 'person.pending.sentNew' : 'person.pending.sent');
+  const key = kind === 'draft' ? (created ? `person.pending.draftNew.${gkey(P)}` : 'person.pending.draft') : (created ? `person.pending.sentNew.${gkey(P)}` : 'person.pending.sent');
   return h('div', { class: ['notice', kind === 'draft' ? 'notice-warning' : 'notice-info', 'person-pending', `person-pending-${kind}`], attrs: { role: 'status' } },
     icon(kind === 'draft' ? 'send' : 'info'),
     h('div', { class: 'person-pending-body' },
@@ -319,7 +347,7 @@ function header(P) {
         h('h1', { class: 'person-name' }, bdi(main)),
         other && other !== main ? h('p', { class: 'person-name-other', lang: otherLang(), dir: otherLang() === 'ar' ? 'rtl' : 'ltr' }, other) : null,
         lineage && lineage !== main ? h('p', { class: 'person-lineage' }, bdi(lineage)) : null,
-        nick ? h('p', { class: 'person-nick' }, t('person.knownAs', { nick: '' }), bdi(nick)) : null,
+        nick ? h('p', { class: 'person-nick' }, t(`person.knownAs.${gkey(P)}`, { nick: '' }), bdi(nick)) : null,
         h('div', { class: 'person-badges' },
           years ? h('span', { class: 'person-years' }, years) : null,
           ...badges(P),
@@ -355,7 +383,17 @@ function spousesSection(P) {
   const spouses = graph.spouses(P.id);
   return sectionCard('spouses', 'heart', spouses.length > 1 ? t('person.spousesMany') : t('person.spouses'), spouses.length > 1 ? spouses.length : 0,
     spouses.length
-      ? h('div', { class: 'person-rel-grid' }, spouses.map((s) => relChip(s.person, spouseRole(P, s.person, s.union), marriageText(s.union) || null)))
+      ? h('div', { class: 'person-rel-grid' }, spouses.map((s) => {
+        const chip = relChip(s.person, spouseRole(P, s.person, s.union), marriageText(s.union) || null);
+        if (isUnionId(s.union?.id) || /^newu\d+$/.test(s.union?.id || '')) {
+          chip.append(h('button', {
+            type: 'button', class: 'btn btn-sm btn-ghost person-marriage-btn',
+            attrs: { 'aria-label': `${t('person.marriageDetails')} — ${nameOf(s.person)}` },
+            on: { click: () => call(openMarriageDetails, P.id, s.union.id) },
+          }, icon('edit', { size: 14 }), h('span', null, t('person.marriageDetails'))));
+        }
+        return chip;
+      }))
       : emptyLine(t('person.addSpouse'), () => call(openAddRelative, P.id, 'spouse')));
 }
 
@@ -457,7 +495,7 @@ function detailsSection(P) {
     extras.push(h('div', { class: 'notice notice-warning person-needs' }, icon('info'),
       h('div', null,
         h('p', { class: 'person-needs-title' }, t('person.needsInfo')),
-        P.needsInfo ? h('p', { class: 'small', dir: 'auto' }, P.needsInfo) : null,
+        ...bilingualParts(P.needsInfo).map((part, i) => h('p', { class: ['small', i ? 'muted' : ''], dir: 'auto' }, part)),
         h('button', { type: 'button', class: 'btn btn-sm', on: { click: () => call(openEditPerson, P.id) } }, icon('edit', { size: 16 }), t('person.iKnow')))));
   }
   const dup = P.duplicateOf ? graph.person(P.duplicateOf) : null;

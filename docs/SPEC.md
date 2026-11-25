@@ -276,8 +276,8 @@ back to the English text) · `displayName(p, lang, graph?)`: known → name (+ "
 unknown/withheld → nickname, else a polite relational label using graph: wife "زوجة X"/"Wife of X" (withheld wife: "حرم X"), daughter
 "ابنة X" (withheld: "كريمة X"), son "ابن X", unknown gender "أحد أبناء X"/"Child of X", else "غير معروف"/"Unknown"; plus surname
 when present · `fullName(p, lang, graph?)` (displayName + surname verbatim, never adds آل/Al-) · `lineageName(graph, id, lang,
-{depth:3, style})`: style `"plain"` (default from `config.lineageStyle`) → "محمد حسن سالم عالم" / "Mohammed Hassan Salem Alem";
-`"bin"` → "محمد بن حسن بن سالم عالم" / "Mohammed bin Hassan bin Salem Alem" (بنت/bint for women; kunya-only ancestor in genitive
+{depth:3, style})`: style `"plain"` (default from `config.lineageStyle`) → "محمد حسن سالم عالم" / "Mohammed Hassan Salem Alam";
+`"bin"` → "محمد بن حسن بن سالم عالم" / "Mohammed bin Hassan bin Salem Alam" (بنت/bint for women; kunya-only ancestor in genitive
 after بن: أبو→أبي). Follows ONLY a male father (gender m); stops at unknown/withheld/absent father; surname = the first non-empty
 surname along the whole paternal chain (unbounded) · `initials` · `normalizeArabic` (strip tashkeel/tatweel; أإآٱ→ا; ة→ه; ى→ي; ؤ→و;
 ئ→ي; "عبد ال"≡"عبدال"; "ابو "≡"ابو") · `searchKey(s)` · `skeletonKey(s)`: shared consonant skeleton for Arabic, Latin and Arabizi
@@ -340,7 +340,7 @@ Before any send, a mandatory notice: "Everything you send will be public on the 
 1. **Primary: "Send to {owner.name} on WhatsApp"** — `https://wa.me/<owner.whatsapp>?text=…` (digits only). If no number is configured the
    button opens `https://wa.me/?text=…` and the label says "choose {owner.name} in WhatsApp" (never presented as automatic).
    Text: greeting; submitter name & relation; up to 10 describe lines (+ "…and {n} more"); proposal id; blank line;
-   "رمز التعديلات — لا تغيّره / Change code — do not edit"; the code alone on its own line inside ``` fences. If the text exceeds
+   "رمز التعديلات — يُرجى عدم تغييره / Change code — do not edit"; the code alone on its own line inside ``` fences. If the text exceeds
    4,000 chars → copy to clipboard (precomputed, synchronous) and show paste instructions instead of opening wa.me.
 2. **Other ways** (collapsed): **GitHub issue** (labelled "requires a GitHub account") →
    `https://github.com/<o>/<r>/issues/new?template=family-tree-proposal.yml&title=…&code=…&submitter=…&note=…` measured on the fully
@@ -368,7 +368,7 @@ deletion-request, duplicate, undone`.
 * permissions `contents: read, issues: write`; checkout `persist-credentials: false`; Node 22; actions pinned.
 * Re-fetch the issue via REST (never trust event payload state). Skip closed / `applied` issues and issues without a proposal
   (no comment, no labels). Ensure labels exist. Add `family-tree` (+ `deletion-request` when destructive).
-* proposalHash; fingerprint `fp` = first 6 hex chars. If the hash is in `applied.json` or equals another open issue → say
+* proposalHash; fingerprint `fp` = first 16 hex chars (`fingerprintOf` in ops.js). If the hash is in `applied.json` or equals another open issue → say
   "identical to #N". Dry-run `applyProposal(mode:"final", allowDestructive:true)` with `refMap` from applied.json for `dependsOn`.
 * ONE bot comment (found by marker `<!-- gft-bot:check … -->` AND author `github-actions[bot]`), updated in place, containing: status
   ✅/❌, bilingual errors & warnings, submitter, numbered change lines (1-based op index) in English and Arabic, preview link
