@@ -47,6 +47,8 @@ function biText(obj, lang, kind = 'given') {
   const ar = typeof obj.ar === 'string' ? obj.ar.trim() : '';
   const en = typeof obj.en === 'string' ? obj.en.trim() : '';
   if (lang === 'en') return en || (ar ? autoEnglishOf(ar, kind) : '');
+  // Arabic: never show a Latin-only family name inside Arabic text («علي Alam»); the given name may fall back.
+  if (kind === 'surname') return ar;
   return ar || en;
 }
 
