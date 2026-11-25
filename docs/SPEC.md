@@ -17,7 +17,9 @@ A bilingual (Arabic / English) collaborative family-tree portal:
   they would orphan descendants, are capped per proposal, and need a *separate* approval (`approve-deletion`). Any approval can be
   undone (`/undo`).
 * Spouses who married in can add *their own* families → the model is a graph (unions), not a single tree.
-* Most relatives will use **WhatsApp**, not GitHub: WhatsApp-to-owner is the primary send path; GitHub is optional.
+* Most relatives will use **WhatsApp**, not GitHub: WhatsApp-to-owner is the primary send path; GitHub is optional. When the owner
+  sets up the **e-mail relay** (§5, §6.8), "Send to {owner}" posts the proposal for them and the owner approves by replying to an
+  e-mail — nobody copies codes; WhatsApp then becomes one of the other ways.
 * Privacy & culture: living people's birth dates default to year-only and are *stored* truncated; names may be withheld
   (shown as kunya or polite relational label); divorce is not displayed by default; no crosses for the deceased.
 * Zero build step, zero runtime dependencies: plain HTML + CSS + ES modules. Node ≥ 20 (CI uses 22) for scripts/tests.
@@ -47,6 +49,7 @@ family-tree/
     apply-proposal.mjs  check-proposal.mjs  validate-data.mjs  import-initial.mjs  backup.mjs(optional)
     lib/  github.mjs labels.mjs commands.mjs render.mjs hash.mjs repo.mjs
   tests/   *.test.mjs (node:test)   e2e/smoke.mjs (Playwright, local only)
+  tools/relay/Code.gs          # e-mail relay (Google Apps Script web app + 5-minute trigger, run by the owner) — §5, §6.8
   docs/    SPEC.md  OWNER-GUIDE.md
 .github/
   workflows/family-tree-check.yml     # issues opened/edited/reopened → dry-run + bot comment
@@ -332,29 +335,49 @@ Gender-unknown people use neutral forms ("قريب/Relative" fallback with a pat
 **messages.js** — `formatIssue(issue, lang)`; `ISSUE_CODES`. Every code has ar+en text; unknown → generic text with code.
 
 ## 5. Proposal transport (how a proposal reaches the owner)
-The site never writes to GitHub. `submit.js` precomputes (on every draft/sent change) the code and every target URL, and renders each
-option as a plain `<a href>`; click handlers do no async work (iOS/in-app browsers block windows/clipboard after awaits).
+The site never holds a GitHub credential. `submit.js` precomputes (on every draft/sent change) the code and every target URL, and renders
+each link option as a plain `<a href>`; their click handlers do no async work (iOS/in-app browsers block windows/clipboard after awaits).
+The relay send (0.) is the one asynchronous action: a `fetch`, which needs no window or clipboard.
 Before any send, a mandatory notice: "Everything you send will be public on the internet and stays in GitHub's public history /
 كل ما ترسله سيكون مرئياً لأي شخص على الإنترنت ويبقى في سجل GitHub العام" (checkbox acknowledgement, remembered).
 
-1. **Primary: "Send to {owner.name} on WhatsApp"** — `https://wa.me/<owner.whatsapp>?text=…` (digits only). If no number is configured the
+0. **Primary when `config.relayUrl` is set (an https URL): "Send to {owner.name} / إرسال إلى {owner.name}"** — the e-mail relay
+   (`tools/relay/Code.gs`, a Google Apps Script web app the owner deploys; §6.8). `fetch(relayUrl, {method:"POST", body:
+   JSON.stringify(payload), redirect:"follow"})` with NO custom headers (a string body is `text/plain` → no CORS preflight; Apps Script
+   answers through a redirect to googleusercontent.com with `Access-Control-Allow-Origin: *`), 45 s timeout. Payload
+   `{code, title, submitter, note, lang, summary, proposalId, destructive, website}`: `title` = the issue title below (≤120 chars),
+   `submitter` = "name — relation" ≤200, `note` ≤2000, `summary` = describe lines, Arabic list then English list, each numbered from
+   "1. " (the relay starts the English block where the numbering restarts), ≤15 per language (14 + "…and n more"), ≤300 chars each;
+   `website` = a visually hidden honeypot input (must stay empty). Answer `{ok:true, issue, url}` (also for a repeat: the issue already
+   opened) or `{ok:false, error}` (`invalid`, `rate_limited`, `github_error`, `not_configured`, `busy`, `server_error`; network /
+   timeout / http_<n> on the site's side). Sending state on the button ("Sending… / جارٍ الإرسال…"). Success → `store.markSent('relay',
+   {issue})` and the thank-you panel "Sent ✓ — {owner} will review it; you'll see it in the tree once approved" with the request number
+   (no "it was not sent" undo). Failure → an error notice (rate limit → "try again a little later") and the other ways opened, WhatsApp
+   first; the draft stays unsent and the button can retry (the relay folds a repeat into the same issue).
+1. **"Send to {owner.name} on WhatsApp"** — primary only when no relay is configured (else the first of the other ways).
+   `https://wa.me/<owner.whatsapp>?text=…` (digits only). If no number is configured the
    button opens `https://wa.me/?text=…` and the label says "choose {owner.name} in WhatsApp" (never presented as automatic).
    Text: greeting; submitter name & relation; up to 10 describe lines (+ "…and {n} more"); proposal id; blank line;
    "رمز التعديلات — يُرجى عدم تغييره / Change code — do not edit"; the code alone on its own line inside ``` fences. If the text exceeds
    4,000 chars → copy to clipboard (precomputed, synchronous) and show paste instructions instead of opening wa.me.
-2. **Other ways** (collapsed): **GitHub issue** (labelled "requires a GitHub account") →
+2. **Other ways** (collapsed): **GitHub issue** (labelled "(computer) — needs a GitHub account and a computer browser": the GitHub
+   mobile app opens `github.com/…/issues/new` links with the issue form emptied, keeping only the title; §6.2 answers such issues) →
    `https://github.com/<o>/<r>/issues/new?template=family-tree-proposal.yml&title=…&code=…&submitter=…&note=…` measured on the fully
    encoded URL ≤ 7,500 chars (drop note, then submitter, then shorten title to 60; then clipboard fallback); **Email** (if `owner.email`);
    **Copy code**.
-3. After sending, the draft moves to the **sent queue** (§7.3).
-Issue title: `🌳 <describe title>` (prefix `⚠️ ` when destructive), ≤ 120 chars. Relay services are out of scope for v1.
+3. After sending, the draft moves to the **sent queue** (§7.3). With the relay configured, each sent proposal not sent through it offers
+   "Send to {owner}" (relay) besides "Send again" (WhatsApp) — the way out when a GitHub request arrived empty; success records
+   `via:"relay"` and the request number (`store.updateSent`).
+Issue title: `🌳 <describe title>` (prefix `⚠️ ` when destructive), ≤ 120 chars. The relay's owner side (e-mails, replies → commands)
+is §6.8.
 
 ## 6. GitHub automation
 
 ### 6.1 `config.json`
 ```jsonc
-{ "repo": {"owner":"gtsgate","name":"spelling-coach","branch":"main"}, "portalPath":"family-tree",
-  "siteUrl":"https://gtsgate.github.io/spelling-coach/family-tree/",
+{ "repo": {"owner":"gtsgate","name":"family-tree","branch":"main"}, "portalPath":"",
+  "siteUrl":"https://gtsgate.github.io/family-tree/",
+  "relayUrl":"",                       // e-mail relay Web app URL (https://script.google.com/macros/s/…/exec); "" = no relay
   "approvers":["gtsgate"],
   "owner": {"personId":"", "name":{"ar":"…","en":"…"}, "welcome":{"ar":"","en":""}, "whatsapp":"", "email":""},
   "defaultLanguage":"ar", "arabicDigits":false, "arabicMonthNames":"standard", "primaryCalendar":"gregorian",
@@ -367,7 +390,12 @@ deletion-request, duplicate, undone`.
 ### 6.2 Check (`family-tree-check.yml`): `issues: [opened, edited, reopened]` + `workflow_dispatch {issue}`
 * permissions `contents: read, issues: write`; checkout `persist-credentials: false`; Node 22; actions pinned.
 * Re-fetch the issue via REST (never trust event payload state). Skip closed / `applied` issues and issues without a proposal
-  (no comment, no labels). Ensure labels exist. Add `family-tree` (+ `deletion-request` when destructive).
+  (no comment, no labels) — except issues titled like the site's requests (`🌳 …`, or `⚠️ 🌳 …`): opened from the GitHub mobile app,
+  they arrive with the title only. Those get ONE friendly bilingual check comment (marker `hash=none … why=missing-code`: the code did
+  not arrive, probably the GitHub app, which drops the form — please send it again with the site's Send button, from "My proposal")
+  and the label `needs-changes`; re-runs write nothing; if a code is added later, the same comment becomes the normal check and that
+  `needs-changes` is removed. The workflow's job-level `if:` therefore also passes `startsWith(github.event.issue.title, '🌳')` /
+  `contains(github.event.issue.title, '🌳')`. Ensure labels exist. Add `family-tree` (+ `deletion-request` when destructive).
 * proposalHash; fingerprint `fp` = first 16 hex chars (`fingerprintOf` in ops.js; 64 bits — a 6-char/24-bit fp could be ground in
   seconds). If the hash is in `applied.json` or equals another open issue → say
   "identical to #N". Dry-run `applyProposal(mode:"final", allowDestructive:true)` with `refMap` from applied.json for `dependsOn`.
@@ -451,6 +479,44 @@ does not name the `/undo`, so the sweep (§6.3) retries it.
 (not undone) entry is the one `dependsOn` resolves to; a different proposal re-using that id is refused by check and apply.
 ### 6.7 Backup (`family-tree-backup.yml`): weekly (`41 2 * * 5`) + dispatch: release `data-YYYY-MM-DD` with family.json, changelog.json,
 applied.json attached; keep the latest 12 data releases.
+
+### 6.8 E-mail relay (`tools/relay/Code.gs`, Google Apps Script V8, one file, no libraries)
+Owner-run glue between the site, Gmail and the workflows above; it never decides anything itself. Script Properties: `GITHUB_TOKEN`
+(the owner's fine-grained PAT: only this repository, Issues read & write), `REPO`, `SITE_URL`, `OWNER_EMAIL` (optional; default the
+account running the script). `setup()` validates them, tests GitHub (`GET /repos/{REPO}`), installs ONE 5-minute `checkReplies`
+trigger and sends a test e-mail; `stopRelay()` removes the trigger; `doGet` → `{ok:true}` health.
+* **doPost** (web app, Execute as: Me, Anyone): strict validation (code `/^GFT[01]:[A-Za-z0-9_-]+(\.[0-9a-z]{1,7})?$/` after removing
+  whitespace, ≤60,000, CRC checked; title ≤120, submitter ≤200, note ≤2000, summary ≤30 lines ≤300 — lengths in characters;
+  proposalId `/^[a-z0-9]{4,32}$/`; lang ar|en; destructive boolean; honeypot empty). A repeat within 24 h (same proposal id or same
+  code) returns the issue already opened. Global rate limit counted on issues opened: ≤10 per hour, ≤40 per day. Creates the issue
+  (`POST /repos/{REPO}/issues`, `Authorization: Bearer`, `Accept: application/vnd.github+json`, `X-GitHub-Api-Version: 2022-11-28`)
+  with the issue-form body layout (`### <code label>` + ```` ```text ```` fence, `### <name label>`, `### <note label>`, `_No response_`
+  when empty; name and note Markdown-escaped like render.mjs#esc) and label `family-tree`, so §6.2 parses it like a form issue. Then
+  one plain-text e-mail to the owner (subject `🌳 [GFT #<n>] <title>`; Arabic then English: submitter, the site's change lines marked
+  as described by the sender's browser, a ⚠️ paragraph and «موافق حذف» instructions when the payload says destructive, note, preview
+  link `<siteUrl>#/preview/<n>`, issue link, reply instructions; untrusted text cleaned of control/bidi characters, links defused;
+  last line `gft-relay:<n>`), and remembers `{n, thread, relay message ids, status: pending}`.
+* **checkReplies** (every 5 min; ≤20 requests and ≤4 min per run): in each open request's own Gmail thread, new messages that are not
+  the relay's (known ids, or an unquoted `gft-relay:` line), not drafts, from `OWNER_EMAIL` only, without failed DMARC/SPF/DKIM, and —
+  when `OWNER_EMAIL` is the script's account — found in its Sent mail (`in:sent rfc822msgid:`; a forged From cannot be there; retried
+  for 6 runs while Gmail indexes). The first non-empty, non-quoted line before any "On … wrote:" header/signature is read: digits
+  unified, Arabic letters normalised; approve words (موافق، موافقة، أوافق، نعم، اعتماد، لا مانع، approve, yes, ok …), + حذف/deletion →
+  approve-deletion, رفض/reject/no/لا → reject, تخطي/skip + numbers (ranges, «و»), فرض/force; a pasted bot command is accepted (its
+  fingerprint ignored). Unclear lines (contradictions, negated approval, stray numbers) → the instructions again (≤5 times). The fp and
+  the needed command come from the bot's check comment (author `github-actions[bot]`, marker `gft-bot:check … fp=`; `/approve-deletion`
+  code block or label `deletion-request` → deletion needed); no check comment yet → retry on the next run. Plain approve (without skip)
+  when deletion is needed → an explanation in the thread asking for «موافق حذف», nothing posted. Otherwise it posts
+  `/approve <fp>[ skip 3,5][ force]`, `/approve-deletion <fp>…` or `/reject` as an issue comment with the owner's token (so §6.3 sees
+  an approver's command; the same command is not re-posted within 30 min).
+* **Outcome**: after a command, the bot's `gft-bot:result` comments newer than it are turned into plain text (markers, HTML, Markdown
+  removed) and e-mailed in the same thread: `applied` → "✅ Applied" (people links, "tell them on WhatsApp" link) and done;
+  `rejected` → a short confirmation, done; `duplicate`/`already-applied` → forwarded, done; `retry` → forwarded, still waiting; anything
+  else (needs-changes, deletion approval, fingerprint) → forwarded, and the owner may answer again. A request closed on GitHub otherwise
+  is dropped quietly (checked every 30 min while nothing is pending); a late answer is told it is closed. Finished requests are forgotten
+  after 30 days, repeats after 24 h; unanswered requests are dropped after 90 days.
+* **Notes for §6.2–6.3**: relay issues are authored by the owner's account and relay commands are ordinary approver comments made with
+  a PAT (so they trigger the workflows, unlike `GITHUB_TOKEN`). The relay never adds approval labels and never forwards a relative's
+  text as a command; the fingerprint binds the approval to the version the bot checked.
 
 ## 7. Front-end
 
@@ -551,7 +617,10 @@ Acceptance: self + spouse + 5 children in ≤3 screens and ≤25 taps at 360px. 
 
 ### 7.8 Admin `#/admin` (static tools; real power is GitHub permissions)
 Paste code(s) → preview → **"Create issue and approve"** (issue-form URL with `&labels=family-tree,approve` or `approve-deletion` — GitHub
-honours labels only for users with triage rights) · "Correct this proposal" → loads into draft with `source:{issue, hash}`; the draft page
+honours labels only for users with triage rights; noted "needs a computer browser", as the GitHub app empties the form). With
+`config.relayUrl` set, the primary action is **"Send for approval by e-mail"** instead (same payload as the draft send, §5.0; "Sent ✓ —
+you'll get the e-mail to approve it", or "already sent as request #n"), and the GitHub link becomes the secondary "Or create it on GitHub
+(computer browser only)"; the same holds for the draft page's correction of a pasted code · "Correct this proposal" → loads into draft with `source:{issue, hash}`; the draft page
 then offers "Copy approval comment" (`/approve` + new code) · open proposals list (public REST, handles rate-limit errors) · removed people
 & unions with restore buttons · data health (validateData warnings, duplicatesSuspects) · after approval: "copy thank-you message" (bilingual,
 links) and "weekly family news" generator from the changelog · photo tool: pick image → canvas resize 400px JPEG → download `<pid>.jpg` → open
@@ -571,5 +640,10 @@ links) and "weekly family news" generator from the changelog · photo tool: pick
 * i18n: every registered key exists in both languages; no Arabic string starts with a masculine imperative (§7.1).
 * Scripts: check & apply on fixture events with a fake GitHub client: label/comment/unauthorized/destructive/fp mismatch/edited body/
   duplicate hash/skip/force/dependsOn/undo/reject/push conflict retry.
+* Relay (`tests/relay.test.mjs`): Code.gs in `node:vm` with fakes for UrlFetchApp (backed by the scripts' fake GitHub, with the real
+  check and apply answering), GmailApp, PropertiesService, CacheService, LockService, ContentService, ScriptApp, Session, Utilities:
+  issue-form layout parsed by check.mjs, honeypot, invalid payloads, rate limits, repeats, replies → commands, destructive gating,
+  quoted text, foreign/forged senders, waiting for the check comment, forwarded problems, "✅ Applied", setup.
 * E2E (local): `tests/e2e/smoke.mjs` — serve folder, visit every route in both languages at 360px and 1280px, add a family through the
-  wizard, check the draft, the WhatsApp/GitHub URLs, and that there are no console errors.
+  wizard, check the draft, the WhatsApp/GitHub URLs, the relay send (a routed fake relayUrl: failure → other ways, success → sent with
+  the request number), and that there are no console errors.

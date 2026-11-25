@@ -649,6 +649,123 @@ flow('admin paste → preview ✅ → approve-issue URL (ar, 1280px)', async (br
   await context.close();
 });
 
+flow('e-mail relay: failed send shows the other ways; "Send to {owner}" → sent with the request number (ar, 360px)', async (browser) => {
+  const W = 'relay';
+  const RELAY = 'https://script.google.com/macros/s/AKfy-e2e-relay/exec';
+  const context = await newContext(browser, { lang: 'ar', width: 360, height: 740 });
+  // The site's config with a relayUrl; the relay itself answers from the test (a failure first, then success).
+  const config = JSON.parse(fs.readFileSync(path.join(SITE, 'config.json'), 'utf8'));
+  await context.route((url) => url.hostname === 'localhost' && url.pathname === '/config.json',
+    (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ ...config, relayUrl: RELAY }) }));
+  let answer = { ok: false, error: 'github_error' };
+  const posts = [];
+  await context.route((url) => url.href === RELAY, async (route) => {
+    const req = route.request();
+    posts.push({ method: req.method(), headers: req.headers(), body: req.postData() || '' });
+    await route.fulfill({ status: 200, contentType: 'application/json', headers: { 'access-control-allow-origin': '*' }, body: JSON.stringify(answer) });
+  });
+  const page = await context.newPage();
+  const problems = watch(page);
+  await load(page, `#/p/${LEAF}`);
+  const added = await page.evaluate((id) => globalThis.__gft.addOps([{ op: 'mark', id, mark: 'verified' }]).ok, LEAF);
+  check(added, W, 'could not add a change to the draft');
+  await load(page, '#/draft');
+  check(await page.locator('button.draft-relay').count() === 1, W, 'no "Send to {owner}" button although relayUrl is set');
+  check(/إرسال إلى/.test(await page.locator('button.draft-relay').innerText()), W, 'relay button label');
+  check(await page.locator('a.btn.draft-wa').count() === 0, W, 'WhatsApp is still the primary button');
+  check(await page.locator('#draft-ack').count() === 1, W, 'the public-data notice is missing');
+  check(await page.locator('.draft-hp input[name="website"]').count() === 1, W, 'no honeypot field');
+  await page.check('#draft-ack');
+  await page.waitForFunction(() => !document.querySelector('button.draft-relay')?.disabled, null, { timeout: 10000 });
+  const draftId = await page.evaluate(() => globalThis.__gft.draft.id);
+
+  // (1) The relay fails → error notice, the other ways open (WhatsApp first), the draft stays unsent.
+  await page.click('button.draft-relay');
+  await page.waitForSelector('.draft-relay-error:not([hidden])', { timeout: 10000 });
+  check(await page.locator('details.draft-other[open]').count() === 1, W, 'other ways are not opened after a failed send');
+  const waHref = await page.locator('details.draft-other a.draft-way.draft-wa').getAttribute('href');
+  check(/^https:\/\/wa\.me\//.test(waHref || ''), W, `WhatsApp fallback link is ${String(waHref).slice(0, 40)}`);
+  check(await page.evaluate(() => globalThis.__gft.sent.length) === 0, W, 'a failed send moved the draft to the sent queue');
+  const over = await overflowAt(page);
+  check(!over, W, `horizontal overflow — ${over}`);
+  await shot(page, 'relay-1-failed');
+  check(posts.length === 1, W, `${posts.length} POSTs to the relay`);
+  if (posts[0]) {
+    check(posts[0].method === 'POST', W, `method ${posts[0].method}`);
+    check(/^text\/plain/.test(posts[0].headers['content-type'] || ''), W, `content-type ${posts[0].headers['content-type']} (a preflight would be needed)`);
+    const body = JSON.parse(posts[0].body);
+    check(body.proposalId === draftId && body.website === '' && body.lang === 'ar', W, 'payload id / honeypot / lang');
+    check(Array.isArray(body.summary) && body.summary.length === 2 && /^1\. /.test(body.summary[0]) && /^1\. /.test(body.summary[1]), W, `summary ${JSON.stringify(body.summary)}`);
+    const decoded = await decodeProposal(body.code);
+    check(decoded.id === draftId && decoded.ops.length === 1 && decoded.ops[0].op === 'mark', W, 'payload code does not decode to the draft');
+  }
+
+  // (2) The relay accepts → sent via "relay" with request #7, thank-you panel.
+  answer = { ok: true, issue: 7, url: 'https://github.com/gtsgate/family-tree/issues/7' };
+  await page.click('button.draft-relay');
+  await page.waitForFunction(() => globalThis.__gft.sent.length === 1 && globalThis.__gft.draft.ops.length === 0, null, { timeout: 10000 });
+  await settle(page);
+  const sent = await page.evaluate(() => globalThis.__gft.sent[0]);
+  check(sent.id === draftId && sent.via === 'relay' && sent.issue === 7, W, `sent entry ${sent.id}/${sent.via}/${sent.issue}`);
+  check(await page.locator('.draft-thanks-relay').count() === 1, W, 'no relay thank-you panel');
+  const thanks = await page.locator('.draft-thanks').innerText();
+  check(/أُرسل ✓/.test(thanks) && /#7/.test(thanks), W, `thank-you panel says ${thanks.slice(0, 80)}`);
+  check(await page.locator('.draft-thanks-undo').count() === 0, W, '"it was not sent" offered after a confirmed relay send');
+  await shot(page, 'relay-2-sent');
+  await load(page, '#/me');
+  check(/الإرسال المباشر/.test(await page.locator('#app').innerText()), W, '#/me does not say it was sent directly');
+  check(await page.locator('#app').innerText().then((x) => !/GitHub \(من الحاسوب\)/.test(x)), W, '#/me shows the draft send options');
+
+  // (3) A proposal sent another way (copy code — e.g. a GitHub request that arrived empty) can be sent again through
+  // the relay from the sent list.
+  await page.evaluate((id) => globalThis.__gft.addOps([{ op: 'mark', id, mark: 'needs-info', note: 'سنة الميلاد' }]), LEAF);
+  await load(page, '#/draft');
+  check(/من الحاسوب/.test(await page.locator('details.draft-other').textContent()), W, 'the GitHub option does not say it needs a computer');
+  await page.locator('details.draft-other > summary').click();
+  await page.waitForFunction(() => !document.querySelector('button.draft-way')?.disabled, null, { timeout: 10000 });
+  await page.locator('button.draft-way').click();
+  await page.waitForFunction(() => globalThis.__gft.sent.length === 2, null, { timeout: 5000 });
+  await load(page, '#/draft');
+  check(await page.locator('.draft-sent-relay').count() === 1, W, `${await page.locator('.draft-sent-relay').count()} relay resend buttons (expected 1: only the copied one)`);
+  await page.waitForFunction(() => !document.querySelector('.draft-sent-relay')?.disabled, null, { timeout: 10000 });
+  answer = { ok: true, issue: 8, url: 'https://github.com/gtsgate/family-tree/issues/8' };
+  await page.locator('.draft-sent-relay').click();
+  await page.waitForFunction(() => globalThis.__gft.sent.every((x) => x.via === 'relay'), null, { timeout: 10000 });
+  const resent = await page.evaluate(() => globalThis.__gft.sent.map((x) => x.issue));
+  check(JSON.stringify(resent) === '[7,8]', W, `request numbers ${JSON.stringify(resent)}`);
+  await settle(page);
+  check(await page.locator('.draft-sent-relay').count() === 0, W, 'relay resend still offered after it was sent');
+
+  // (4) Owner: a code pasted on the Admin page is sent for approval by e-mail; GitHub is the computer-only fallback.
+  const { code } = await sampleCode();
+  await load(page, '#/admin');
+  await page.fill('#admin-paste', code);
+  await page.locator('.admin-section .btn-primary', { hasText: 'معاينة' }).first().click();
+  await page.waitForSelector('.preview-relay', { timeout: 10000 });
+  await page.waitForFunction(() => !document.querySelector('.preview-relay')?.disabled, null, { timeout: 10000 });
+  check(!(await page.locator('.preview-approve').getAttribute('class')).includes('btn-primary'), W, 'GitHub link is still the primary owner action');
+  check(/الحاسوب/.test(await page.locator('.preview-owner').innerText()), W, 'GitHub link does not say it needs a computer browser');
+  answer = { ok: true, issue: 9, url: 'https://github.com/gtsgate/family-tree/issues/9' };
+  await page.locator('.preview-relay').click();
+  await page.waitForSelector('.preview-relay-sent', { timeout: 10000 });
+  check(/رقم 9\b/.test(await page.locator('.preview-relay-sent').innerText()), W, 'admin relay send does not show request #9');
+  const adminPost = JSON.parse(posts.at(-1).body);
+  check(adminPost.code === code && adminPost.website === '' && adminPost.summary.length >= 2, W, 'admin relay payload');
+  await page.waitForTimeout(300); // the panel fades in after a re-render
+  await shot(page, 'relay-3-admin');
+  // (5) Owner correcting that pasted code: the draft's correction banner sends through the relay too.
+  await page.locator('.preview-actions .row .btn').nth(1).click(); // "Correct this proposal"
+  await page.waitForSelector('.draft-correction .draft-corr-relay', { timeout: 10000 });
+  await page.waitForFunction(() => !document.querySelector('.draft-corr-relay')?.disabled, null, { timeout: 10000 });
+  answer = { ok: true, issue: 9, duplicate: true, url: 'https://github.com/gtsgate/family-tree/issues/9' };
+  await page.locator('.draft-corr-relay').click();
+  await page.waitForSelector('.draft-corr-relay-sent', { timeout: 10000 });
+  check(/رقم 9\b/.test(await page.locator('.draft-corr-relay-sent').innerText()), W, 'correction relay send does not name request 9');
+  check(await page.locator('.draft-correction a.btn-sm').count() === 1, W, 'no secondary GitHub link in the correction banner');
+  problemsOf(W, problems);
+  await context.close();
+});
+
 // ---------------------------------------------------------------------------------------------------------------
 async function main() {
   await new Promise((resolve, reject) => { httpServer.once('error', reject); httpServer.listen(PORT, '127.0.0.1', resolve); });

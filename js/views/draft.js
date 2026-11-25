@@ -1,15 +1,17 @@
 // My proposal (#/draft) — review & send (docs/SPEC.md §5, §7.3): the numbered list of pending changes (each removable,
-// dependants pruned), problems found by the trial apply, "about you", the mandatory public-data notice, the big
-// "Send to {owner} on WhatsApp" button and the collapsed other ways (GitHub issue, e-mail, copy code). Every link is
-// precomputed by submit.js so click handlers stay synchronous. After a send: a thank-you panel; sent proposals
-// awaiting approval are listed below (with "no longer applies" flags). Owner correction mode (draft.source) offers
-// "Copy approval comment". Also exports helpers used by the wizard (preDraftGraph, draftSummary, opIcon).
+// dependants pruned), problems found by the trial apply, "about you", the mandatory public-data notice, the big send
+// button — "Send to {owner}" through the e-mail relay when config.relayUrl is set, else "Send to {owner} on WhatsApp" —
+// and the collapsed other ways (WhatsApp when the relay is primary, GitHub issue, e-mail, copy code; opened when a relay
+// send fails). Every link is precomputed by submit.js so click handlers stay synchronous (the relay send is a fetch).
+// After a send: a thank-you panel; sent proposals awaiting approval are listed below (with "no longer applies" flags).
+// Owner correction mode (draft.source) offers "Copy approval comment". Also exports helpers used by the wizard
+// (preDraftGraph, draftSummary, opIcon).
 import { h, icon, bdi, toast, modal, confirmDialog, copyText, debounce } from '../dom.js';
 import { t, register, lang } from '../i18n.js';
 import { store } from '../store.js';
 import { personChip, ownerName, nameOf, lineageOf } from '../ui.js';
 import { personPicker } from '../forms/picker.js';
-import { buildSubmission, summarize } from '../submit.js';
+import { buildSubmission, summarize, relayUrl, sendToRelay } from '../submit.js';
 import { formatIssue } from '../core/messages.js';
 import { refNames, opCategory } from '../core/describe.js';
 import { buildGraph } from '../core/graph.js';
@@ -52,9 +54,21 @@ register({
     'draft.sendWhatsappChoose': 'Send on WhatsApp — choose {owner} there',
     'draft.sendHint': 'WhatsApp opens with the message ready — just press send.',
     'draft.sendHintChoose': 'WhatsApp opens with the message ready; choose {owner} as the recipient, then press send.',
+    'draft.relaySend': 'Send to {owner}',
+    'draft.relayHint': 'Your changes go straight to {owner} for review.',
+    'draft.relaySending': 'Sending…',
+    'draft.relayError': 'Sending did not work just now. Please try again, or use one of the ways below.',
+    'draft.relayBusy': 'Many proposals arrived in a short time. Please try again a little later, or use one of the ways below.',
+    'draft.relayInvalid': 'This proposal could not be sent this way. Please use one of the ways below.',
+    'draft.relaySentTitle': 'Sent ✓',
+    'draft.relaySentText': '{owner} will review it — you’ll see it in the tree once approved.',
+    'draft.relayIssue': 'Request number',
+    'draft.viaWhatsapp': 'Send on WhatsApp',
+    'draft.viaWhatsappHint': 'Opens WhatsApp with the message ready.',
+    'draft.hpLabel': 'Leave this field empty',
     'draft.otherWays': 'Other ways to send',
-    'draft.viaGithub': 'Open a request on GitHub',
-    'draft.viaGithubHint': 'Requires a GitHub account.',
+    'draft.viaGithub': 'Open a request on GitHub (computer)',
+    'draft.viaGithubHint': 'Needs a GitHub account and a computer browser — the GitHub app on a phone drops the form.',
     'draft.viaEmail': 'Send by email',
     'draft.viaEmailHint': 'Opens your email app with the message ready.',
     'draft.copyCode': 'Copy the change code',
@@ -88,6 +102,7 @@ register({
     'draft.via.github': 'GitHub',
     'draft.via.email': 'email',
     'draft.via.copy': 'copied code',
+    'draft.via.relay': 'direct send',
     'draft.stale': 'No longer applies — the tree changed since it was sent. {owner} may ask about it.',
     'draft.resend': 'Send again',
     'draft.copyAgain': 'Copy code',
@@ -105,6 +120,13 @@ register({
     'draft.corrCopied': 'Approval comment copied — paste it as a comment on the request.',
     'draft.corrOpen': 'Open request #{n}',
     'draft.corrCreate': 'Create request and approve',
+    'draft.corrTextRelay': 'Adjust the changes, then send them for approval: the e-mail to approve arrives within a minute.',
+    'draft.corrRelay': 'Send for approval by e-mail',
+    'draft.corrRelaySent': 'Sent ✓ (request #{n}) — you’ll get the e-mail to approve it.',
+    'draft.corrRelayDup': 'This proposal was already sent as request #{n}. To replace it with this version, post the approval comment on that request.',
+    'draft.corrCreateDesktop': 'Or create it on GitHub (computer browser only)',
+    'draft.resendRelay': 'Send to {owner}',
+    'draft.resentRelay': 'Sent ✓ · request #{n}',
     'draft.corrStop': 'Stop correcting',
     'draft.corrStopText': 'The changes in the draft will be removed.',
     'draft.fp': 'Fingerprint',
@@ -148,9 +170,21 @@ register({
     'draft.sendWhatsappChoose': 'إرسال عبر واتساب مع اختيار {owner} هناك',
     'draft.sendHint': 'يُفتح واتساب والرسالة جاهزة، ولا يبقى إلا الضغط على زر الإرسال.',
     'draft.sendHintChoose': 'يُفتح واتساب والرسالة جاهزة؛ يكفي اختيار {owner} من جهات الاتصال ثم الإرسال.',
+    'draft.relaySend': 'إرسال إلى {owner}',
+    'draft.relayHint': 'تصل التعديلات إلى {owner} مباشرة للمراجعة.',
+    'draft.relaySending': 'جارٍ الإرسال…',
+    'draft.relayError': 'تعذّر الإرسال الآن. يمكن المحاولة مرة أخرى، أو الإرسال بإحدى الطرق أدناه.',
+    'draft.relayBusy': 'وصلت مقترحات كثيرة في وقت قصير. يمكن المحاولة بعد قليل، أو الإرسال بإحدى الطرق أدناه.',
+    'draft.relayInvalid': 'تعذّر إرسال هذا المقترح بهذه الطريقة. يُرجى استخدام إحدى الطرق أدناه.',
+    'draft.relaySentTitle': 'أُرسل ✓',
+    'draft.relaySentText': 'سيراجعه {owner}، وسيظهر في الشجرة بعد الموافقة عليه.',
+    'draft.relayIssue': 'رقم الطلب',
+    'draft.viaWhatsapp': 'الإرسال عبر واتساب',
+    'draft.viaWhatsappHint': 'يُفتح واتساب والرسالة جاهزة.',
+    'draft.hpLabel': 'يُترك هذا الحقل فارغاً',
     'draft.otherWays': 'طرق أخرى للإرسال',
-    'draft.viaGithub': 'فتح طلب على GitHub',
-    'draft.viaGithubHint': 'يتطلّب حساباً على GitHub.',
+    'draft.viaGithub': 'فتح طلب على GitHub (من الحاسوب)',
+    'draft.viaGithubHint': 'يتطلّب حساباً على GitHub ومتصفح الحاسوب، لأن تطبيق GitHub على الجوال يحذف محتوى النموذج.',
     'draft.viaEmail': 'الإرسال بالبريد الإلكتروني',
     'draft.viaEmailHint': 'يُفتح تطبيق البريد والرسالة جاهزة.',
     'draft.copyCode': 'نسخ رمز التعديلات',
@@ -184,6 +218,7 @@ register({
     'draft.via.github': 'GitHub',
     'draft.via.email': 'البريد الإلكتروني',
     'draft.via.copy': 'نسخ الرمز',
+    'draft.via.relay': 'الإرسال المباشر',
     'draft.stale': 'لم يعد قابلاً للتطبيق — تغيّرت الشجرة منذ إرساله، وقد يتواصل {owner} بشأنه.',
     'draft.resend': 'إعادة الإرسال',
     'draft.copyAgain': 'نسخ الرمز',
@@ -201,6 +236,13 @@ register({
     'draft.corrCopied': 'نُسخ تعليق الموافقة، ويكفي إلصاقه تعليقاً على الطلب.',
     'draft.corrOpen': 'فتح الطلب رقم {n}',
     'draft.corrCreate': 'إنشاء الطلب والموافقة عليه',
+    'draft.corrTextRelay': 'بعد ضبط التعديلات يُرسل المقترح للموافقة، وتصل رسالة الموافقة بالبريد خلال دقيقة.',
+    'draft.corrRelay': 'إرسال للموافقة بالبريد',
+    'draft.corrRelaySent': 'أُرسل ✓ (الطلب رقم {n}) — ستصل رسالة البريد للموافقة عليه.',
+    'draft.corrRelayDup': 'سبق إرسال هذا المقترح في الطلب رقم {n}. لاعتماد هذه النسخة بدلاً منه، يُنشر تعليق الموافقة على ذلك الطلب.',
+    'draft.corrCreateDesktop': 'أو إنشاؤه على GitHub (من متصفح الحاسوب فقط)',
+    'draft.resendRelay': 'إرسال إلى {owner}',
+    'draft.resentRelay': 'أُرسل ✓ · الطلب رقم {n}',
     'draft.corrStop': 'إنهاء التصحيح',
     'draft.corrStopText': 'ستُحذف التعديلات الموجودة في المسودة.',
     'draft.fp': 'البصمة',
@@ -219,7 +261,9 @@ const BIG_CODE = 50000;
 // ---------------------------------------------------------------------------------------------------------------
 // Module state (survives re-renders)
 let ackChecked = readAck();
-let justSent = null;          // {id, via} — thank-you panel after a send
+let justSent = null;          // {id, via, issue?} — thank-you panel after a send
+let relay = { id: null, status: 'idle', error: '' }; // e-mail relay send of draft `id`: idle | sending | error | sent
+const resending = new Set(); // ids of sent proposals being sent again through the relay
 let pickingMe = false;        // "change" pressed on the submitter person
 let sub = null;               // precomputed submission of the draft
 let subKey = '';
@@ -368,6 +412,71 @@ function onCopy(e) {
   afterSend('copy');
 }
 
+/** Text for a failed relay send (the other ways are opened below it). */
+function relayErrorText(code) {
+  if (code === 'rate_limited' || code === 'busy') return t('draft.relayBusy');
+  if (code === 'invalid') return t('draft.relayInvalid');
+  return t('draft.relayError');
+}
+
+/** "Send to {owner}" through the e-mail relay: POST, then the thank-you panel — or the error with the other ways. */
+function onRelay(e) {
+  const s = guard(e);
+  if (!s || !s.relay) return;
+  const id = store.draft.id;
+  if (relay.id === id && relay.status === 'sending') return;
+  const payload = { ...s.relay.payload, website: els.hp ? els.hp.value : '' };
+  relay = { id, status: 'sending', error: '' };
+  applyLinks();
+  sendToRelay(s.relay.url, payload).then((res) => {
+    if (!res.ok) {
+      relay = { id, status: 'error', error: res.error };
+      applyLinks();
+      return;
+    }
+    relay = { id: null, status: 'idle', error: '' };
+    if (store.draft.id === id && store.draft.ops.length) {
+      justSent = { id, via: 'relay', issue: res.issue };
+      store.markSent('relay', { issue: res.issue }); // re-renders → thank-you panel
+    } else {
+      toast(`${t('draft.relaySentTitle')} · #${res.issue}`, { type: 'success' });
+      applyLinks();
+    }
+  });
+}
+
+/** Owner correcting a pasted code: send the corrected proposal through the relay (approval then comes by e-mail). */
+function onCorrRelay() {
+  const s = currentSub();
+  if (!s?.relay) { toast(t('draft.preparing')); return; }
+  const id = store.draft.id;
+  if (relay.id === id && relay.status === 'sending') return;
+  relay = { id, status: 'sending', error: '' };
+  rerender();
+  sendToRelay(s.relay.url, { ...s.relay.payload, website: '' }).then((res) => {
+    relay = res.ok ? { id, status: 'sent', error: '', issue: res.issue, duplicate: res.duplicate } : { id, status: 'error', error: res.error };
+    rerender();
+  });
+}
+
+/** A sent proposal, sent again through the relay (e.g. the GitHub app had dropped the form). */
+function resendRelay(entry) {
+  const cur = sentSubs.get(`${entry.id}|${lang()}`);
+  if (!cur?.relay || resending.has(entry.id)) return;
+  resending.add(entry.id);
+  rerender();
+  sendToRelay(cur.relay.url, { ...cur.relay.payload, website: '' }).then((res) => {
+    resending.delete(entry.id);
+    if (res.ok) {
+      store.updateSent(entry.id, { via: 'relay', issue: res.issue }); // re-renders
+      toast(t('draft.resentRelay', { n: res.issue }), { type: 'success' });
+    } else {
+      toast(relayErrorText(res.error), { type: 'error' });
+      rerender();
+    }
+  });
+}
+
 function copiedDialog(title, text, value, copying) {
   const failed = h('p', { class: 'notice notice-warning draft-copy-failed', hidden: true }, t('draft.copyFailed'));
   const area = h('textarea', { class: 'textarea draft-copy-area', readOnly: true, rows: 4, dir: 'ltr', attrs: { 'aria-label': title } });
@@ -415,9 +524,25 @@ function applyLinks() {
   setLink(els.gh, s ? s.github.url : null);
   setLink(els.email, s && s.email ? s.email.url : null);
   if (els.copy) { els.copy.disabled = !ready; els.copy.classList.toggle('is-preparing', !s); }
+  if (els.relay) {
+    const cur = relay.id === store.draft.id ? relay : { status: 'idle', error: '' };
+    const sending = cur.status === 'sending';
+    els.relay.disabled = !ready || sending || !s?.relay;
+    els.relay.classList.toggle('is-preparing', !s);
+    els.relay.setAttribute('aria-busy', sending ? 'true' : 'false');
+    if (els.relayIcon) els.relayIcon.hidden = sending;
+    if (els.relaySpin) els.relaySpin.hidden = !sending;
+    if (els.relayLabel) els.relayLabel.textContent = sending ? t('draft.relaySending') : t('draft.relaySend', { owner: ownerName() });
+    if (els.relayError) {
+      els.relayError.hidden = cur.status !== 'error';
+      els.relayErrorP.textContent = cur.status === 'error' ? relayErrorText(cur.error) : '';
+    }
+    if (els.other && cur.status === 'error') els.other.open = true;
+  }
   if (els.fp) els.fp.textContent = s ? s.fp : '…';
   if (els.corrCopy) els.corrCopy.disabled = !s;
   if (els.corrCreate) setLinkAlways(els.corrCreate, s ? s.approveIssueUrl : null);
+  if (els.corrRelay) els.corrRelay.disabled = !s?.relay || (relay.id === store.draft.id && relay.status === 'sending');
   if (els.big && s) {
     const big = !s.tooBig && (store.draft.ops.length >= BIG_OPS || s.code.length >= BIG_CODE);
     els.big.hidden = !big;
@@ -443,15 +568,20 @@ function pageHead() {
 
 function thankYou() {
   const entry = store.sent.find((s) => s.id === justSent.id);
-  return h('section', { class: 'card draft-thanks', attrs: { 'aria-labelledby': 'draft-thanks-title', role: 'status' } },
+  const viaRelay = justSent.via === 'relay';
+  const issue = Number(justSent.issue || entry?.issue) || null;
+  return h('section', { class: ['card', 'draft-thanks', viaRelay ? 'draft-thanks-relay' : ''], attrs: { 'aria-labelledby': 'draft-thanks-title', role: 'status' } },
     h('div', { class: 'draft-thanks-mark', attrs: { 'aria-hidden': 'true' } }, icon('check', { size: 30 })),
-    h('h2', { id: 'draft-thanks-title' }, t('draft.sentTitle')),
-    h('p', null, t('draft.sentText', { owner: ownerName() })),
-    h('p', { class: 'draft-thanks-id' }, h('span', { class: 'muted' }, t('draft.sentId')), ' ', h('code', { class: 'kbd', dir: 'ltr' }, justSent.id)),
+    h('h2', { id: 'draft-thanks-title' }, viaRelay ? t('draft.relaySentTitle') : t('draft.sentTitle')),
+    h('p', null, viaRelay ? t('draft.relaySentText', { owner: ownerName() }) : t('draft.sentText', { owner: ownerName() })),
+    viaRelay && issue
+      ? h('p', { class: 'draft-thanks-id draft-thanks-issue' }, h('span', { class: 'muted' }, t('draft.relayIssue')), ' ', h('code', { class: 'kbd', dir: 'ltr' }, `#${issue}`))
+      : h('p', { class: 'draft-thanks-id' }, h('span', { class: 'muted' }, t('draft.sentId')), ' ', h('code', { class: 'kbd', dir: 'ltr' }, justSent.id)),
     h('div', { class: 'row draft-thanks-actions' },
       h('a', { class: 'btn btn-primary', href: '#/me' }, icon('user'), t('draft.sentMe')),
       h('a', { class: 'btn', href: '#/add-family' }, icon('plus'), t('draft.sentMore')),
-      entry ? h('button', {
+      // A relay send certainly arrived (the relay answered with the request number): nothing to bring back.
+      entry && !viaRelay ? h('button', {
         type: 'button', class: 'btn btn-ghost btn-sm draft-thanks-undo',
         on: {
           click: () => {
@@ -489,17 +619,33 @@ function correctionBanner() {
       },
     },
   }, icon('copy'), t('draft.corrCopy'));
-  const corrCreate = h('a', { class: 'btn btn-primary', target: '_blank', rel: 'noopener', attrs: { 'aria-disabled': 'true' } }, icon('github'), t('draft.corrCreate'));
+  // A pasted code being corrected: through the e-mail relay when configured (GitHub then only from a computer browser).
+  const relayOn = !issue && !!relayUrl(store.config);
+  const st = relay.id === store.draft.id ? relay : { status: 'idle' };
+  const corrCreate = h('a', { class: relayOn ? 'btn btn-sm' : 'btn btn-primary', target: '_blank', rel: 'noopener', attrs: { 'aria-disabled': 'true' } },
+    icon('github'), relayOn ? t('draft.corrCreateDesktop') : t('draft.corrCreate'));
+  const corrRelay = relayOn && st.status !== 'sent'
+    ? h('button', { type: 'button', class: 'btn btn-primary draft-corr-relay', disabled: true, attrs: { 'aria-busy': st.status === 'sending' ? 'true' : 'false' }, on: { click: onCorrRelay } },
+      st.status === 'sending' ? h('span', { class: 'spinner draft-relay-spin', attrs: { 'aria-hidden': 'true' } }) : icon('send'),
+      st.status === 'sending' ? t('draft.relaySending') : t('draft.corrRelay'))
+    : null;
+  const corrRelayNote = !relayOn ? null
+    : st.status === 'sent'
+      ? h('p', { class: 'draft-corr-relay-sent', attrs: { role: 'status' } }, st.duplicate ? t('draft.corrRelayDup', { n: st.issue }) : t('draft.corrRelaySent', { n: st.issue }))
+      : st.status === 'error' ? h('p', { class: 'field-error draft-corr-relay-error', attrs: { role: 'alert' } }, relayErrorText(st.error)) : null;
   els.corrCopy = issue ? corrCopy : null;
   els.corrCreate = issue ? null : corrCreate;
+  els.corrRelay = corrRelay;
   return h('section', { class: 'notice notice-info draft-correction', attrs: { 'aria-labelledby': 'draft-corr-title' } },
     icon('edit'),
     h('div', { class: 'stack stack-sm' },
       h('h2', { id: 'draft-corr-title', class: 'draft-correction-title' }, issue ? t('draft.corrTitle', { n: issue }) : t('draft.corrTitleCode')),
-      h('p', null, issue ? t('draft.corrText') : t('draft.corrTextCode')),
+      h('p', null, issue ? t('draft.corrText') : relayOn ? t('draft.corrTextRelay') : t('draft.corrTextCode')),
       src.hash ? h('p', { class: 'small muted' }, t('draft.fp'), ': ', h('code', { dir: 'ltr' }, fingerprintOf(src.hash))) : null,
+      corrRelayNote,
       h('div', { class: 'row' },
-        issue ? corrCopy : corrCreate,
+        issue ? corrCopy : relayOn ? corrRelay : corrCreate,
+        relayOn ? corrCreate : null,
         issue ? h('a', { class: 'btn', href: store.repoUrl(`/issues/${issue}`), target: '_blank', rel: 'noopener' }, icon('github'), t('draft.corrOpen', { n: issue })) : null,
         h('button', {
           type: 'button', class: 'btn btn-ghost btn-danger btn-sm',
@@ -639,10 +785,33 @@ function sendCard() {
     h('label', { class: 'check draft-ack', for: 'draft-ack' }, ack, h('span', null, t('draft.publicAck'))),
     ackError);
 
-  const wa = h('a', {
-    class: 'btn btn-primary btn-lg btn-block draft-wa', target: '_blank', rel: 'noopener',
-    attrs: { 'aria-disabled': 'true', 'aria-describedby': 'draft-wa-hint' }, on: { click: onWhatsapp },
-  }, icon('whatsapp', { size: 22 }), h('span', null, hasNumber ? t('draft.sendWhatsapp', { owner }) : t('draft.sendWhatsappChoose', { owner })));
+  // With the e-mail relay configured, "Send to {owner}" is the primary action and WhatsApp joins the other ways.
+  const relayOn = !!relayUrl(store.config);
+  const relayIcon = h('span', { class: 'draft-relay-icon', attrs: { 'aria-hidden': 'true' } }, icon('send', { size: 22 }));
+  const relaySpin = h('span', { class: 'spinner draft-relay-spin', hidden: true, attrs: { 'aria-hidden': 'true' } });
+  const relayLabel = h('span', { class: 'draft-relay-label' }, t('draft.relaySend', { owner }));
+  const relayBtn = relayOn
+    ? h('button', {
+      type: 'button', class: 'btn btn-primary btn-lg btn-block draft-relay', disabled: true,
+      attrs: { 'aria-describedby': 'draft-wa-hint' }, on: { click: onRelay },
+    }, relayIcon, relaySpin, relayLabel)
+    : null;
+  const relayErrorP = h('p', null);
+  const relayError = relayOn
+    ? h('div', { class: 'notice notice-danger draft-relay-error', hidden: true, attrs: { role: 'alert' } }, icon('warning'), relayErrorP)
+    : null;
+  // Honeypot for form-filling robots: hidden from people and assistive technology, must stay empty.
+  const hpInput = h('input', { type: 'text', name: 'website', class: 'input', tabIndex: -1, autocomplete: 'off', value: '' });
+  const hp = relayOn ? h('div', { class: 'draft-hp', attrs: { 'aria-hidden': 'true' } }, h('label', null, t('draft.hpLabel'), hpInput)) : null;
+  const wa = relayOn
+    ? h('a', { class: 'draft-way draft-wa', target: '_blank', rel: 'noopener', attrs: { 'aria-disabled': 'true' }, on: { click: onWhatsapp } },
+      icon('whatsapp'), h('span', { class: 'draft-way-text' },
+        h('span', null, hasNumber ? t('draft.viaWhatsapp') : t('draft.sendWhatsappChoose', { owner })),
+        h('small', null, hasNumber ? t('draft.viaWhatsappHint') : t('draft.sendHintChoose', { owner }))))
+    : h('a', {
+      class: 'btn btn-primary btn-lg btn-block draft-wa', target: '_blank', rel: 'noopener',
+      attrs: { 'aria-disabled': 'true', 'aria-describedby': 'draft-wa-hint' }, on: { click: onWhatsapp },
+    }, icon('whatsapp', { size: 22 }), h('span', null, hasNumber ? t('draft.sendWhatsapp', { owner }) : t('draft.sendWhatsappChoose', { owner })));
   const gh = h('a', { class: 'draft-way', target: '_blank', rel: 'noopener', attrs: { 'aria-disabled': 'true' }, on: { click: onGithub } },
     icon('github'), h('span', { class: 'draft-way-text' }, h('span', null, t('draft.viaGithub')), h('small', null, t('draft.viaGithubHint'))));
   const email = store.config?.owner?.email
@@ -655,14 +824,21 @@ function sendCard() {
   const tooBig = h('div', { class: 'notice notice-danger', hidden: store.draft.ops.length <= LIMITS.ops, attrs: { role: 'alert' } }, icon('warning'), h('p', null, t('draft.tooBig')));
   const fp = h('code', { dir: 'ltr' }, '…');
 
+  const other = h('details', { class: 'draft-other', open: relayOn && relay.id === store.draft.id && relay.status === 'error' },
+    h('summary', null, t('draft.otherWays')),
+    h('div', { class: 'draft-ways' }, relayOn ? wa : null, gh, email, copy));
+  const hint = relayOn ? t('draft.relayHint', { owner }) : hasNumber ? t('draft.sendHint') : t('draft.sendHintChoose', { owner });
   const sendBox = h('div', { class: ['draft-send-box', ackChecked ? '' : 'is-locked'] },
-    wa,
-    h('p', { id: 'draft-wa-hint', class: 'small muted draft-wa-hint' }, hasNumber ? t('draft.sendHint') : t('draft.sendHintChoose', { owner })),
-    h('details', { class: 'draft-other' },
-      h('summary', null, t('draft.otherWays')),
-      h('div', { class: 'draft-ways' }, gh, email, copy)));
+    relayOn ? relayBtn : wa,
+    h('p', { id: 'draft-wa-hint', class: 'small muted draft-wa-hint' }, hint),
+    relayError,
+    hp,
+    other);
 
-  els = { ...els, wa, gh, email, copy, ack, ackBox, ackError, big, tooBig, fp };
+  els = {
+    ...els, wa, gh, email, copy, ack, ackBox, ackError, big, tooBig, fp, other,
+    relay: relayBtn, relayIcon, relaySpin, relayLabel, relayError, relayErrorP, hp: relayOn ? hpInput : null,
+  };
 
   return h('section', { class: 'card card-accent draft-send', attrs: { 'aria-labelledby': 'draft-send-title' } },
     h('h2', { id: 'draft-send-title' }, t('draft.sendTitle')),
@@ -675,7 +851,7 @@ function sendCard() {
 
 function viaLabel(via) {
   const key = `draft.via.${via}`;
-  return ['whatsapp', 'github', 'email', 'copy'].includes(via) ? t(key) : String(via || '');
+  return ['relay', 'whatsapp', 'github', 'email', 'copy'].includes(via) ? t(key) : String(via || '');
 }
 
 function sentSubmission(entry) {
@@ -691,6 +867,8 @@ function sentSubmission(entry) {
         if (a) { a.href = s.whatsapp.tooLong ? s.whatsapp.plainUrl : s.whatsapp.url; a.removeAttribute('aria-disabled'); }
         const b = row.querySelector('.draft-sent-copy');
         if (b) b.disabled = false;
+        const r = row.querySelector('.draft-sent-relay');
+        if (r && s.relay && !resending.has(entry.id)) r.disabled = false;
       }
     })
     .catch((e) => console.error(e));
@@ -700,6 +878,7 @@ function sentSubmission(entry) {
 function sentList() {
   if (!store.sent.length) return null;
   const owner = ownerName();
+  const relayOn = !!relayUrl(store.config);
   const items = [...store.sent].reverse().map((entry) => {
     const s = sentSubmission(entry);
     const stale = store.sentStale.has(entry.id);
@@ -710,9 +889,14 @@ function sentList() {
         h('p', { class: 'draft-sent-title' }, bdi(summary.title || entry.id)),
         h('p', { class: 'small muted' },
           t('draft.sentOn', { date, via: viaLabel(entry.via) }), ' · ', t('draft.sentChanges', { n: entry.proposal.ops.length }), ' · ',
-          h('code', { dir: 'ltr' }, entry.id)),
+          h('code', { dir: 'ltr' }, entry.issue ? `#${entry.issue}` : entry.id)),
         stale ? h('p', { class: 'draft-sent-stale small' }, icon('warning', { size: 16 }), h('span', null, t('draft.stale', { owner }))) : h('span', { class: 'badge badge-sent' }, t('ui.pendingSent'))),
       h('div', { class: 'row draft-sent-actions' },
+        relayOn && entry.via !== 'relay' ? h('button', {
+          type: 'button', class: 'btn btn-primary btn-sm draft-sent-relay', disabled: !s?.relay || resending.has(entry.id),
+          attrs: { 'aria-busy': resending.has(entry.id) ? 'true' : 'false' }, on: { click: () => resendRelay(entry) },
+        }, resending.has(entry.id) ? h('span', { class: 'spinner draft-relay-spin', attrs: { 'aria-hidden': 'true' } }) : icon('send', { size: 16 }),
+        resending.has(entry.id) ? t('draft.relaySending') : t('draft.resendRelay', { owner })) : null,
         h('a', {
           class: 'btn btn-sm draft-sent-resend', target: '_blank', rel: 'noopener', href: s ? (s.whatsapp.tooLong ? s.whatsapp.plainUrl : s.whatsapp.url) : undefined,
           attrs: { 'aria-disabled': s ? null : 'true' },
@@ -758,6 +942,7 @@ function render(root) {
   els = {};
   const hasOps = store.draft.ops.length > 0;
   if (hasOps && justSent && justSent.id !== store.draft.id) justSent = null;
+  if (relay.id && relay.id !== store.draft.id) relay = { id: null, status: 'idle', error: '' };
   if (justSent && !hasOps && !store.sent.some((s) => s.id === justSent.id)) justSent = null;
   if (!store.me && !store.draft.submitter.personId) pickingMe = false;
 

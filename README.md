@@ -2,7 +2,7 @@
 
 <div dir="rtl">
 
-موقع ثنائي اللغة (العربية والإنجليزية) لشجرة العائلة: يتصفحه الجميع دون تسجيل دخول، ويقترح الأقارب الإضافات والتصحيحات (أفراد، أزواج، أبناء، فروع كاملة)، ثم يوافق عليها المشرف قبل ظهورها. أغلب المقترحات تصل عبر واتساب، ويطبّقها روبوت في GitHub بعد الموافقة، مع إمكانية التراجع عن أي موافقة.
+موقع ثنائي اللغة (العربية والإنجليزية) لشجرة العائلة: يتصفحه الجميع دون تسجيل دخول، ويقترح الأقارب الإضافات والتصحيحات (أفراد، أزواج، أبناء، فروع كاملة)، ثم يوافق عليها المشرف قبل ظهورها. تصل المقترحات إلى المشرف بالبريد الإلكتروني (فيكفي الرد بكلمة «موافق») أو عبر واتساب، ويطبّقها روبوت في GitHub بعد الموافقة، مع إمكانية التراجع عن أي موافقة.
 
 - **الموقع:** https://gtsgate.github.io/family-tree/
 - **دليل المشرف** (الإعداد، الموافقة من الجوال، الأوامر، التراجع، الخصوصية، النسخ الاحتياطية): [docs/OWNER-GUIDE.md](docs/OWNER-GUIDE.md)
@@ -10,7 +10,7 @@
 
 </div>
 
-A bilingual (Arabic / English) family-tree portal: anyone can browse it without logging in; relatives propose additions and corrections (people, spouses, children, whole branches), and nothing changes until an approver says so. Most proposals arrive on WhatsApp; a GitHub Action validates and applies approved ones, and any approval can be undone.
+A bilingual (Arabic / English) family-tree portal: anyone can browse it without logging in; relatives propose additions and corrections (people, spouses, children, whole branches), and nothing changes until an approver says so. Proposals reach the keeper by e-mail (replying “approve” is enough) or on WhatsApp; a GitHub Action validates and applies approved ones, and any approval can be undone.
 
 - **Site:** https://gtsgate.github.io/family-tree/
 - **Owner guide** (setup, approving from a phone, commands, undo, privacy, backups): [docs/OWNER-GUIDE.md](docs/OWNER-GUIDE.md)
@@ -25,6 +25,7 @@ A bilingual (Arabic / English) family-tree portal: anyone can browse it without 
 | Data: people and families, changelog, ledger of applied proposals | `data/family.json`, `data/changelog.json`, `data/applied.json` |
 | Automation scripts (check, apply, validate, backup) | `scripts/` |
 | Workflows and the proposal issue form | `../.github/workflows/family-tree-*.yml`, `../.github/ISSUE_TEMPLATE/family-tree-proposal.yml` |
+| E-mail relay (Google Apps Script the owner deploys: site → issue → e-mail; e-mail reply → `/approve`) | `tools/relay/Code.gs` |
 | Tests (`node:test`) | `tests/` |
 
 ## Working on it

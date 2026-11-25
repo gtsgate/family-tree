@@ -23,6 +23,7 @@ const real = buildGraph(normalizeData(JSON.parse(read('../data/family.json'))));
 const NOT_ISSUE_CODES = new Set([
   'DESTRUCTIVE_OPS', 'ISSUE_CODES', 'ISSUE_TEMPLATE', 'GITHUB_EVENT_PATH', 'NAME_STATUSES', 'PERSON_EDIT_PATHS',
   'REASON_CODES', 'SCHEMA_VERSION', 'TIE_TYPES', 'UNION_EDIT_PATHS', 'UNION_STATUSES', 'UPPER_SNAKE',
+  'GITHUB_TOKEN', 'OWNER_EMAIL', 'SITE_URL', // e-mail relay script properties (§6.8)
 ]);
 const SPEC = read('../docs/SPEC.md');
 const SPEC_CODES = [...new Set([

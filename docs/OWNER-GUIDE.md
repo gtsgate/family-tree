@@ -2,6 +2,140 @@
 
 <div dir="rtl">
 
+## الموافقة بالبريد الإلكتروني — إعداد لمرة واحدة (10 دقائق)
+
+بعد هذا الإعداد يضغط القريب في الموقع زرّاً واحداً: **«إرسال إلى» + اسم المشرف**. فتصل إلى بريد Gmail رسالة لكل مقترح، ويكفي الرد عليها بكلمة واحدة مثل «موافق». لا نسخ للرموز، ولا حاجة إلى فتح GitHub.
+
+**(أ) مفتاح GitHub للوسيط (Fine-grained token)**
+
+1. فتح github.com بحساب `gtsgate`، ثم الصورة الشخصية (أعلى الصفحة) ← **Settings**.
+2. في آخر القائمة الجانبية: **Developer settings** ← **Personal access tokens** ← **Fine-grained tokens** ← **Generate new token**.
+3. **Token name:** ‏`family-tree email relay`. **Expiration:** ‏*Custom* ثم تاريخ بعد سنة من اليوم، مع وضع تذكير في التقويم قبله بأسبوع (انظر «تغيير المفتاح أو تجديده» أدناه).
+4. **Repository access:** ‏*Only select repositories* ثم اختيار **family-tree**.
+5. **Permissions** ← **Repository permissions** ← **Issues** ← ‏*Read and write*. (تُضاف صلاحية Metadata للقراءة تلقائياً.) لا شيء غير ذلك.
+6. **Generate token** ثم نسخ المفتاح (يبدأ بـ `github_pat_`). لا يظهر إلا مرة واحدة، لذا تبقى الصفحة مفتوحة حتى الخطوة (ب) 4.
+
+**(ب) الوسيط في Google Apps Script** (بحساب Google الذي يُراد وصول المقترحات إلى بريده)
+
+1. فتح https://script.google.com ← **New project**.
+2. الضغط على «Untitled project» أعلى الصفحة، وتسمية المشروع `Family tree relay`.
+3. فتح https://raw.githubusercontent.com/gtsgate/family-tree/main/tools/relay/Code.gs ونسخ كل ما فيه، ثم وضعه مكان كل محتوى الملف `Code.gs` في المحرر، ثم الحفظ (💾 أو Ctrl+S).
+4. **Project Settings** (رمز الترس ⚙️ في القائمة الجانبية) ← **Script properties** ← **Add script property** ثلاث مرات:
+
+   | Property | Value |
+   |---|---|
+   | `GITHUB_TOKEN` | المفتاح المنسوخ في (أ) 6 |
+   | `REPO` | `gtsgate/family-tree` |
+   | `SITE_URL` | `https://gtsgate.github.io/family-tree/` |
+
+   ثم **Save script properties**. (اختياري: `OWNER_EMAIL` إذا كان المطلوب وصول المقترحات إلى عنوان آخر؛ ولا تُقبل الردود إلا من هذا العنوان.)
+5. العودة إلى **Editor** (الرمز `< >` في القائمة الجانبية)، واختيار الدالة **setup** من القائمة أعلى المحرر ← **Run**.
+6. تطلب Google الإذن: **Review permissions** ← اختيار الحساب ← تظهر صفحة «Google hasn’t verified this app»، وهذا طبيعي لأن البرنامج خاص بالمشرف نفسه ← **Advanced** ← **Go to Family tree relay (unsafe)** ← **Allow**. يتحقق setup من الإعدادات ومن الوصول إلى GitHub، ويشغّل الفحص التلقائي كل 5 دقائق، ويرسل رسالة تجريبية بعنوان «relay is ready». وإن ظهر خطأ فهو يذكر ما يلزم إصلاحه (المفتاح مثلاً).
+7. **Deploy** (أعلى الصفحة) ← **New deployment** ← رمز الترس بجانب «Select type» ← **Web app** ← في Description ‏`relay`، و**Execute as:** ‏*Me*، و**Who has access:** ‏*Anyone* ← **Deploy** (مع السماح مرة أخرى إن طُلب) ← نسخ **Web app URL** (ينتهي بـ `/exec`).
+
+**(ج) ربط الموقع**
+
+- إرسال هذا الرابط إلى Claude، **أو** تعديل `config.json` في GitHub: فتح الملف ← ✏️ ← كتابة الرابط في `"relayUrl": "https://script.google.com/macros/s/…/exec"` ← **Commit changes**.
+- بعد دقائق يصبح الزر الرئيسي في صفحة «مقترحي» هو «إرسال إلى» + اسم المشرف، ويبقى واتساب وGitHub ونسخ الرمز تحت «طرق أخرى للإرسال» (وتُفتح تلقائياً إذا تعذّر الإرسال).
+
+**كل يوم**
+
+- يصل كل مقترح برسالة عنوانها مثل «🌳 [GFT #12] …»، فيها المرسِل وصلة قرابته، والتعديلات مرقّمة، ورابط المعاينة على الموقع ورابط الطلب في GitHub.
+- يكفي الرد على الرسالة بكلمة في **أول سطر**:
+  - **«موافق»** لتطبيق التعديلات؛
+  - **«موافق حذف»** إذا تضمّن المقترح حذفاً أو دمجاً أو تغييراً للوالدين (تذكر الرسالة ذلك بعلامة ⚠️، ولا تكفي «موافق» وحدها عندئذ)؛
+  - **«رفض»** للاعتذار عن المقترح بلطف؛
+  - **«موافق تخطي 3 5»** لتطبيق الباقي دون التعديلين 3 و5.
+- خلال 5 دقائق تقريباً ينشر الوسيط الأمر في GitHub باسم المشرف، فيطبّقه الروبوت، ثم تصل رسالة «✅ طُبّقت التعديلات» في المحادثة نفسها، مع روابط الأشخاص ورابط «إبلاغ صاحب المقترح عبر واتساب». وإن وجد الروبوت مشكلة (يحتاج إلى تصحيح، أو تلزمه موافقة الحذف، أو سبق تطبيقه) تصل رسالته في المحادثة نفسها، ويكفي الرد من جديد.
+- كل ما في GitHub يبقى كما هو: الأوامر في التعليقات، والتراجع `/undo`، وصفحة «الإدارة».
+- **رمز وصل عبر واتساب:** في صفحة «الإدارة» في الموقع يُلصق الرمز ← «معاينة» ← **«إرسال للموافقة بالبريد»**، فتصل رسالة المقترح ويكفي الرد عليها بـ«موافق». (رابط «إنشاء الطلب على GitHub» يعمل من متصفح الحاسوب فقط، لأن تطبيق GitHub على الجوال يفتح النموذج فارغاً.)
+- **طلب وصل فارغاً** (عنوانه «🌳 …» ولا رمز فيه، فُتح من تطبيق GitHub): يكتب الروبوت فيه تعليقاً لطيفاً يطلب إعادة الإرسال من الموقع، ويضيف التصنيف `needs-changes`. يمكن إغلاقه بعد وصول المقترح من جديد.
+
+**تغيير المفتاح أو تجديده**
+
+1. GitHub ← Settings ← Developer settings ← Personal access tokens ← Fine-grained tokens ← اختيار المفتاح ← **Regenerate token** (مع مدة جديدة) ← نسخه. (أو إنشاء مفتاح جديد كما في (أ).)
+2. script.google.com ← المشروع ← **Project Settings** ← **Script properties** ← `GITHUB_TOKEN` ← **Edit script properties** ← لصق المفتاح الجديد ← **Save script properties**. لا يتغيّر شيء آخر: الرابط نفسه والفحص نفسه.
+
+إذا انتهت صلاحية المفتاح يتوقف الوسيط: يرى الأقارب رسالة «تعذّر الإرسال» مع الطرق الأخرى، ولا تُنفَّذ الردود. لذلك يُجدَّد قبل انتهائه.
+
+**إيقاف الوسيط**
+
+- الأسرع: في `config.json` جعل `"relayUrl": ""`، فيعود زر واتساب رئيسياً في الموقع.
+- وفي Apps Script: اختيار الدالة **stopRelay** ← **Run** (تتوقف قراءة الردود)، ثم **Deploy** ← **Manage deployments** ← **Archive** (يتوقف الرابط).
+- حذف المفتاح من GitHub (Fine-grained tokens ← المفتاح ← Delete) إن لم تعد له حاجة.
+
+**الأمان باختصار:** يبقى المفتاح داخل إعدادات المشروع فقط. الوسيط لا يفعل إلا أمرين: فتح طلب لكل مقترح يصله من الموقع، ونشر الأمر المستخلص من رد المشرف نفسه، ولا يقبل الردود إلا من عنوان المشرف وفي محادثة الطلب نفسه. والروبوت في GitHub يتحقق من كل شيء كما في السابق.
+
+</div>
+
+## Email approvals — one-time setup (10 minutes)
+
+After this setup a relative taps one button on the site — **“Send to” + the keeper’s name** — and a Gmail message arrives for each proposal. Replying with one word such as “approve” is enough: nobody copies codes and nobody has to open GitHub.
+
+**(a) A GitHub key for the relay (fine-grained token)**
+
+1. On github.com, signed in as `gtsgate`: profile picture (top right) → **Settings**.
+2. At the bottom of the left menu: **Developer settings** → **Personal access tokens** → **Fine-grained tokens** → **Generate new token**.
+3. **Token name:** `family-tree email relay`. **Expiration:** *Custom* → a date one year from today. Put a reminder in your calendar a week before it (see “Changing or renewing the token” below).
+4. **Repository access:** *Only select repositories* → choose **family-tree**.
+5. **Permissions** → **Repository permissions** → **Issues** → *Read and write*. (Metadata: Read-only is added automatically.) Nothing else.
+6. **Generate token** → copy the token (it starts with `github_pat_`). It is shown only once, so keep the page open until step (b) 4.
+
+**(b) The relay in Google Apps Script** (signed in to the Google account whose Gmail should receive the proposals)
+
+1. Open https://script.google.com → **New project**.
+2. Click “Untitled project” at the top and name it `Family tree relay`.
+3. Open https://raw.githubusercontent.com/gtsgate/family-tree/main/tools/relay/Code.gs, select everything and copy it; in the editor, replace the whole content of `Code.gs` with it; **Save** (💾 or Ctrl+S).
+4. **Project Settings** (⚙️ gear in the left bar) → **Script properties** → **Add script property**, three times:
+
+   | Property | Value |
+   |---|---|
+   | `GITHUB_TOKEN` | the token copied in (a) 6 |
+   | `REPO` | `gtsgate/family-tree` |
+   | `SITE_URL` | `https://gtsgate.github.io/family-tree/` |
+
+   → **Save script properties**. (Optional: `OWNER_EMAIL` if proposals should go to another address; replies are accepted only from that address.)
+5. Back in the **Editor** (`< >` in the left bar), choose **setup** in the function menu at the top → **Run**.
+6. Google asks for permission: **Review permissions** → choose your account → the screen “Google hasn’t verified this app” appears — that is normal, it is your own script → **Advanced** → **Go to Family tree relay (unsafe)** → **Allow**. `setup` checks the settings and the GitHub access, starts the automatic check every 5 minutes and sends you a test email “relay is ready”. If it shows an error instead, the message says what to fix (e.g. the token).
+7. **Deploy** (top right) → **New deployment** → the gear next to “Select type” → **Web app** → Description `relay`; **Execute as:** *Me*; **Who has access:** *Anyone* → **Deploy** (allow again if asked) → copy the **Web app URL** (it ends with `/exec`).
+
+**(c) Connect the site**
+
+- Send that URL to Claude, **or** edit `config.json` on GitHub: open the file → ✏️ → put the URL in `"relayUrl": "https://script.google.com/macros/s/…/exec"` → **Commit changes**.
+- A few minutes later the main button on the “My proposal” page becomes “Send to” + the keeper’s name; WhatsApp, GitHub and “copy code” stay under “Other ways to send” (opened automatically when a send fails).
+
+**Every day**
+
+- Each proposal arrives as an email like “🌳 [GFT #12] …” with the sender and their relation, the numbered changes, a preview link on the site and the GitHub link.
+- Reply with one word on the **first line**:
+  - **«موافق»** or `approve` — apply the changes;
+  - **«موافق حذف»** or `approve deletion` — when the proposal removes, merges or re-parents people (the email says so with ⚠️; a plain “approve” is then not enough);
+  - **«رفض»** or `reject` — decline politely;
+  - **«موافق تخطي 3 5»** or `approve skip 3 5` — apply the rest without changes 3 and 5.
+- Within about 5 minutes the relay posts the command on GitHub in your name, the bot applies it, and “✅ Applied” arrives in the same email conversation with the links to the people and the “Tell them on WhatsApp” link. If the bot finds a problem (needs changes, deletion approval required, already applied), its message arrives in the same conversation — just reply again.
+- Everything on GitHub keeps working as before: comment commands, `/undo`, the Admin page.
+- **A code that came on WhatsApp:** on the site's Admin page paste it → “Preview” → **“Send for approval by e-mail”**; the proposal email arrives and replying “approve” is enough. (The “create it on GitHub” link only works from a computer browser: the GitHub app on a phone opens the form empty.)
+- **A request that arrived empty** (title “🌳 …” but no code — opened from the GitHub app): the bot posts a friendly comment asking for it to be sent again from the site, and adds the `needs-changes` label. Close it once the proposal has arrived again.
+
+**Changing or renewing the token**
+
+1. GitHub → Settings → Developer settings → Personal access tokens → Fine-grained tokens → click the token → **Regenerate token** (pick a new expiration) → copy it. (Or create a new one as in (a).)
+2. script.google.com → the project → **Project Settings** → **Script properties** → **Edit script properties** → paste the new value into `GITHUB_TOKEN` → **Save script properties**. Nothing else changes: same URL, same automatic check.
+
+When the token expires the relay stops: relatives see “Sending did not work” with the other ways, and replies are not carried out. Renew it before it expires.
+
+**Stopping the relay**
+
+- Quickest: set `"relayUrl": ""` in `config.json` — the site goes back to WhatsApp as the main button.
+- In Apps Script: choose **stopRelay** in the function menu → **Run** (replies are no longer read), then **Deploy** → **Manage deployments** → **Archive** (the URL stops working).
+- Delete the token on GitHub (Fine-grained tokens → the token → Delete) if it is no longer needed.
+
+**Security in short:** the token stays in the project’s script properties. The relay does only two things: it opens one request per proposal sent from the site, and it posts the command taken from the keeper’s own reply — accepted only from the keeper’s address, in that request’s own email conversation. The GitHub bot still checks everything as before.
+
+---
+
+<div dir="rtl">
+
 ## دليل مشرف شجرة العائلة
 
 هذا الدليل لمن يدير الشجرة ويوافق على التعديلات. لا يحتاج الأقارب إلى أي شيء منه: هم يقترحون التعديلات من الموقع ويرسلونها عبر واتساب أو GitHub، والمشرف وحده يوافق عليها.
@@ -17,12 +151,15 @@
    - `approvers`: أسماء حسابات GitHub المسموح لها بالموافقة (مثل `["gtsgate"]`).
    - `owner.name`: اسم المشرف كما يظهر للأقارب، و`owner.whatsapp`: رقم واتساب بالأرقام فقط مع رمز الدولة (مثل `9665xxxxxxxx`) ليصل إليه زر «إرسال عبر واتساب» مباشرة.
    - `siteUrl`: رابط الموقع العام (تُبنى منه روابط المعاينة في تعليقات الروبوت).
+   - `relayUrl`: رابط الوسيط (Web app) للموافقة بالبريد، كما في القسم الأول. إذا كان فارغاً يبقى زر واتساب هو الزر الرئيسي.
 5. **التصنيفات (Labels):** تُنشأ تلقائياً عند أول مقترح. ولإنشائها مسبقاً: Actions ← «Family tree · check proposal» ← Run workflow مع رقم أي مقترح.
 6. **التنبيهات على الجوال:** تثبيت تطبيق GitHub Mobile، ثم من صفحة المستودع: Watch ← Custom ← Issues، لتصل التنبيهات عند وصول كل مقترح.
 
 ### ٢. كيف تتم الموافقة من الجوال
 
-1. يُعِدّ القريب تعديلاته في الموقع ثم يرسلها. أغلب الأقارب يرسلونها **عبر واتساب** إلى المشرف؛ وفي هذه الحالة تُفتح صفحة «الإدارة» في الموقع (`#/admin`)، ويُلصق الرمز، ثم يُستخدم زر «إنشاء المقترح والموافقة عليه». ومن لديه حساب GitHub يرسلها مباشرة عبر نموذج المقترحات.
+عند تفعيل الموافقة بالبريد (القسم الأول أعلاه) يكفي الرد على رسالة المقترح؛ وما يلي طريقة الموافقة من GitHub، وهي تعمل دائماً.
+
+1. يُعِدّ القريب تعديلاته في الموقع ثم يرسلها. أغلب الأقارب يرسلونها **عبر واتساب** إلى المشرف؛ وفي هذه الحالة تُفتح صفحة «الإدارة» في الموقع (`#/admin`)، ويُلصق الرمز، ثم يُستخدم زر «إنشاء المقترح والموافقة عليه» (من متصفح الحاسوب، لأن تطبيق GitHub على الجوال يفتح النموذج فارغاً؛ ومع الموافقة بالبريد يُستخدم «إرسال للموافقة بالبريد» بدلاً منه). ومن لديه حساب GitHub يرسلها مباشرة عبر نموذج المقترحات.
 2. خلال دقيقة تقريباً يكتب الروبوت **تعليق مراجعة** واحداً في المقترح (ويحدّثه عند كل تعديل):
    - ✅ جاهز، أو ⚠️ جاهز ويتضمن حذفاً، أو ❌ فيه ما يمنع تطبيقه.
    - قائمة مرقّمة بالتعديلات بالعربية والإنجليزية، والتنبيهات، ورابط **معاينة** على الموقع.
@@ -80,6 +217,7 @@
 
 ### ٩. حل المشكلات
 
+- **طلب عنوانه «🌳 …» بلا رمز:** فُتح من تطبيق GitHub على الجوال، وهو يحذف محتوى النموذج. يردّ الروبوت بتعليق يطلب إعادة الإرسال من الموقع؛ ورابط GitHub في الموقع مخصص لمتصفح الحاسوب.
 - **لم يظهر تعليق الروبوت:** صفحة Actions تعرض سبب الفشل. هل دُمج العمل في main؟ هل Actions مفعّلة؟ هل في المقترح رمز يبدأ بـ `GFT1:`؟
 - **«يلزم تأكيد البصمة»:** عُدّل المقترح بعد مراجعته؛ يكفي نسخ الأمر الذي يقترحه الروبوت.
 - **«تلزم موافقة الحذف»:** المقترح يحذف أو يدمج أو يغيّر الوالدين؛ يُستخدم `/approve-deletion` مع البصمة.
@@ -107,12 +245,15 @@ The automation and the issue form only work once the work is merged into the def
    - `approvers`: GitHub logins allowed to approve (e.g. `["gtsgate"]`).
    - `owner.name`: how relatives see the keeper's name; `owner.whatsapp`: digits only with the country code (e.g. `9665xxxxxxxx`) so “Send on WhatsApp” goes straight to the keeper.
    - `siteUrl`: the public site URL (preview links in bot comments are built from it).
+   - `relayUrl`: the Web app URL of the email relay (first section). Empty = WhatsApp stays the main send button.
 5. **Labels** (`family-tree, approve, approve-deletion, needs-changes, applied, deletion-request, duplicate, undone`) are created automatically on the first proposal. To create them earlier: Actions → *Family tree · check proposal* → *Run workflow* with any issue number.
 6. **Phone notifications:** install GitHub Mobile, then on the repository: Watch → Custom → Issues.
 
 ### 2. How approval works on the phone
 
-1. A relative prepares changes on the site and sends them. Most will send **on WhatsApp**: open the site's Admin page (`#/admin`), paste the code and tap **“Create issue and approve”**. Relatives with a GitHub account can send through the issue form directly.
+With email approvals set up (the first section above), replying to the proposal email is enough; what follows is the GitHub way, which always works.
+
+1. A relative prepares changes on the site and sends them. Most will send **on WhatsApp**: open the site's Admin page (`#/admin`), paste the code and tap **“Create issue and approve”** (from a computer browser — the GitHub app on a phone opens the form empty; with email approvals, use **“Send for approval by e-mail”** instead). Relatives with a GitHub account can send through the issue form directly.
 2. Within about a minute the bot writes **one check comment** on the issue (updated whenever the issue changes):
    - ✅ ready, ⚠️ ready but includes removals, or ❌ something prevents applying it;
    - the numbered changes in Arabic and English, warnings, and a **preview** link to the site;
@@ -170,6 +311,7 @@ To ignore a proposal without replying, just close it.
 
 ### 9. Troubleshooting
 
+- **A “🌳 …” request with no code:** it was opened in the GitHub mobile app, which drops the form. The bot answers asking for it to be sent again from the site; the site's GitHub link is meant for a computer browser.
 - **No bot comment:** the Actions tab shows why. Is the work merged into `main`? Are Actions enabled? Does the issue contain a code starting with `GFT1:`?
 - **“Please confirm the fingerprint”:** the proposal was edited after it was checked — copy the command the bot suggests.
 - **“The deletion approval is needed”:** the proposal removes, merges or re-parents people — use `/approve-deletion` with the fingerprint.

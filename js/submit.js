@@ -9,7 +9,9 @@
 //     email:    { url } | null,                            // only when config.owner.email is set
 //     approveIssueUrl, approve: { url, fits },             // owner: issue form pre-labelled family-tree + approve(-deletion)
 //     approvalComment,                                     // "/approve <fp>\n" + code ("/approve-deletion <fp>" when destructive)
+//     relay: { url, payload } | null,                      // only when config.relayUrl is set (e-mail relay, SPEC §5)
 //   }
+//   sendToRelay(relay.url, {...relay.payload, website}) → {ok:true, issue, url, duplicate} | {ok:false, error} (async send)
 //
 // Pure apart from reading store.config by default (pass `config` to use it without the store, e.g. in tests).
 import { encodeProposal } from './core/codec.js';
@@ -24,6 +26,12 @@ export const ISSUE_TITLE_MAX = 120;
 export const WHATSAPP_LINES = 10;
 export const ISSUE_TEMPLATE = 'family-tree-proposal.yml';
 export const CODE_LABEL = 'رمز التعديلات — يُرجى عدم تغييره / Change code — do not edit';
+// E-mail relay (tools/relay/Code.gs validates the same limits; lengths count characters, not UTF-16 units).
+export const RELAY_LINES_PER_LANG = 15;
+export const RELAY_LINE_MAX = 300;
+export const RELAY_SUBMITTER_MAX = 200;
+export const RELAY_NOTE_MAX = 2000;
+export const RELAY_TIMEOUT_MS = 45000;
 
 const TXT = {
   ar: {
@@ -131,6 +139,69 @@ export function approvalComment(code, { destructive = false, fp = '' } = {}) {
   return `/${destructive ? 'approve-deletion' : 'approve'}${fp ? ` ${fp}` : ''}\n${code}`;
 }
 
+/** config.relayUrl when it is an https URL, else '' (the relay is then not offered). */
+export function relayUrl(config = store.config) {
+  const u = str(config?.relayUrl).trim();
+  return /^https:\/\/[^\s"'<>]+$/.test(u) ? u : '';
+}
+
+/**
+ * Change lines for the relay e-mail: the Arabic list, then the English list, each numbered from 1 (the relay starts the
+ * English block where the numbering restarts) — at most 15 lines per language (14 + "…and n more"), 300 chars each.
+ */
+export function relaySummary(arLines = [], enLines = []) {
+  const block = (lines, l) => {
+    const list = (Array.isArray(lines) ? lines : []).map((x) => str(x).replace(/\s+/g, ' ').trim());
+    const shown = list.length > RELAY_LINES_PER_LANG ? list.slice(0, RELAY_LINES_PER_LANG - 1) : list;
+    const out = shown.map((line, i) => clip(`${i + 1}. ${line}`, RELAY_LINE_MAX));
+    if (list.length > shown.length) out.push(clip(TXT[l].more(list.length - shown.length), RELAY_LINE_MAX));
+    return out;
+  };
+  return [...block(arLines, 'ar'), ...block(enLines, 'en')];
+}
+
+/** The JSON the site POSTs to the relay. `website` is the honeypot field: people never fill it (it is hidden). */
+export function relayPayload({ code = '', title = '', proposal = null, summary = [], lang = 'ar', destructive = false, website = '' } = {}) {
+  return {
+    code,
+    title: clip(title, ISSUE_TITLE_MAX),
+    submitter: clip(submitterText(proposal?.submitter), RELAY_SUBMITTER_MAX),
+    note: clip(str(proposal?.note), RELAY_NOTE_MAX),
+    lang: langOf(lang),
+    summary,
+    proposalId: str(proposal?.id),
+    destructive: !!destructive,
+    website: str(website),
+  };
+}
+
+/**
+ * POST a payload to the relay. No custom headers: a string body is sent as text/plain, so the browser makes no CORS
+ * preflight; Apps Script answers with a redirect to googleusercontent.com, which allows any origin.
+ * → {ok:true, issue, url, duplicate} | {ok:false, error}  (duplicate: this proposal had already been sent — `issue` is that
+ *   request; error: the relay's code, e.g. "rate_limited", or network / timeout / http_<n>)
+ */
+export async function sendToRelay(url, payload, { fetchImpl = globalThis.fetch, timeoutMs = RELAY_TIMEOUT_MS } = {}) {
+  const ctrl = typeof AbortController === 'function' ? new AbortController() : null;
+  const timer = ctrl ? setTimeout(() => ctrl.abort(), timeoutMs) : null;
+  try {
+    const res = await fetchImpl(url, { method: 'POST', body: JSON.stringify(payload), redirect: 'follow', ...(ctrl ? { signal: ctrl.signal } : {}) });
+    let data = null;
+    try { data = await res.json(); } catch { data = null; }
+    const issue = Number(data?.issue);
+    if (data && data.ok === true && Number.isInteger(issue) && issue > 0) {
+      const link = str(data.url);
+      return { ok: true, issue, url: /^https:\/\/github\.com\//.test(link) ? link : '', duplicate: data.duplicate === true };
+    }
+    const code = str(data?.error);
+    return { ok: false, error: /^[a-z_]{1,40}$/.test(code) ? code : res.ok ? 'bad_response' : `http_${res.status}` };
+  } catch (e) {
+    return { ok: false, error: e?.name === 'AbortError' ? 'timeout' : 'network' };
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
+
 /** Whole-proposal summary in a language (describe.js against `graph`, the data the proposal applies to). */
 export function summarize(proposal, graph, lang) {
   try { return describeProposal(proposal, graph || null, langOf(lang)); } catch { return { title: '', lines: [], destructive: isDestructive(proposal), counts: {} }; }
@@ -168,6 +239,15 @@ export async function buildSubmission(proposal, { graph = null, lang = 'ar', des
   // Owner: create the request already labelled for approval (GitHub honours labels only for users with triage rights).
   const approve = issueUrl({ title, code: theCode, submitter: submitterText(sub), note, labels: `family-tree,${isDestr ? 'approve-deletion' : 'approve'}`, config });
 
+  // E-mail relay: the change lines in both languages (the owner reads Arabic first, then English).
+  const rUrl = relayUrl(config);
+  let relay = null;
+  if (rUrl) {
+    const ar = L === 'ar' ? summary : summarize(proposal, graph, 'ar');
+    const en = L === 'en' ? summary : summarize(proposal, graph, 'en');
+    relay = { url: rUrl, payload: relayPayload({ code: theCode, title, proposal, summary: relaySummary(ar.lines, en.lines), lang: L, destructive: isDestr }) };
+  }
+
   return {
     code: theCode,
     hash,
@@ -184,6 +264,7 @@ export async function buildSubmission(proposal, { graph = null, lang = 'ar', des
     approveIssueUrl: approve.url,
     approve,
     approvalComment: approvalComment(theCode, { destructive: isDestr, fp: fingerprintOf(hash) }),
+    relay,
   };
 }
 

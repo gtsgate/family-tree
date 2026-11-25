@@ -93,11 +93,21 @@ a.btn[aria-disabled="true"] { opacity: .55; }
 .draft-ack-shake { animation: draft-shake .4s; }
 @keyframes draft-shake { 25% { transform: translateX(-4px); } 75% { transform: translateX(4px); } }
 
-.draft-send-box { display: flex; flex-direction: column; gap: var(--s2); margin-block-start: var(--s4); transition: opacity .2s; }
-.draft-send-box.is-locked .draft-wa { filter: saturate(.35); opacity: .7; }
-.draft-wa { white-space: normal; text-align: center; }
-.draft-wa .icon { inline-size: 24px; block-size: 24px; }
+.draft-send-box { position: relative; display: flex; flex-direction: column; gap: var(--s2); margin-block-start: var(--s4); transition: opacity .2s; }
+.draft-send-box.is-locked .btn.draft-wa { filter: saturate(.35); opacity: .7; }
+.btn.draft-wa { white-space: normal; text-align: center; }
+.btn.draft-wa .icon { inline-size: 24px; block-size: 24px; }
 .draft-wa-hint { margin: 0; text-align: center; }
+/* E-mail relay: the primary "Send to {owner}" button, its sending state and error notice; the robot honeypot. */
+.draft-relay { white-space: normal; text-align: center; }
+.draft-relay-icon { display: inline-flex; }
+.draft-relay-icon .icon { inline-size: 24px; block-size: 24px; }
+.draft-relay-spin { inline-size: 20px; block-size: 20px; border-width: 2px; border-color: color-mix(in srgb, currentColor 35%, transparent); border-block-start-color: currentColor; }
+.draft-relay[aria-busy="true"] { cursor: progress; opacity: .85; }
+.draft-send-box.is-locked .draft-relay { filter: saturate(.35); opacity: .7; }
+.draft-relay-error { margin: 0; }
+.draft-relay-error p { margin: 0; }
+.draft-hp { position: absolute; inline-size: 1px; block-size: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 .draft-other { margin-block-start: var(--s2); border-block-start: 1px solid var(--line); padding-block-start: var(--s2); }
 .draft-other > summary {
   display: flex;
@@ -537,6 +547,10 @@ a.btn[aria-disabled="true"] { opacity: .55; }
 .preview-owner p { margin: 0; }
 .preview-owner-title { display: flex; align-items: center; gap: 6px; color: var(--gold-ink); }
 .preview-owner-title strong { color: var(--ink); }
+.preview-owner :is(.preview-relay-sent, .preview-relay-error) { align-self: stretch; margin: 0; }
+.preview-relay { white-space: normal; text-align: center; }
+.preview-relay[aria-busy="true"] { cursor: progress; }
+.preview-desktop-hint { font-size: var(--fs-sm); }
 .preview-command { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s2); }
 .preview-command code { padding: 6px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); font-size: .95rem; }
 .preview-loading { display: grid; place-items: center; min-block-size: 160px; }

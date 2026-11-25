@@ -30,9 +30,14 @@ concurrency:
 
 jobs:
   check:
-    # Skip unrelated issues cheaply: only issues that carry a change code or the family-tree label.
+    # Skip unrelated issues cheaply: only issues that carry a change code or the family-tree label, or whose title is the
+    # site's "🌳 …" — the GitHub mobile app drops the issue form and keeps only the title, so such an issue may arrive
+    # empty and the script then explains that the code is missing. Titles of removals start "⚠️ 🌳 …", hence the
+    # contains() next to startsWith(); the script itself only answers titles that start with (⚠️) 🌳.
     if: >-
       github.event_name == 'workflow_dispatch' ||
+      startsWith(github.event.issue.title, '🌳') ||
+      contains(github.event.issue.title, '🌳') ||
       contains(github.event.issue.labels.*.name, 'family-tree') ||
       contains(github.event.issue.body, 'GFT1:') ||
       contains(github.event.issue.body, 'GFT0:') ||

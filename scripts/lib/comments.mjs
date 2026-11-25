@@ -18,6 +18,11 @@ export const TEXTS = {
     'The code seems to be cut off or changed while copying. Please copy the whole message from the site again and paste it into the issue.',
   ],
   noProposal: ['لم يعد في هذا المقترح رمز تعديلات', 'This issue no longer contains a change code'],
+  missingCode: ['لم يصل رمز التعديلات مع هذا الطلب', 'The change code did not arrive with this request'],
+  missingCodeHint: [
+    'يبدو أن الطلب فُتح من تطبيق GitHub على الجوال، وهذا التطبيق يحذف محتوى النموذج ولا يُبقي إلا العنوان. التعديلات ما زالت محفوظة في الموقع على الجهاز نفسه: يكفي فتح صفحة «مقترحي» في الموقع وإعادة إرسالها بزر الإرسال هناك. ويمكن بعد ذلك إغلاق هذا الطلب.',
+    'It looks like this request was opened from the GitHub mobile app, which drops the form and keeps only the title. The changes are still saved on the site, on the same device: please open “My proposal” on the site and send them again with its Send button. This request can then be closed.',
+  ],
   from: ['المرسل', 'From'],
   note: ['ملاحظة', 'Note'],
   changes: (p) => [`التعديلات (${p.n})`, `Changes (${p.n})`],
@@ -238,6 +243,14 @@ export function badCodeComment({ errorAr, errorEn, edits = 0, src = 'body' }) {
     rtl(`${escLine(errorAr, 500)}\n\n${tx('badCodeHint')[0]}`),
     `${escLine(errorEn, 500)}\n\n${tx('badCodeHint')[1]}`,
   ].join('\n\n');
+}
+
+/**
+ * A request that looks like it came from the site (title "🌳 …") but carries no change code — usually opened in the
+ * GitHub mobile app, which drops the issue-form prefill. Stored as the check comment (one comment, updated in place).
+ */
+export function missingCodeComment({ edits = 0 } = {}) {
+  return [marker(MARKERS.CHECK, { hash: 'none', edits, src: 'body', why: 'missing-code' }), `### ℹ️ ${bi('missingCode')}`, biPara('missingCodeHint')].join('\n\n');
 }
 
 export function noProposalComment({ edits = 0 } = {}) {

@@ -5,6 +5,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import {
   buildSubmission, issueUrl, messageText, issueTitle, waUrl, approvalComment, CODE_LABEL, GITHUB_URL_MAX, WHATSAPP_MAX,
+  relayUrl, relaySummary, relayPayload, sendToRelay,
 } from '../js/submit.js';
 import { newProposal, proposalHash, fingerprintOf, FP_LENGTH } from '../js/core/ops.js';
 import { decodeProposal } from '../js/core/codec.js';
@@ -139,5 +140,78 @@ describe('submit: GitHub issue form', () => {
     assert.equal((await buildSubmission(proposal(1), { graph, config: CONFIG })).email, null);
     const s = await buildSubmission(proposal(1), { graph, config: { ...CONFIG, owner: { ...CONFIG.owner, email: 'a@b.org' } } });
     assert.ok(s.email.url.startsWith('mailto:a@b.org?subject='));
+  });
+});
+
+describe('submit: e-mail relay (config.relayUrl)', () => {
+  const RELAY = 'https://script.google.com/macros/s/AKfy-test/exec';
+
+  test('offered only for an https relayUrl', async () => {
+    assert.equal((await buildSubmission(proposal(1), { graph, config: CONFIG })).relay, null);
+    assert.equal(relayUrl({ relayUrl: 'http://script.google.com/x' }), '');
+    assert.equal(relayUrl({ relayUrl: 'javascript:alert(1)' }), '');
+    assert.equal(relayUrl({ relayUrl: ` ${RELAY} ` }), RELAY);
+    const s = await buildSubmission(proposal(2), { graph, lang: 'en', config: { ...CONFIG, relayUrl: RELAY } });
+    assert.equal(s.relay.url, RELAY);
+    const p = s.relay.payload;
+    assert.deepEqual(Object.keys(p).sort(), ['code', 'destructive', 'lang', 'note', 'proposalId', 'submitter', 'summary', 'title', 'website']);
+    assert.equal(p.code, s.code);
+    assert.equal(p.title, s.title);
+    assert.equal(p.submitter, 'سارة — حفيدة حسن');
+    assert.equal(p.note, 'ملاحظة');
+    assert.equal(p.lang, 'en');
+    assert.equal(p.website, '');
+    assert.equal(p.destructive, false);
+    assert.match(p.proposalId, /^[a-z0-9]{10}$/);
+    // Arabic lines first, then English, each numbered from 1.
+    assert.equal(p.summary.length, 4);
+    assert.match(p.summary[0], /^1\. إضافة/);
+    assert.match(p.summary[1], /^2\. إضافة/);
+    assert.match(p.summary[2], /^1\. Add/);
+    assert.match(p.summary[3], /^2\. Add/);
+    const d = await buildSubmission(proposal(1), { graph, config: { ...CONFIG, relayUrl: RELAY }, destructive: true });
+    assert.equal(d.relay.payload.destructive, true);
+  });
+
+  test('limits: ≤15 lines per language, 300 characters per line, submitter 200, note 2000', () => {
+    const many = Array.from({ length: 20 }, (_, i) => `line ${i}`);
+    const out = relaySummary(many, many);
+    assert.equal(out.length, 30);
+    assert.equal(out[13], '14. line 13');
+    assert.equal(out[14], '…و6 تعديلات أخرى');
+    assert.equal(out[29], '…and 6 more');
+    assert.deepEqual(relaySummary(['a'], ['b']), ['1. a', '1. b']);
+    assert.equal([...relaySummary(['ع'.repeat(500)], [])[0]].length, 300);
+    const p = relayPayload({ code: 'GFT1:x.y', title: 't'.repeat(200), proposal: { id: 'abcd1234ef', submitter: { name: 'n'.repeat(150), relation: 'r'.repeat(300) }, note: 'x'.repeat(2500) } });
+    assert.equal([...p.title].length, 120);
+    assert.equal([...p.submitter].length, 200);
+    assert.equal([...p.note].length, 2000);
+  });
+
+  test('sendToRelay: plain POST (no custom headers → no CORS preflight), follows the redirect, reads the answer', async () => {
+    const calls = [];
+    const fake = (answer, status = 200) => async (url, init) => {
+      calls.push({ url, init });
+      return { ok: status < 400, status, json: async () => { if (answer instanceof Error) throw answer; return answer; } };
+    };
+    const payload = { code: 'GFT1:x.y', website: '' };
+    let r = await sendToRelay(RELAY, payload, { fetchImpl: fake({ ok: true, issue: 7, url: 'https://github.com/o/r/issues/7' }) });
+    assert.deepEqual(r, { ok: true, issue: 7, url: 'https://github.com/o/r/issues/7', duplicate: false });
+    const { url, init } = calls[0];
+    assert.equal(url, RELAY);
+    assert.equal(init.method, 'POST');
+    assert.equal(init.redirect, 'follow');
+    assert.equal(init.headers, undefined);
+    assert.equal(typeof init.body, 'string');
+    assert.deepEqual(JSON.parse(init.body), payload);
+    r = await sendToRelay(RELAY, payload, { fetchImpl: fake({ ok: true, issue: 8, url: 'javascript:alert(1)', duplicate: true }) });
+    assert.deepEqual(r, { ok: true, issue: 8, url: '', duplicate: true });
+    assert.deepEqual(await sendToRelay(RELAY, payload, { fetchImpl: fake({ ok: false, error: 'rate_limited' }) }), { ok: false, error: 'rate_limited' });
+    assert.deepEqual(await sendToRelay(RELAY, payload, { fetchImpl: fake({ ok: false, error: '<b>x</b>' }) }), { ok: false, error: 'bad_response' });
+    assert.deepEqual(await sendToRelay(RELAY, payload, { fetchImpl: fake({ ok: true, issue: 'x' }) }), { ok: false, error: 'bad_response' });
+    assert.deepEqual(await sendToRelay(RELAY, payload, { fetchImpl: fake(new Error('html'), 500) }), { ok: false, error: 'http_500' });
+    assert.deepEqual(await sendToRelay(RELAY, payload, { fetchImpl: async () => { throw new TypeError('Failed to fetch'); } }), { ok: false, error: 'network' });
+    const hang = (u, init) => new Promise((_, reject) => init.signal.addEventListener('abort', () => reject(Object.assign(new Error('aborted'), { name: 'AbortError' }))));
+    assert.deepEqual(await sendToRelay(RELAY, payload, { fetchImpl: hang, timeoutMs: 10 }), { ok: false, error: 'timeout' });
   });
 });

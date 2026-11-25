@@ -151,6 +151,9 @@ describe('workflows and issue form', { skip: !ghDir && 'no .github folder found'
     assert.ok(!/^concurrency:/m.test(t), 'concurrency is on the job, not the workflow');
     assert.match(read('workflows/family-tree-backup.yml'), /cron: "41 2 \* \* 5"/);
     assert.match(read('workflows/family-tree-check.yml'), /types: \[opened, edited, reopened\]/);
+    // Requests opened in the GitHub app arrive with the site's title but no body: the check still runs for them.
+    assert.match(read('workflows/family-tree-check.yml'), /startsWith\(github\.event\.issue\.title, '🌳'\)/);
+    assert.match(read('workflows/family-tree-check.yml'), /contains\(github\.event\.issue\.title, '🌳'\)/);
   });
 
   test('issue form: ids code (required textarea), submitter (input), note (textarea); label family-tree', () => {

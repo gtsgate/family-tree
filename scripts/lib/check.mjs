@@ -2,7 +2,7 @@
 // against the current data in final mode, label it and write ONE bot comment (updated in place).
 //
 //   checkIssue(ctx, number, {data?, applied?, openIssues?, index?}) → {status, hash?, fp?, edits?, ok?, destructive?}
-//     status: "checked" | "bad-code" | "no-proposal" | "skipped"
+//     status: "checked" | "bad-code" | "missing-code" | "no-proposal" | "skipped"
 //   ctx = {gh, config, files, approvers, botLogin, siteUrl, now(), log(), cache}
 
 import { applyProposal } from '../../js/core/ops.js';
@@ -18,9 +18,15 @@ import { clampBody } from './commands.mjs';
 import {
   effectiveProposal, appliedEntry, depsFor, openIndex, findBotComment, idConflict, resolveDependencyRefs,
 } from './proposal.mjs';
-import { checkComment, badCodeComment, noProposalComment, scriptIssueText } from './comments.mjs';
+import { checkComment, badCodeComment, noProposalComment, missingCodeComment, scriptIssueText } from './comments.mjs';
 
 export const PREVIEW_CODE_MAX = 30000;
+
+/** Titles the site gives its requests: "🌳 …", or "⚠️ 🌳 …" when the proposal removes something. */
+const SITE_TITLE_RE = /^\s*(?:⚠\uFE0F?\s*)?🌳/u;
+
+/** Does this issue look like a request sent from the site (by its title)? */
+export const looksLikeSiteRequest = (issue) => SITE_TITLE_RE.test(String(issue?.title || ''));
 
 /**
  * Fields of the issue form ("### Heading\n\nvalue") — submitter and note, best effort (used when the proposal has
@@ -108,6 +114,13 @@ export async function checkIssue(ctx, number, opts = {}) {
     return { status: 'bad-code', code: issueObj.code };
   }
   if (!eff.proposal) {
+    if (looksLikeSiteRequest(issue)) {
+      // Sent from the site but the code is missing (the GitHub app drops the issue form): say so once, mark it.
+      await ensureLabelsOnce(ctx);
+      if (!hasLabel(issue, LABELS.NEEDS_CHANGES)) await gh.addLabels(number, [LABELS.NEEDS_CHANGES]);
+      await upsertCheckComment(ctx, number, existing, missingCodeComment({ edits: (Number(prev?.edits) || 0) + (prev && prev.hash !== 'none' ? 1 : 0) }));
+      return { status: 'missing-code' };
+    }
     if (existing) await upsertCheckComment(ctx, number, existing, noProposalComment({ edits: (Number(prev?.edits) || 0) + (prev && prev.hash !== 'none' ? 1 : 0) }));
     return { status: 'no-proposal' };
   }
@@ -165,6 +178,8 @@ export async function checkIssue(ctx, number, opts = {}) {
   if (destructive && !hasLabel(issue, LABELS.DELETION_REQUEST)) want.push(LABELS.DELETION_REQUEST);
   if (want.length) await gh.addLabels(number, want);
   if (!destructive && hasLabel(issue, LABELS.DELETION_REQUEST)) await gh.removeLabel(number, LABELS.DELETION_REQUEST);
+  // The code arrived after a "code missing" comment: that needs-changes label was ours, not a failed apply.
+  if (prev?.why === 'missing-code' && hasLabel(issue, LABELS.NEEDS_CHANGES)) await gh.removeLabel(number, LABELS.NEEDS_CHANGES);
 
   const body = checkComment({
     hash, fp, rev: data?.meta?.revision ?? 0, edits, src: eff.src, proposal: eff.proposal,

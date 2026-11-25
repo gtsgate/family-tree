@@ -80,6 +80,9 @@ export function validateAll({ portalDir = PORTAL_DIR, file = null, strict = fals
       if (!Array.isArray(config.approvers) || !config.approvers.length) errors.push('config.json: "approvers" must list at least one GitHub login');
       if (!config.repo?.owner || !config.repo?.name) warnings.push('config.json: "repo.owner"/"repo.name" missing (the site links to GitHub with them)');
       if (!config.siteUrl) warnings.push('config.json: "siteUrl" missing (bot comments derive it from the repository name)');
+      if (config.relayUrl && !/^https:\/\/[^\s"'<>]+$/.test(String(config.relayUrl).trim())) {
+        warnings.push('config.json: "relayUrl" must be the https Web app URL of the e-mail relay (the site ignores it otherwise)');
+      }
     }
   }
   return { ok: errors.length === 0, errors, warnings, stats };

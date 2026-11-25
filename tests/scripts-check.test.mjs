@@ -74,6 +74,43 @@ describe('check: one bot comment per proposal', () => {
     assert.equal((await checkIssue(makeCtx(portal, gh), n)).reason, 'closed');
   });
 
+  test('a "🌳 …" request without a code (GitHub app dropped the form) → ONE friendly comment + needs-changes; the code arriving later clears it', async () => {
+    const gh = fakeGitHub();
+    const ctx = makeCtx(portal, gh);
+    const n = gh.userOpen({ title: '🌳 إضافة «يوسف» ابناً لـ أحمد', body: '', login: 'relative', labels: [] });
+    const res = await checkIssue(ctx, n);
+    assert.equal(res.status, 'missing-code');
+    const [c, ...rest] = checkOf(gh, n);
+    assert.equal(rest.length, 0);
+    assert.deepEqual(parseMarker(c.body, 'check'), { hash: 'none', edits: '0', src: 'body', why: 'missing-code' });
+    assert.match(c.body, /### ℹ️ لم يصل رمز التعديلات مع هذا الطلب · The change code did not arrive with this request/);
+    assert.match(c.body, /تطبيق GitHub على الجوال/);
+    assert.match(c.body, /GitHub mobile app, which drops the form/);
+    assert.match(c.body, /«مقترحي»/);
+    assert.deepEqual(gh.labelsOf(n), ['needs-changes']);
+    // Running again (an edit of the title, a reopen) writes nothing: still one comment, one label.
+    const writes = gh.calls.length;
+    await checkIssue(ctx, n);
+    assert.equal(gh.calls.length, writes);
+    // Removals: "⚠️ 🌳 …" titles too; an unrelated empty issue still gets nothing.
+    const d = gh.userOpen({ title: '⚠️ 🌳 حذف خالد', body: '', labels: [] });
+    assert.equal((await checkIssue(ctx, d)).status, 'missing-code');
+    const other = gh.userOpen({ title: 'Question about 🌳 the tree', body: '', labels: [] });
+    assert.equal((await checkIssue(ctx, other)).status, 'no-proposal');
+    assert.equal(checkOf(gh, other).length, 0);
+    assert.deepEqual(gh.labelsOf(other), []);
+    // The relative pastes the code into the issue: the same comment becomes the real check, needs-changes goes.
+    gh.userEdit(n, await codeBody(proposal([P.addChild('pahmed01', 'يوسف')])));
+    const again = await checkIssue(ctx, n);
+    assert.equal(again.status, 'checked');
+    assert.equal(again.ok, true);
+    const [c2, ...rest2] = checkOf(gh, n);
+    assert.equal(rest2.length, 0);
+    assert.equal(c2.id, c.id);
+    assert.match(c2.body, /### ✅/);
+    assert.deepEqual(gh.labelsOf(n), ['family-tree']);
+  });
+
   test('a damaged code gets a friendly ❌ comment', async () => {
     const gh = fakeGitHub();
     const body = (await codeBody(proposal([P.addChild('pahmed01')]))).replace(/(GFT1:[A-Za-z0-9_-]{20})[A-Za-z0-9_-]+/, '$1');

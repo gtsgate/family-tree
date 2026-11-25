@@ -422,12 +422,17 @@ export const store = {
     this.touchDraft();
   },
 
-  /** Called when the visitor sends the draft (WhatsApp / GitHub / email / copy). Moves it to the sent queue. */
-  markSent(via) {
+  /**
+   * Called when the visitor sends the draft (relay / WhatsApp / GitHub / email / copy). Moves it to the sent queue.
+   * extra.issue: the GitHub request number the e-mail relay opened for it.
+   */
+  markSent(via, extra = {}) {
     if (this.syncFromStorage()) this.recompute();
     if (!this.draft.ops.length) return null;
     const proposal = this.draftProposal();
     const entry = { id: proposal.id, at: new Date().toISOString(), via, proposal };
+    const issue = Number(extra?.issue);
+    if (Number.isInteger(issue) && issue > 0) entry.issue = issue;
     // Write the fresh empty draft BEFORE the sent queue, so other tabs never see the old draft as unsent.
     this.draft = emptyDraft(this.draft.submitter);
     this.persistDraft();
@@ -437,6 +442,22 @@ export const store = {
     this.emit('sent');
     this.emit('draft');
     return entry;
+  },
+
+  /** Update how a sent proposal went out (sent again through the e-mail relay: via + request number). */
+  updateSent(id, { via, issue } = {}) {
+    this.syncFromStorage();
+    let changed = false;
+    this.sent = this.sent.map((s) => {
+      if (s.id !== id) return s;
+      changed = true;
+      const next = { ...s, at: new Date().toISOString() };
+      if (via) next.via = String(via);
+      if (Number.isInteger(Number(issue)) && Number(issue) > 0) next.issue = Number(issue);
+      return next;
+    });
+    if (changed) { saveJSON(SENT_KEY, this.sent); this.emit('sent'); }
+    return changed;
   },
 
   /** Remember an approved proposal of this visitor (small summary only; the changelog holds the text). */

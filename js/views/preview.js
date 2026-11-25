@@ -1,7 +1,10 @@
 // Proposal preview (#/preview?code=… and #/preview/:issue) — docs/SPEC.md §7.2: decode a code (or fetch the GitHub
 // request anonymously and extract its code), dry-run it against the canonical data in final mode, and show ✅/❌,
 // errors & warnings, numbered change lines, submitter, fingerprint; "Load into my draft", "Correct this proposal",
-// and for the owner "Create request and approve" (pasted code) or the exact /approve command (request).
+// and for the owner "Create request and approve" (pasted code) or the exact /approve command (request). With the e-mail
+// relay configured (config.relayUrl), a pasted code is sent through the relay instead (the owner then approves by
+// replying to the e-mail); the GitHub link stays as a secondary option for a computer browser (the GitHub mobile app
+// opens github.com/…/issues/new links with the form emptied).
 // The analysis + report renderer are exported for the owner tools (#/admin).
 import { h, icon, bdi, toast, copyText, confirmDialog } from '../dom.js';
 import { t, register, lang } from '../i18n.js';
@@ -12,7 +15,7 @@ import { applyProposal, proposalHash, fingerprintOf } from '../core/ops.js';
 import { describeProposal, refNames } from '../core/describe.js';
 import { formatIssue } from '../core/messages.js';
 import { formatDate } from '../core/dates.js';
-import { buildSubmission } from '../submit.js';
+import { buildSubmission, relayUrl, sendToRelay } from '../submit.js';
 
 register({
   en: {
@@ -53,6 +56,15 @@ register({
     'pv.createApprove': 'Create request and approve',
     'pv.createApproveDel': 'Create request and approve the removal',
     'pv.ownerIssueText': 'To approve, post this comment on the request:',
+    'pv.desktopHint': 'Needs a computer browser: the GitHub app on a phone opens the form empty.',
+    'pv.relayText': 'Opens the request through the e-mail relay; the e-mail to approve it arrives within a minute.',
+    'pv.relaySend': 'Send for approval by e-mail',
+    'pv.relaySendDel': 'Send for approval by e-mail (includes a removal)',
+    'pv.relaySending': 'Sending…',
+    'pv.relaySent': 'Sent ✓ (request #{n}) — you’ll get the e-mail to approve it.',
+    'pv.relayDuplicate': 'Already sent as request #{n} — its e-mail is in your inbox.',
+    'pv.relayFailed': 'Sending did not work just now ({error}). Please try again, or use the GitHub link below on a computer.',
+    'pv.createDesktop': 'Or create it on GitHub (computer browser only)',
     'pv.copyCommand': 'Copy command',
     'pv.commandCopied': 'Command copied — paste it as a comment on the request.',
     'pv.openIssue': 'Open request #{n}',
@@ -110,6 +122,15 @@ register({
     'pv.createApprove': 'إنشاء الطلب والموافقة عليه',
     'pv.createApproveDel': 'إنشاء الطلب والموافقة على الحذف',
     'pv.ownerIssueText': 'للموافقة يُنشر هذا التعليق على الطلب:',
+    'pv.desktopHint': 'يتطلّب متصفح الحاسوب، لأن تطبيق GitHub على الجوال يفتح النموذج فارغاً.',
+    'pv.relayText': 'يُفتح الطلب عبر وسيط البريد، وتصل رسالة الموافقة عليه خلال دقيقة.',
+    'pv.relaySend': 'إرسال للموافقة بالبريد',
+    'pv.relaySendDel': 'إرسال للموافقة بالبريد (يتضمن حذفاً)',
+    'pv.relaySending': 'جارٍ الإرسال…',
+    'pv.relaySent': 'أُرسل ✓ (الطلب رقم {n}) — ستصل رسالة البريد للموافقة عليه.',
+    'pv.relayDuplicate': 'سبق إرساله في الطلب رقم {n}، ورسالته موجودة في البريد.',
+    'pv.relayFailed': 'تعذّر الإرسال الآن ({error}). يمكن المحاولة مرة أخرى، أو استخدام رابط GitHub أدناه من متصفح الحاسوب.',
+    'pv.createDesktop': 'أو إنشاؤه على GitHub (من متصفح الحاسوب فقط)',
     'pv.copyCommand': 'نسخ الأمر',
     'pv.commandCopied': 'نُسخ الأمر، ويكفي إلصاقه تعليقاً على الطلب.',
     'pv.openIssue': 'فتح الطلب رقم {n}',
@@ -170,6 +191,18 @@ export async function ensureSubmission(a) {
   const s = await buildSubmission(a.proposal, { graph: store.base, lang: l, destructive: !!a.result?.destructive, code: a.code || null });
   a.subs[l] = s;
   return s;
+}
+
+/** Owner: send a pasted proposal through the e-mail relay (state on the analysis: a.relay = {status, issue, error}). */
+function sendAnalysis(a) {
+  const s = a.subs[lang()];
+  if (!s?.relay || a.relay?.status === 'sending') return;
+  a.relay = { status: 'sending' };
+  a.onReady?.();
+  sendToRelay(s.relay.url, { ...s.relay.payload, website: '' }).then((res) => {
+    a.relay = res.ok ? { status: 'sent', issue: res.issue, url: res.url, duplicate: res.duplicate } : { status: 'error', error: res.error };
+    a.onReady?.();
+  });
 }
 
 /** Decode every code in a pasted text (or raw JSON). → [{analysis} | {error, code}] */
@@ -341,15 +374,40 @@ export function proposalReport(a, { compact = false } = {}) {
         h('button', { type: 'button', class: 'btn btn-sm', on: { click: () => copyText(cmd).then((ok) => ok && toast(t('pv.commandCopied'), { type: 'success' })) } }, icon('copy', { size: 16 }), t('pv.copyCommand'))),
       h('a', { class: 'btn btn-sm', href: a.issue.url, target: '_blank', rel: 'noopener' }, icon('github', { size: 16 }), t('pv.openIssue', { n: a.issue.number })));
   } else {
+    // With the e-mail relay the owner approves by replying to its e-mail; GitHub stays a computer-browser fallback.
+    const relayOn = !!relayUrl(store.config);
     const create = h('a', {
-      class: ['btn', destructive ? 'btn-danger' : 'btn-primary', 'preview-approve'], target: '_blank', rel: 'noopener',
-      href: s ? s.approveIssueUrl : undefined, attrs: { 'aria-disabled': s ? null : 'true' },
+      class: relayOn ? ['btn', 'btn-sm', 'preview-approve'] : ['btn', destructive ? 'btn-danger' : 'btn-primary', 'preview-approve'],
+      target: '_blank', rel: 'noopener', href: s ? s.approveIssueUrl : undefined, attrs: { 'aria-disabled': s ? null : 'true' },
       on: { click: (e) => { if (!a.subs[lang()]) e.preventDefault(); } },
-    }, icon('github', { size: 18 }), destructive ? t('pv.createApproveDel') : t('pv.createApprove'));
+    }, icon('github', { size: relayOn ? 16 : 18 }), relayOn ? t('pv.createDesktop') : destructive ? t('pv.createApproveDel') : t('pv.createApprove'));
+    let relayPart = null;
+    if (relayOn) {
+      const st = a.relay || { status: 'idle' };
+      const sending = st.status === 'sending';
+      relayPart = [
+        h('p', { class: 'small muted' }, t('pv.relayText')),
+        st.status === 'sent' ? null : h('button', {
+          type: 'button', class: ['btn', destructive ? 'btn-danger' : 'btn-primary', 'preview-relay'], disabled: !s?.relay || sending,
+          attrs: { 'aria-busy': sending ? 'true' : 'false' }, on: { click: () => sendAnalysis(a) },
+        }, sending ? h('span', { class: 'spinner draft-relay-spin', attrs: { 'aria-hidden': 'true' } }) : icon('send', { size: 18 }),
+        sending ? t('pv.relaySending') : destructive ? t('pv.relaySendDel') : t('pv.relaySend')),
+        st.status === 'sent'
+          ? h('div', { class: 'notice notice-success preview-relay-sent', attrs: { role: 'status' } }, icon('check'),
+            h('p', null, st.duplicate ? t('pv.relayDuplicate', { n: st.issue }) : t('pv.relaySent', { n: st.issue }), ' ',
+              st.url ? h('a', { href: st.url, target: '_blank', rel: 'noopener' }, t('pv.openIssue', { n: st.issue })) : null))
+          : null,
+        st.status === 'error'
+          ? h('div', { class: 'notice notice-danger preview-relay-error', attrs: { role: 'alert' } }, icon('warning'),
+            h('p', null, t('pv.relayFailed', { error: st.error || '' })))
+          : null,
+      ];
+    }
     ownerBox = h('div', { class: 'preview-owner' },
       h('p', { class: 'preview-owner-title' }, icon('star', { size: 16 }), h('strong', null, t('pv.ownerTitle', { owner }))),
-      h('p', { class: 'small muted' }, t('pv.ownerCodeText')),
-      create);
+      relayOn ? relayPart : h('p', { class: 'small muted' }, t('pv.ownerCodeText')),
+      create,
+      h('p', { class: 'small muted preview-desktop-hint' }, t('pv.desktopHint')));
   }
 
   return h('article', { class: ['card', 'preview-report', res.ok ? 'is-ok' : 'is-bad'] },
