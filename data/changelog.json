@@ -2,6 +2,45 @@
   "entries": [
     {
       "issue": null,
+      "proposalId": "avkl79wvmn",
+      "hash": "",
+      "commit": "",
+      "rev": 14,
+      "at": "2026-11-26T16:37:01.169Z",
+      "title": "Add “Nasser” as father of Abdulzaraq",
+      "summary": {
+        "en": [
+          "Add “Nasser” as father of Abdulzaraq"
+        ],
+        "ar": [
+          "إضافة «ناصر» والداً لـ عبدالزراق"
+        ]
+      },
+      "submitter": {
+        "name": "",
+        "relation": ""
+      },
+      "approvedBy": "gtsgate",
+      "people": [
+        "psxe8lwh"
+      ],
+      "touched": {
+        "people": [
+          "psxe8lwh"
+        ],
+        "unions": [
+          "udobz0xw"
+        ]
+      },
+      "destructive": false,
+      "action": "owner-edit",
+      "idMap": {
+        "new43": "psxe8lwh",
+        "newu44": "udobz0xw"
+      }
+    },
+    {
+      "issue": null,
       "proposalId": "i0blq6dxlz",
       "hash": "",
       "commit": "",
