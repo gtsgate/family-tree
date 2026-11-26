@@ -77,6 +77,9 @@ function relationMeta(graph, p) {
 
 /** A few example queries taken from the data itself (root's name, its English spelling, the family name). */
 function examples(graph) {
+  // The keeper's chosen examples (config.searchExamples), else a few taken from the data.
+  const fixed = store.config?.searchExamples;
+  if (Array.isArray(fixed) && fixed.length) return fixed.filter((x) => typeof x === 'string' && x.trim()).slice(0, 4);
   const out = [];
   const root = graph.person(graph.meta?.rootPersonId) || graph.people()[0];
   if (!root) return out;

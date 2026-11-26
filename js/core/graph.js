@@ -723,6 +723,25 @@ export function buildGraph(data, { includeRemoved = false } = {}) {
         if (score > 0) out.push({ person: e.p, score, ord: e.ord });
       }
     }
+    // Kunya: «أبو علي» / "Abu Ali" also finds fathers who have a son named علي (the eldest son first), and
+    // «أم علي» / "Umm Ali" their mothers — people are commonly known by their eldest son's name.
+    const words = text.split(/\s+/).filter(Boolean);
+    const lead = words.length >= 2 ? searchKey(words[0]).replace(/\s+/g, '') : '';
+    const role = /^(ابو|بو|abu|abou|abo|bu)$/i.test(lead) ? 'm' : /^(ام|umm|um|om|oum)$/i.test(lead) ? 'f' : '';
+    if (role) {
+      const kids = search(words.slice(1).join(' '), { limit: 60 });
+      const best = kids.length ? kids[0].score : 0;
+      const seen = new Set(out.map((r) => r.person.id));
+      for (const { person: kid, score } of kids) {
+        if (score < best * 0.6 || kid.gender === 'f') continue;
+        for (const par of parents(kid.id)) {
+          if (par.gender !== role || seen.has(par.id)) continue;
+          const eldestSon = children(par.id).find((c) => c.gender === 'm');
+          seen.add(par.id);
+          out.push({ person: par, score: 900 + (eldestSon && eldestSon.id === kid.id ? 200 : 0) + Math.min(score, 99), ord: order.get(par.id) });
+        }
+      }
+    }
     out.sort((a, b) => b.score - a.score || (a.ord ?? -1) - (b.ord ?? -1));
     const n = Math.max(0, Number(limit) || 0);
     return out.slice(0, n || out.length).map(({ person, score }) => ({ person, score }));

@@ -33,5 +33,10 @@
   "privacyDefaults": {
     "femaleNameStatus": "known",
     "photos": "all"
-  }
+  },
+  "searchExamples": [
+    "عصام",
+    "Essam",
+    "أبو علي"
+  ]
 }

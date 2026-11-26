@@ -720,3 +720,20 @@ describe('performance', () => {
     assert.ok(ms < 4000, `took ${ms.toFixed(0)} ms`);
   });
 });
+
+describe('kunya search', () => {
+  const data = JSON.parse(readFileSync(new URL('../data/family.json', import.meta.url), 'utf8'));
+  const g = buildGraph(realData());
+  const essam = g.people().find((p) => p.name.ar === 'عصام' && g.father(p.id)?.name.ar === 'علي');
+  test('«أبو علي» / "Abu Ali" finds the father whose eldest son is علي first', () => {
+    assert.ok(essam && data);
+    assert.equal(g.search('أبو علي')[0].person.id, essam.id);
+    assert.equal(g.search('ابو علي')[0].person.id, essam.id);
+    assert.ok(g.search('Abu Ali').some((r) => r.person.id === essam.id));
+  });
+  test('«أم علي» finds the mother', () => {
+    const mother = g.mother(g.children(essam.id).find((c) => c.name.ar === 'علي').id);
+    assert.equal(g.search('أم علي')[0].person.id, mother.id);
+  });
+});
+
