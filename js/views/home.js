@@ -1,5 +1,5 @@
 // Home page (#/): the owner's welcome, a big search, the two primary actions (explore the tree / add my family),
-// "Who are you?" (or a personal greeting with relation hints), then an illustrated tree for each family
+// "Who are you?" (or a short personal greeting), then an illustrated tree for each family
 // (home-tree.js). See docs/SPEC.md §7.2.
 // Also exports the "help complete the tree" helpers used by #/me (the home page no longer lists suggestions:
 // they could be irrelevant to whole branches of the family).
@@ -277,15 +277,6 @@ function whoCard() {
         h('a', { href: '#/add-family' }, t('home.whoAdd'))));
   }
 
-  const hints = [];
-  const root = graph.meta?.rootPersonId;
-  const ownerId = store.config?.owner?.personId;
-  for (const id of [ownerId, root]) {
-    if (!id || id === me.id || !graph.person(id) || hints.some((x) => x.id === id)) continue;
-    const s = relationSentence(graph, me.id, id, { you: true });
-    if (s.text && s.type !== 'none' && s.type !== 'self') hints.push({ id, text: s.text, person: graph.person(id) });
-  }
-
   return h('section', { class: 'card card-accent home-who is-me', attrs: { 'aria-labelledby': 'home-who-title' } },
     h('div', { class: 'home-me' },
       avatar(me, { size: 'lg' }),
@@ -293,9 +284,6 @@ function whoCard() {
         h('h2', { id: 'home-who-title' }, t('home.welcomeBack', { name: '' }), bdi(nameOf(me), { class: 'home-me-name' })),
         lineageOf(me) !== nameOf(me) ? bdi(lineageOf(me), { class: 'muted home-me-lineage' }) : null,
         h('div', { class: 'home-me-badges' }, ...badges(me).filter((b) => !b.classList.contains('badge-me'))))),
-    hints.length ? h('ul', { class: 'home-hints' }, hints.map((x) => h('li', null,
-      h('a', { href: `#/relationship/${encodeURIComponent(me.id)}/${encodeURIComponent(x.id)}` },
-        avatar(x.person, { size: 'sm' }), bdi(x.text))))) : null,
     h('div', { class: 'home-me-actions row' },
       h('a', { class: 'btn btn-sm', href: '#/me' }, icon('user', { size: 16 }), t('home.myPage')),
       h('a', { class: 'btn btn-sm', href: `#/relationship/${encodeURIComponent(me.id)}` }, icon('users', { size: 16 }), t('home.howRelated')),

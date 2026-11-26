@@ -298,11 +298,62 @@ export const store = {
   reconcileSent() {
     const applied = new Set((this.changelog?.entries || []).map((e) => e.proposalId).filter(Boolean));
     const still = [];
+    const refMap = {};
     for (const s of this.sent) {
-      if (applied.has(s.id)) { this.justApproved.push(s); this.rememberApproved(s); }
-      else still.push(s);
+      if (applied.has(s.id)) { this.justApproved.push(s); this.rememberApproved(s); continue; }
+      // Already in the tree by another route (e.g. the keeper entered the same changes directly)?
+      const map = this.reflectedMap(s);
+      if (map) { Object.assign(refMap, map); this.justApproved.push(s); this.rememberApproved(s); continue; }
+      still.push(s);
     }
     if (still.length !== this.sent.length) { this.sent = still; saveJSON(SENT_KEY, this.sent); }
+    if (Object.keys(refMap).length) {
+      // "This is me", the submitter and draft ops that pointed at those pending people now use the real records.
+      if (this.me && refMap[this.me]) { this.me = refMap[this.me]; saveJSON(ME_KEY, this.me); }
+      const sub = this.draft.submitter.personId;
+      if (sub && refMap[sub]) this.draft.submitter.personId = refMap[sub];
+      this.draft.ops = rewriteRefs(this.draft.ops, refMap);
+      this.persistDraft();
+    }
+  },
+
+  /**
+   * Is everything a sent proposal asks for already in the tree? Every person it adds must match an existing
+   * person (POSSIBLE_DUPLICATE: same name and same family), and its other changes must change nothing.
+   * Returns {tempRef → real id} when reflected, else null. Conservative: anything unclear keeps it pending.
+   */
+  reflectedMap(s) {
+    try {
+      const ops = s?.proposal?.ops || [];
+      if (!ops.length) return null;
+      const r = applyProposal(this.data, s.proposal, { ...PREVIEW(), refMap: this.appliedRefMap(s.proposal.dependsOn), appliedDeps: this.appliedDeps(s.proposal.dependsOn) });
+      if (!r.ok) return null;
+      const map = {};
+      for (const w of r.warnings || []) {
+        if (w.code !== 'POSSIBLE_DUPLICATE' || !Number.isInteger(w.op)) continue;
+        const op = ops[w.op];
+        if (op && op.op === 'add-person' && w.params?.id && !map[op.ref]) map[op.ref] = w.params.id;
+      }
+      const adds = ops.filter((o) => o.op === 'add-person');
+      if (adds.some((o) => !map[o.ref])) return null;
+      // Union refs bound by the add ops → the union the matched person is a child / partner of.
+      for (const o of adds) {
+        if (!o.unionRef) continue;
+        const real = this.base.person(map[o.ref]);
+        const u = o.link?.as === 'spouse' ? this.base.unionsOf(real.id).find((x) => x.partners.includes(o.link.of)) : this.base.birthUnion(real.id);
+        if (u) map[o.unionRef] = u.id;
+      }
+      const rest = ops.filter((o) => o.op !== 'add-person');
+      if (!rest.length) return map;
+      const r2 = applyProposal(this.data, { ...s.proposal, dependsOn: [], ops: rewriteRefs(rest, map) }, { ...PREVIEW() });
+      if (!r2.ok) return null;
+      const bare = (x) => JSON.stringify({ ...(x || {}), history: undefined });
+      for (const id of r2.touched.people) if (bare(r2.data.people[id]) !== bare(this.data.people[id])) return null;
+      for (const id of r2.touched.unions) if (bare(r2.data.unions[id]) !== bare(this.data.unions[id])) return null;
+      return map;
+    } catch {
+      return null;
+    }
   },
 
   /** The draft as a full proposal envelope. */
