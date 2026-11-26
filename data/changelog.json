@@ -2,6 +2,39 @@
   "entries": [
     {
       "issue": null,
+      "proposalId": "41mhu6taxj",
+      "hash": "",
+      "commit": "",
+      "rev": 26,
+      "at": "2026-11-26T17:00:48.331Z",
+      "title": "Edit Majed Qadan: Arabic nickname: “أبو أحمد”",
+      "summary": {
+        "en": [
+          "Edit Majed Qadan: Arabic nickname: “أبو أحمد”"
+        ],
+        "ar": [
+          "تعديل بيانات ماجد قعدان: الكنية أو اللقب بالعربية: «أبو أحمد»"
+        ]
+      },
+      "submitter": {
+        "name": "",
+        "relation": ""
+      },
+      "approvedBy": "gtsgate",
+      "people": [
+        "p9c6efj9"
+      ],
+      "touched": {
+        "people": [
+          "p9c6efj9"
+        ],
+        "unions": []
+      },
+      "destructive": false,
+      "action": "owner-edit"
+    },
+    {
+      "issue": null,
       "proposalId": "08rgh4tqxp",
       "hash": "",
       "commit": "",

@@ -6,8 +6,8 @@
       "en": "The Grand Family Tree"
     },
     "rootPersonId": "pg8caja6",
-    "revision": 25,
-    "updatedAt": "2026-11-26T16:57:53.263Z"
+    "revision": 26,
+    "updatedAt": "2026-11-26T17:00:48.331Z"
   },
   "people": {
     "pg8caja6": {
@@ -3498,6 +3498,9 @@
       "surname": {
         "ar": "قعدان"
       },
+      "nickname": {
+        "ar": "أبو أحمد"
+      },
       "gender": "m",
       "privacy": "year",
       "history": [
@@ -3506,6 +3509,12 @@
           "rev": 25,
           "at": "2026-11-26T16:57:53.263Z",
           "action": "add-person"
+        },
+        {
+          "issue": null,
+          "rev": 26,
+          "at": "2026-11-26T17:00:48.331Z",
+          "action": "edit-person"
         }
       ]
     }
