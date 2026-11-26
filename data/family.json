@@ -6,8 +6,8 @@
       "en": "The Grand Family Tree"
     },
     "rootPersonId": "pg8caja6",
-    "revision": 1,
-    "updatedAt": "2026-11-25T00:00:00Z"
+    "revision": 2,
+    "updatedAt": "2026-11-26T01:49:48.119Z"
   },
   "people": {
     "pg8caja6": {
@@ -1046,12 +1046,22 @@
         "ar": "عصام"
       },
       "gender": "m",
+      "deceased": true,
+      "death": {
+        "date": "2026-02-02"
+      },
       "privacy": "year",
       "history": [
         {
           "issue": null,
           "at": "2026-11-25T00:00:00Z",
           "action": "import"
+        },
+        {
+          "issue": null,
+          "rev": 2,
+          "at": "2026-11-26T01:49:48.119Z",
+          "action": "mark"
         }
       ]
     },
@@ -3120,6 +3130,63 @@
           "action": "import"
         }
       ]
+    },
+    "pgrp61y2": {
+      "id": "pgrp61y2",
+      "name": {
+        "ar": "علي"
+      },
+      "nickname": {
+        "ar": "أبو دان"
+      },
+      "gender": "m",
+      "privacy": "year",
+      "history": [
+        {
+          "issue": null,
+          "rev": 2,
+          "at": "2026-11-26T01:49:48.119Z",
+          "action": "add-person"
+        }
+      ]
+    },
+    "pcs3v65e": {
+      "id": "pcs3v65e",
+      "name": {
+        "ar": "علياء"
+      },
+      "nickname": {
+        "ar": "أم هاشم"
+      },
+      "gender": "f",
+      "privacy": "year",
+      "history": [
+        {
+          "issue": null,
+          "rev": 2,
+          "at": "2026-11-26T01:49:48.119Z",
+          "action": "add-person"
+        }
+      ]
+    },
+    "pxf7g9es": {
+      "id": "pxf7g9es",
+      "name": {
+        "ar": "علاء"
+      },
+      "nickname": {
+        "ar": "أبو رند"
+      },
+      "gender": "m",
+      "privacy": "year",
+      "history": [
+        {
+          "issue": null,
+          "rev": 2,
+          "at": "2026-11-26T01:49:48.119Z",
+          "action": "add-person"
+        }
+      ]
     }
   },
   "unions": {
@@ -3340,6 +3407,11 @@
       "partners": [
         "pmos5c5h",
         "petlxraf"
+      ],
+      "children": [
+        "pgrp61y2",
+        "pcs3v65e",
+        "pxf7g9es"
       ],
       "status": "married"
     },

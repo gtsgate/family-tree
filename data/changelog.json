@@ -1,3 +1,48 @@
 {
-  "entries": []
+  "entries": [
+    {
+      "issue": null,
+      "proposalId": "rsgh6r036y",
+      "hash": "",
+      "commit": "",
+      "rev": 2,
+      "at": "2026-11-26T01:49:48.119Z",
+      "title": "3 new people, 1 status update — family of Essam Ali Alam",
+      "summary": {
+        "en": [
+          "Add “Ali (Abu Dan)” as son of Essam Ali Alam and Zulfa Al-Rayyis",
+          "Add “Alya (Umm Hashim)” as daughter of Essam Ali Alam and Zulfa Al-Rayyis",
+          "Add “Alaa (Abu Raned)” as son of Essam Ali Alam and Zulfa Al-Rayyis",
+          "Mark Essam Ali Alam as deceased (died 2 Feb 2026)"
+        ],
+        "ar": [
+          "إضافة «علي (أبو دان)» ابناً لـ عصام علي عالم وزلفى الريس",
+          "إضافة «علياء (أم هاشم)» ابنةً لـ عصام علي عالم وزلفى الريس",
+          "إضافة «علاء (أبو رند)» ابناً لـ عصام علي عالم وزلفى الريس",
+          "تسجيل وفاة عصام علي عالم (تاريخ الوفاة: 2 فبراير 2026)"
+        ]
+      },
+      "submitter": "gtsgate",
+      "approvedBy": "gtsgate",
+      "people": [
+        "pgrp61y2",
+        "pcs3v65e",
+        "pxf7g9es",
+        "pmos5c5h"
+      ],
+      "touched": {
+        "people": [
+          "pgrp61y2",
+          "pcs3v65e",
+          "pxf7g9es",
+          "pmos5c5h"
+        ],
+        "unions": [
+          "u65hmgln"
+        ]
+      },
+      "destructive": false,
+      "action": "apply"
+    }
+  ]
 }

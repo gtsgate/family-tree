@@ -93,6 +93,7 @@ const GIVEN = {
   'البراء': 'Al-Baraa', 'تالا': 'Tala', 'يارا': 'Yara', 'سلاف': 'Sulaf', 'رنيم': 'Raneem', 'رهام': 'Reham', 'ملك': 'Malak',
   'جوري': 'Jouri', 'دانية': 'Dania', 'حور': 'Hoor', 'مرام': 'Maram', 'أروى': 'Arwa', 'وجدان': 'Wejdan', 'عائشه': 'Aisha',
   'عبدالمنان': 'Abdulmannan', 'كاظم': 'Kadhim', 'باقر': 'Baqir', 'معن': 'Maan', 'أوس': 'Aws', 'نايل': 'Nayel', 'مهدية': 'Mahdiya',
+  'علياء': 'Alyaa', 'رند': 'Rand', 'دان': 'Dan', 'دانة': 'Dana', 'هاشم': 'Hashim', 'أم هاشم': 'Umm Hashim',
   'بيبي': 'Bibi', 'أنوار': 'Anwar', 'لطيفة': 'Latifa', 'شريفة': 'Sharifa', 'نوف': 'Nouf', 'العنود': 'Al-Anoud', 'الجوهرة': 'Al-Jawhara',
 };
 
