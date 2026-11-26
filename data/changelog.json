@@ -2,6 +2,39 @@
   "entries": [
     {
       "issue": null,
+      "proposalId": "iz98zrskae",
+      "hash": "",
+      "commit": "",
+      "rev": 15,
+      "at": "2026-11-26T16:37:47.171Z",
+      "title": "Edit Nasser: Arabic family name: “الفواز”",
+      "summary": {
+        "en": [
+          "Edit Nasser: Arabic family name: “الفواز”"
+        ],
+        "ar": [
+          "تعديل بيانات ناصر: اسم العائلة بالعربية: «الفواز»"
+        ]
+      },
+      "submitter": {
+        "name": "",
+        "relation": ""
+      },
+      "approvedBy": "gtsgate",
+      "people": [
+        "psxe8lwh"
+      ],
+      "touched": {
+        "people": [
+          "psxe8lwh"
+        ],
+        "unions": []
+      },
+      "destructive": false,
+      "action": "owner-edit"
+    },
+    {
+      "issue": null,
       "proposalId": "avkl79wvmn",
       "hash": "",
       "commit": "",

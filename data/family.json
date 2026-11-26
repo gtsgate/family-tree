@@ -6,8 +6,8 @@
       "en": "The Grand Family Tree"
     },
     "rootPersonId": "pg8caja6",
-    "revision": 14,
-    "updatedAt": "2026-11-26T16:37:01.169Z"
+    "revision": 15,
+    "updatedAt": "2026-11-26T16:37:47.171Z"
   },
   "people": {
     "pg8caja6": {
@@ -3336,6 +3336,9 @@
       "name": {
         "ar": "ناصر"
       },
+      "surname": {
+        "ar": "الفواز"
+      },
       "gender": "m",
       "privacy": "year",
       "history": [
@@ -3344,6 +3347,12 @@
           "rev": 14,
           "at": "2026-11-26T16:37:01.169Z",
           "action": "add-person"
+        },
+        {
+          "issue": null,
+          "rev": 15,
+          "at": "2026-11-26T16:37:47.171Z",
+          "action": "edit-person"
         }
       ]
     }
