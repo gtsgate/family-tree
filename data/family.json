@@ -6,8 +6,8 @@
       "en": "The Grand Family Tree"
     },
     "rootPersonId": "pg8caja6",
-    "revision": 20,
-    "updatedAt": "2026-11-26T16:44:10.286Z"
+    "revision": 21,
+    "updatedAt": "2026-11-26T16:54:01.143Z"
   },
   "people": {
     "pg8caja6": {
@@ -3456,6 +3456,29 @@
           "action": "add-person"
         }
       ]
+    },
+    "pfi4d2li": {
+      "id": "pfi4d2li",
+      "name": {
+        "ar": "عبدالرحمن"
+      },
+      "gender": "m",
+      "birth": {
+        "date": "1960",
+        "approx": true
+      },
+      "deceased": true,
+      "death": {
+        "date": "2023-10-07"
+      },
+      "history": [
+        {
+          "issue": null,
+          "rev": 21,
+          "at": "2026-11-26T16:54:01.143Z",
+          "action": "add-person"
+        }
+      ]
     }
   },
   "unions": {
@@ -4210,7 +4233,8 @@
     "ujwhkxjd": {
       "id": "ujwhkxjd",
       "partners": [
-        "petlxraf"
+        "petlxraf",
+        "pfi4d2li"
       ],
       "children": [
         "ptiafno2"

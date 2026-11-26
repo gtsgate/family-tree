@@ -2,6 +2,45 @@
   "entries": [
     {
       "issue": null,
+      "proposalId": "ootmo02l0d",
+      "hash": "",
+      "commit": "",
+      "rev": 21,
+      "at": "2026-11-26T16:54:01.143Z",
+      "title": "Add “Abdulrahman” as father of Nouf Al-Rayess (c. 1960–2023)",
+      "summary": {
+        "en": [
+          "Add “Abdulrahman” as father of Nouf Al-Rayess (c. 1960–2023)"
+        ],
+        "ar": [
+          "إضافة «عبدالرحمن» والداً لـ نوف الريس (حوالي 1960–2023)"
+        ]
+      },
+      "submitter": {
+        "name": "",
+        "relation": ""
+      },
+      "approvedBy": "gtsgate",
+      "people": [
+        "pfi4d2li"
+      ],
+      "touched": {
+        "people": [
+          "pfi4d2li"
+        ],
+        "unions": [
+          "ujwhkxjd"
+        ]
+      },
+      "destructive": false,
+      "action": "owner-edit",
+      "idMap": {
+        "new55": "pfi4d2li",
+        "newu56": "ujwhkxjd"
+      }
+    },
+    {
+      "issue": null,
       "proposalId": "gp79gk2afj",
       "hash": "",
       "commit": "",
