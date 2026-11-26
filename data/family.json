@@ -6,8 +6,8 @@
       "en": "The Grand Family Tree"
     },
     "rootPersonId": "pg8caja6",
-    "revision": 7,
-    "updatedAt": "2026-11-26T14:31:23.874Z"
+    "revision": 8,
+    "updatedAt": "2026-11-26T14:31:44.280Z"
   },
   "people": {
     "pg8caja6": {
@@ -1075,12 +1075,19 @@
         "ar": "عادل"
       },
       "gender": "m",
+      "deceased": true,
       "privacy": "year",
       "history": [
         {
           "issue": null,
           "at": "2026-11-25T00:00:00Z",
           "action": "import"
+        },
+        {
+          "issue": null,
+          "rev": 8,
+          "at": "2026-11-26T14:31:44.280Z",
+          "action": "mark"
         }
       ]
     },

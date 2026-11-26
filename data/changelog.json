@@ -2,6 +2,39 @@
   "entries": [
     {
       "issue": null,
+      "proposalId": "qtk16ac9n7",
+      "hash": "",
+      "commit": "",
+      "rev": 8,
+      "at": "2026-11-26T14:31:44.280Z",
+      "title": "Mark Adel Ali Alam as deceased",
+      "summary": {
+        "en": [
+          "Mark Adel Ali Alam as deceased"
+        ],
+        "ar": [
+          "تسجيل وفاة عادل علي عالم"
+        ]
+      },
+      "submitter": {
+        "name": "",
+        "relation": ""
+      },
+      "approvedBy": "gtsgate",
+      "people": [
+        "psa46soz"
+      ],
+      "touched": {
+        "people": [
+          "psa46soz"
+        ],
+        "unions": []
+      },
+      "destructive": false,
+      "action": "owner-edit"
+    },
+    {
+      "issue": null,
       "proposalId": "126h8tnwgz",
       "hash": "",
       "commit": "",
