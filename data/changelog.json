@@ -2,6 +2,37 @@
   "entries": [
     {
       "issue": null,
+      "proposalId": "ro2z16kway",
+      "hash": "",
+      "commit": "",
+      "rev": 23,
+      "at": "2026-11-26T16:56:50.327Z",
+      "title": "Edit the marriage of Zulfa Al-Rayyis and Abdulrahman Al-Rayess: marriage status: divorced",
+      "summary": {
+        "en": [
+          "Edit the marriage of Zulfa Al-Rayyis and Abdulrahman Al-Rayess: marriage status: divorced"
+        ],
+        "ar": [
+          "تعديل بيانات زواج زلفى الريس وعبدالرحمن الريس: حالة الزواج: طلاق"
+        ]
+      },
+      "submitter": {
+        "name": "",
+        "relation": ""
+      },
+      "approvedBy": "gtsgate",
+      "people": [],
+      "touched": {
+        "people": [],
+        "unions": [
+          "ujwhkxjd"
+        ]
+      },
+      "destructive": false,
+      "action": "owner-edit"
+    },
+    {
+      "issue": null,
       "proposalId": "e9l1m4gn63",
       "hash": "",
       "commit": "",

@@ -6,8 +6,8 @@
       "en": "The Grand Family Tree"
     },
     "rootPersonId": "pg8caja6",
-    "revision": 22,
-    "updatedAt": "2026-11-26T16:55:29.086Z"
+    "revision": 23,
+    "updatedAt": "2026-11-26T16:56:50.327Z"
   },
   "people": {
     "pg8caja6": {
@@ -4248,7 +4248,8 @@
       ],
       "children": [
         "ptiafno2"
-      ]
+      ],
+      "status": "divorced"
     }
   }
 }
