@@ -2,6 +2,45 @@
   "entries": [
     {
       "issue": null,
+      "proposalId": "i0blq6dxlz",
+      "hash": "",
+      "commit": "",
+      "rev": 13,
+      "at": "2026-11-26T16:36:36.053Z",
+      "title": "Add “Abdulzaraq” as father of Adnan Al-Fawaz",
+      "summary": {
+        "en": [
+          "Add “Abdulzaraq” as father of Adnan Al-Fawaz"
+        ],
+        "ar": [
+          "إضافة «عبدالزراق» والداً لـ عدنان الفواز"
+        ]
+      },
+      "submitter": {
+        "name": "",
+        "relation": ""
+      },
+      "approvedBy": "gtsgate",
+      "people": [
+        "p4ir3fj1"
+      ],
+      "touched": {
+        "people": [
+          "p4ir3fj1"
+        ],
+        "unions": [
+          "uzk7hcb6"
+        ]
+      },
+      "destructive": false,
+      "action": "owner-edit",
+      "idMap": {
+        "new41": "p4ir3fj1",
+        "newu42": "uzk7hcb6"
+      }
+    },
+    {
+      "issue": null,
       "proposalId": "o9gc81m7l3",
       "hash": "",
       "commit": "",

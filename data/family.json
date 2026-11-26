@@ -6,8 +6,8 @@
       "en": "The Grand Family Tree"
     },
     "rootPersonId": "pg8caja6",
-    "revision": 12,
-    "updatedAt": "2026-11-26T16:35:55.712Z"
+    "revision": 13,
+    "updatedAt": "2026-11-26T16:36:36.053Z"
   },
   "people": {
     "pg8caja6": {
@@ -3314,6 +3314,22 @@
           "action": "mark"
         }
       ]
+    },
+    "p4ir3fj1": {
+      "id": "p4ir3fj1",
+      "name": {
+        "ar": "عبدالزراق"
+      },
+      "gender": "m",
+      "privacy": "year",
+      "history": [
+        {
+          "issue": null,
+          "rev": 13,
+          "at": "2026-11-26T16:36:36.053Z",
+          "action": "add-person"
+        }
+      ]
     }
   },
   "unions": {
@@ -4039,6 +4055,15 @@
       ],
       "children": [
         "psy6unmh"
+      ]
+    },
+    "uzk7hcb6": {
+      "id": "uzk7hcb6",
+      "partners": [
+        "p4ir3fj1"
+      ],
+      "children": [
+        "ps6tfskb"
       ]
     }
   }
