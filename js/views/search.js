@@ -19,6 +19,7 @@ register({
     'search.lead': 'Find anyone in the tree by name — in Arabic or English.',
     'search.label': 'Name to search for',
     'search.placeholder': 'Name in Arabic or English…',
+    'search.placeholderExamples': 'e.g. {list}',
     'search.clear': 'Clear the search',
     'search.tipsTitle': 'Search tips',
     'search.tip1': 'The first name alone is enough; adding the father’s name narrows the results (for example “Muhammad Hassan”).',
@@ -37,6 +38,7 @@ register({
     'search.lead': 'الوصول إلى أي فرد في الشجرة باسمه، بالعربية أو بالإنجليزية.',
     'search.label': 'الاسم المطلوب',
     'search.placeholder': 'الاسم بالعربية أو الإنجليزية…',
+    'search.placeholderExamples': 'مثلاً: {list}',
     'search.clear': 'مسح البحث',
     'search.tipsTitle': 'تلميحات للبحث',
     'search.tip1': 'يكفي الاسم الأول، وإضافة اسم الأب تضيّق النتائج (مثل «محمد حسن»).',
@@ -96,6 +98,13 @@ function examples(graph) {
   return [...new Set(out.filter(Boolean))].slice(0, 3);
 }
 
+/** Placeholder text: the examples themselves ("مثلاً: عصام عالم، Essam، أبو علي"), else the generic hint. */
+function examplesPlaceholder(graph) {
+  const ex = examples(graph);
+  if (!ex.length) return t('search.placeholder');
+  return t('search.placeholderExamples', { list: ex.join(lang() === 'ar' ? '، ' : ', ') });
+}
+
 function render(root, query) {
   const graph = store.working;
   let q = typeof query.q === 'string' ? query.q : '';
@@ -106,7 +115,7 @@ function render(root, query) {
     class: 'input input-lg search-input',
     type: 'search',
     value: q,
-    placeholder: t('search.placeholder'),
+    placeholder: examplesPlaceholder(graph),
     autocomplete: 'off',
     spellcheck: false,
     attrs: { 'aria-label': t('search.label'), enterkeyhint: 'search' },
