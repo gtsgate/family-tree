@@ -47,8 +47,8 @@
 .person-name-other { align-self: flex-start; margin: 0; font-size: 1.05rem; color: var(--ink-2); font-family: var(--font-ui); }
 .person-name-other:lang(ar) { font-family: "Noto Naskh Arabic", var(--font-ui); }
 .person-lineage { margin: 0; font-family: var(--font-names); font-size: 1.08rem; color: var(--ink); opacity: .85; overflow-wrap: anywhere; }
-.person-nick { margin: 0; color: var(--ink-2); font-size: .98rem; }
-.person-nick bdi { font-weight: 600; color: var(--ink); }
+.person-nick { margin: 0; color: var(--ink-2); font-size: .88rem; }
+.person-nick bdi { font-weight: 400; color: var(--ink-2); }
 .person-badges { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; margin-block-start: 4px; }
 .person-years {
   display: inline-flex;

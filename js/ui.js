@@ -3,7 +3,7 @@
 import { h, icon, bdi, toast } from './dom.js';
 import { t, register, lang, otherLang } from './i18n.js';
 import { store } from './store.js';
-import { displayName, lineageName, initials } from './core/names.js';
+import { displayName, lineageName, initials, nickOf } from './core/names.js';
 import { yearsLabel, isMinor } from './core/dates.js';
 
 register({
@@ -60,9 +60,15 @@ export function nameOf(person, l = lang()) {
 /** Name in the other language, only when it differs and exists. */
 export function otherNameOf(person) {
   if (!person) return '';
-  const a = displayName(person, lang(), store.working);
-  const b = displayName(person, otherLang(), store.working);
+  const a = displayName(person, lang(), store.working, { nick: false });
+  const b = displayName(person, otherLang(), store.working, { nick: false });
   return b && b !== a ? b : '';
+}
+
+/** The kunya / nickname to show beside the name (recorded, else automatic), '' when none. */
+export function kunyaOf(person, l = lang()) {
+  if (!person) return '';
+  return nickOf(person, l, store.working);
 }
 
 export function lineageOf(person, opts = {}) {
@@ -123,8 +129,11 @@ export function badges(person, { compact = false } = {}) {
 /** Name label: primary-language name with optional other-language name in small text. */
 export function nameLabel(person, { other = true, tag = 'span' } = {}) {
   const o = other ? otherNameOf(person) : '';
+  const k = kunyaOf(person);
+  // The kunya is low-key: regular weight, smaller and muted, never part of the bold name.
   return h(tag, { class: 'pname' },
-    bdi(nameOf(person), { class: 'pname-main' }),
+    bdi(k ? displayName(person, lang(), store.working, { nick: false }) : nameOf(person), { class: 'pname-main' }),
+    k ? h('small', { class: 'pname-kunya' }, bdi(k)) : null,
     o ? h('small', { class: 'pname-other', lang: otherLang(), dir: otherLang() === 'ar' ? 'rtl' : 'ltr' }, o) : null);
 }
 

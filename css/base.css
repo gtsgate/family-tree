@@ -266,6 +266,7 @@ code {
 .pname { display: inline-flex; flex-wrap: wrap; align-items: baseline; column-gap: .45em; min-inline-size: 0; }
 .pname-main { font-family: var(--font-names); font-weight: 700; }
 .pname-other { font-family: var(--font-ui); font-size: .8em; font-weight: 400; color: var(--ink-2); }
+.pname-kunya { font-family: var(--font-ui); font-size: .8em; font-weight: 400; color: var(--ink-2); }
 
 /* ---- Focus & accessibility ---- */
 :focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }

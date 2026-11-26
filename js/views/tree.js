@@ -514,7 +514,7 @@ function openPopover(anchor, person, host, ctx) {
     h('div', { class: 'tree-pop-head' },
       avatar(person),
       h('div', { class: 'tree-pop-id' },
-        nameLabel(person),
+        nameLabel(person, { other: false }),
         lin && lin !== nameOf(person) ? bdi(lin, { class: 'tree-pop-lineage muted small' }) : null,
         y ? h('span', { class: 'muted small' }, y) : null),
       h('button', { type: 'button', class: 'btn-icon tree-pop-close', attrs: { 'aria-label': t('common.close') }, on: { click: () => closePopover({ restoreFocus: true }) } }, icon('close'))),

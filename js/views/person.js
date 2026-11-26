@@ -354,7 +354,7 @@ function header(P) {
         h('h1', { class: 'person-name' }, bdi(main)),
         other && other !== main ? h('p', { class: 'person-name-other', lang: otherLang(), dir: otherLang() === 'ar' ? 'rtl' : 'ltr' }, other) : null,
         lineage && lineage !== main ? h('p', { class: 'person-lineage' }, bdi(lineage)) : null,
-        nick ? h('p', { class: 'person-nick' }, t(`person.knownAs.${gkey(P)}`, { nick: '' }), bdi(nick)) : null,
+        nick ? h('p', { class: 'person-nick' }, bdi(nick)) : null,
         h('div', { class: 'person-badges' },
           years ? h('span', { class: 'person-years' }, years) : null,
           ...badges(P),

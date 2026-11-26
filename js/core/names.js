@@ -203,11 +203,24 @@ export function autoKunya(p, lang = 'ar', graph = null) {
   return out;
 }
 
-export function displayName(p, lang = 'ar', graph = null, { kunya = true } = {}) {
+/**
+ * The kunya / nickname shown next to a known name: the recorded nickname, else the automatic kunya.
+ * '' for people shown by a relational label or kunya alone (their display name already carries it).
+ */
+export function nickOf(p, lang = 'ar', graph = null) {
+  p = asPerson(p, graph);
+  if (!p || nameStatusOf(p) !== 'known') return '';
+  const L = langOf(lang);
+  if (!personName(p, L)) return '';
+  return biText(p.nickname, L) || autoKunya(p, L, graph);
+}
+
+export function displayName(p, lang = 'ar', graph = null, { kunya = true, nick: withNick = true } = {}) {
   p = asPerson(p, graph);
   if (!p) return '';
   const L = langOf(lang);
   const given = personName(p, L);
+  if (given && !withNick) return given; // the name alone (callers render the kunya separately, low-key)
   // A recorded nickname/kunya wins; otherwise the automatic kunya from the eldest son (or daughter) —
   // left out where a plain name reads better (kinship sentences: «عمّ علي», not «عمّ علي (أبو زياد)»).
   const nick = biText(p.nickname, L) || (kunya ? autoKunya(p, L, graph) : '');
