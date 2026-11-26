@@ -229,6 +229,24 @@ function inheritedSurname(graph, p, lang) {
 }
 
 /**
+ * Family (tribe) name of a person: the first non-empty surname along the whole paternal chain
+ * ("عالم" / "Alam"); '' when none is known. Used for family titles such as «آل عالم» / "The Alam family".
+ */
+export function familyName(graph, id, lang = 'ar') {
+  const p = asPerson(id, graph);
+  if (!p) return '';
+  return inheritedSurname(graph, p, langOf(lang));
+}
+
+/** Family title for a branch head: «آل عالم» / "The Alam family" (null when no family name is known). */
+export function familyTitle(graph, id) {
+  const ar = familyName(graph, id, 'ar');
+  const en = familyName(graph, id, 'en');
+  if (!ar && !en) return null;
+  return { ar: `آل ${ar || en}`, en: `The ${en || ar} family` };
+}
+
+/**
  * Lineage name: given name + father + grandfather … (`depth` names in all) + family name.
  *   plain: "محمد حسن سالم عالم" / "Mohammed Hassan Salem Alam"
  *   bin:   "محمد بن حسن بن سالم عالم" / "Mohammed bin Hassan bin Salem Alam" (بنت/bint after a woman's name;

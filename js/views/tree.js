@@ -22,7 +22,6 @@ register({
     'tree.familyOf': 'The family of {name}',
     'tree.ancestorsOf': 'The ancestors of {name}',
     'tree.branch': 'Branch',
-    'tree.familyOf': 'Family of {name}',
     'tree.branchCurrent': 'Shown now: {name}',
     'tree.branchCount': '{name} ({n})',
     'tree.view': 'Display',
@@ -78,7 +77,6 @@ register({
     'tree.familyOf': 'عائلة {name}',
     'tree.ancestorsOf': 'آباء وأجداد {name}',
     'tree.branch': 'الفرع',
-    'tree.familyOf': 'عائلة {name}',
     'tree.branchCurrent': 'المعروض الآن: {name}',
     'tree.branchCount': '{name} ({n})',
     'tree.view': 'طريقة العرض',
@@ -1222,7 +1220,7 @@ function build(root, params, query) {
         type: 'button',
         attrs: { 'aria-pressed': String(b.person.id === rootId) },
         on: { click: () => { if (b.person.id !== rootId) location.hash = treeHash(b.person.id, { view: explicitView, dir }); } },
-      }, icon('tree', { size: 16 }), h('span', { class: 'tree-seg-label' }, t('tree.familyOf', { name: bi(b.label) || nameOf(b.person) })))))
+      }, icon('tree', { size: 16 }), h('span', { class: 'tree-seg-label' }, bi(b.family) || t('tree.familyOf', { name: bi(b.label) || nameOf(b.person) })))))
     : null;
   const branchSelect = branchButtons || (branches.length > 1 || (branches.length && !inBranches)
     ? h('label', { class: 'tree-branch' },
@@ -1232,7 +1230,7 @@ function build(root, params, query) {
         on: { change: (e) => { if (e.target.value && e.target.value !== rootId) location.hash = treeHash(e.target.value, { view: explicitView, dir }); } },
       },
       inBranches ? null : h('option', { value: rootId, selected: true }, t('tree.branchCurrent', { name: nameOf(rootP) })),
-      branches.map((b) => h('option', { value: b.person.id, selected: b.person.id === rootId }, t('tree.branchCount', { name: bi(b.label) || nameOf(b.person), n: b.count })))))
+      branches.map((b) => h('option', { value: b.person.id, selected: b.person.id === rootId }, t('tree.branchCount', { name: bi(b.family) || bi(b.label) || nameOf(b.person), n: b.count })))))
     : null);
 
   const seg = (label, cls, items) => h('div', { class: ['segmented', 'tree-seg', cls], attrs: { role: 'group', 'aria-label': label } },
@@ -1284,7 +1282,9 @@ function build(root, params, query) {
   const head = h('div', { class: 'tree-head' },
     h('div', { class: 'tree-heading' },
       h('p', { class: 'tree-eyebrow' }, icon('tree', { size: 16 }), t('tree.title')),
-      h('h1', null, t(dir === 'up' ? 'tree.ancestorsOf' : 'tree.familyOf', { name: nameOf(rootP) }))),
+      h('h1', null, dir === 'down' && branches.find((b) => b.person.id === rootId)?.family
+        ? bi(branches.find((b) => b.person.id === rootId).family)
+        : t(dir === 'up' ? 'tree.ancestorsOf' : 'tree.familyOf', { name: nameOf(rootP) }))),
     branchSelect);
 
   const notices = [];

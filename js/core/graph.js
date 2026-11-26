@@ -11,7 +11,7 @@
 // removedPeople() / removedUnions() always list them; resolve(id) follows `removed.mergedInto`.
 // Parentage is blood only: ties (milk / foster) never count as parents, ancestors or descendants.
 
-import { lineageName, fullName, searchKey, skeletonKey, tokenSkeletonVariants } from './names.js';
+import { lineageName, fullName, familyTitle, searchKey, skeletonKey, tokenSkeletonVariants } from './names.js';
 import { englishOf } from './translit.js';
 
 // ---------------------------------------------------------------------------------------------------------
@@ -484,10 +484,12 @@ export function buildGraph(data, { includeRemoved = false } = {}) {
         }
       }
       const holdsRoot = !!rootId && (members.includes(rootId) || desc.has(rootId));
-      list.push({ person, partner, label, count: desc.size, holdsRoot, ord: order.get(person.id) });
+      // «آل عالم» / "The Alam family" from the head's family name; else "عائلة <label>" / "Family of <label>".
+      const family = familyTitle(api, person.id) || { ar: `عائلة ${label.ar}`, en: `Family of ${label.en}` };
+      list.push({ person, partner, label, family, count: desc.size, holdsRoot, ord: order.get(person.id) });
     }
     list.sort((a, b) => (b.holdsRoot - a.holdsRoot) || (b.count - a.count) || (a.ord - b.ord));
-    branchCache = list.map(({ person, partner, label, count }) => ({ person, partner, label, count }));
+    branchCache = list.map(({ person, partner, label, family, count }) => ({ person, partner, label, family, count }));
     return branchCache.map((b) => ({ ...b }));
   }
 
