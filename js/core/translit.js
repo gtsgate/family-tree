@@ -29,7 +29,7 @@ export function normalizeForTranslit(s) {
 // Gulf/Hijazi conventions; the owner chose "Muhammad" for محمد.
 const GIVEN = {
   // — male —
-  'محمد': 'Muhammad', 'محمدعلي': 'Muhammad Ali', 'محمد علي': 'Muhammad Ali', 'أحمد': 'Ahmed', 'محمود': 'Mahmoud', 'مصطفى': 'Mustafa',
+  'محمد': 'Muhammad', 'محمدعلي': 'Muhammad Ali', 'محمد علي': 'Muhammad Ali', 'أحمد': 'Ahmad', 'محمود': 'Mahmoud', 'مصطفى': 'Mustafa',
   'حامد': 'Hamed', 'حمد': 'Hamad', 'حمود': 'Hamoud', 'حمدي': 'Hamdi', 'حمدان': 'Hamdan', 'علي': 'Ali', 'حسن': 'Hassan',
   'حسين': 'Hussein', 'حسان': 'Hassan', 'إبراهيم': 'Ibrahim', 'إسماعيل': 'Ismail', 'إسحاق': 'Ishaq', 'يعقوب': 'Yaqoub',
   'يوسف': 'Yousef', 'يونس': 'Younes', 'يحيى': 'Yahya', 'زكريا': 'Zakariya', 'موسى': 'Musa', 'عيسى': 'Eisa', 'داود': 'Dawood',

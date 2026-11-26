@@ -361,7 +361,7 @@ export function searchKey(s) {
 //   b t j h x(خ) d r z s c(ش) f k(ق ك) g(غ) l m n y w, and "a" = a word-initial vowel / alef / ain / hamza.
 // Short vowels are not written in Arabic and are unpredictable in Latin transliteration, so all vowels
 // (and long ا و ي) are dropped after the first letter; a word-initial vowel is kept as the marker "a" so
-// that Ali ≡ علي ≡ 3li and Ahmed ≡ أحمد while محمد (mhmd) ≠ أحمد (ahmd). Initial و / ي (w / y) are
+// that Ali ≡ علي ≡ 3li and Ahmad ≡ أحمد while محمد (mhmd) ≠ أحمد (ahmd). Initial و / ي (w / y) are
 // consonants (Walid ≡ وليد, Yousef ≡ يوسف). Doubles are collapsed after the vowels are dropped
 // (Muhammad ≡ Mohamed ≡ محمد).
 //

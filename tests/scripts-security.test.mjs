@@ -121,7 +121,7 @@ describe('security 2: /undo of one proposal of a batch commit', () => {
       assert.equal(u.command.action, 'undo-refused');
       assert.equal(u.command.reason, 'changed');
       assert.match(lastBot(gh, n), /these records changed after it was applied/);
-      assert.match(lastBot(gh, n), /Ahmad|Ahmed/);
+      assert.match(lastBot(gh, n), /Ahmad|Ahmad/);
       assert.match(lastBot(gh, n), new RegExp(`same update as #${other}\\b`));
     }
     const d = originData(portal);

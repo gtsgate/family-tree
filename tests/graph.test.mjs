@@ -92,7 +92,7 @@ const ids = (list) => list.map((p) => p.id);
 //   pip1 × pip2 → pin                                                               [uin]
 function polygamy() {
   const b = builder();
-  b.P('pf', 'أحمد', 'Ahmed', 'm', { surname: { ar: 'الحربي', en: 'Al-Harbi' } });
+  b.P('pf', 'أحمد', 'Ahmad', 'm', { surname: { ar: 'الحربي', en: 'Al-Harbi' } });
   b.P('pw1', 'سارة', 'Sarah', 'f');
   b.P('pw2', 'ليلى', 'Layla', 'f');
   b.P('ph2', 'خالد', 'Khalid', 'm');
@@ -363,7 +363,7 @@ describe('branches', () => {
     assert.equal(br.length, 2);
     assert.equal(br[0].person.id, 'pf');
     assert.equal(br[0].partner.id, 'pw1');
-    assert.deepEqual(br[0].label, { ar: 'أحمد الحربي وسارة', en: 'Ahmed Al-Harbi & Sarah' });
+    assert.deepEqual(br[0].label, { ar: 'أحمد الحربي وسارة', en: 'Ahmad Al-Harbi & Sarah' });
     assert.equal(br[0].count, 5); // pa1 pa2 pa3, pb1 (via ub) and the grandson pg1
     assert.equal(br[1].person.id, 'pip1');
     assert.equal(br[1].partner.id, 'pip2');
@@ -392,7 +392,7 @@ describe('branches', () => {
     assert.equal(br[0].person.id, 'pf');
     assert.equal(br[0].partner, null);
     assert.equal(br[0].count, 7); // pa1 pa2 pa3 pb1 pd1 pg1 + pc1 (ليلى's son with خالد)
-    assert.deepEqual(br[0].label, { ar: 'أحمد الحربي', en: 'Ahmed Al-Harbi' });
+    assert.deepEqual(br[0].label, { ar: 'أحمد الحربي', en: 'Ahmad Al-Harbi' });
   });
 
   test('the branch holding meta.rootPersonId comes first', () => {
@@ -427,7 +427,7 @@ describe('stats', () => {
 describe('search', () => {
   const b = builder();
   b.P('psalem', 'سالم', 'Salem', 'm', { surname: { ar: 'عالم', en: 'Alam' } });
-  b.P('pahmed', 'أحمد', 'Ahmed', 'm');
+  b.P('pahmed', 'أحمد', 'Ahmad', 'm');
   b.P('pmoh', 'محمد', 'Mohammed', 'm');
   b.P('pmoh2', 'محمد', 'Mohammed', 'm');
   b.P('pmahmoud', 'محمود', 'Mahmoud', 'm');
@@ -472,7 +472,7 @@ describe('search', () => {
     assert.deepEqual(top('عبد الرحمن الحربي'), ['pabd']);
   });
   test('lineage tokens: "محمد احمد" ≡ "محمد بن أحمد"', () => {
-    for (const q of ['محمد احمد', 'محمد أحمد', 'محمد بن أحمد', 'Mohammed Ahmed', 'Mohammed bin Ahmed', 'محمد سالم', 'محمد أحمد عالم', 'Mohamed Ahmed Salem Alam']) {
+    for (const q of ['محمد احمد', 'محمد أحمد', 'محمد بن أحمد', 'Mohammed Ahmad', 'Mohammed bin Ahmad', 'محمد سالم', 'محمد أحمد عالم', 'Mohamed Ahmad Salem Alam']) {
       assert.deepEqual(top(q), ['pmoh'], q);
     }
     assert.ok(g.search('محمد أحمد')[0].score > g.search('محمد سالم')[0].score, 'a skipped generation ranks lower');
@@ -498,7 +498,7 @@ describe('search', () => {
 describe('duplicatesSuspects', () => {
   test('reasons', () => {
     const b = builder();
-    b.P('pf', 'أحمد', 'Ahmed', 'm');
+    b.P('pf', 'أحمد', 'Ahmad', 'm');
     b.P('pm', 'سارة', 'Sarah', 'f');
     b.P('pm2', 'هند', 'Hind', 'f');
     b.P('pk1', 'محمد', 'Mohammed', 'm');
@@ -533,12 +533,12 @@ describe('duplicatesSuspects', () => {
   test('same lineage in two places of the tree', () => {
     const b = builder();
     b.P('pg1', 'حسن', 'Hassan', 'm');
-    b.P('pf1', 'أحمد', 'Ahmed', 'm');
+    b.P('pf1', 'أحمد', 'Ahmad', 'm');
     b.P('pc1', 'محمد', 'Mohammed', 'm');
     b.U('u1', ['pg1'], ['pf1']);
     b.U('u2', ['pf1'], ['pc1']);
     b.P('pg2', 'حسن', 'Hassan', 'm');
-    b.P('pf2', 'احمد', 'Ahmed', 'm');
+    b.P('pf2', 'احمد', 'Ahmad', 'm');
     b.P('pc2', 'محمد', 'Mohammed', 'm');
     b.U('u3', ['pg2'], ['pf2']);
     b.U('u4', ['pf2'], ['pc2']);
@@ -678,7 +678,7 @@ describe('real data', () => {
 describe('performance', () => {
   test('5,000 people: build, search, branches, stats, siblings stay fast', () => {
     const b = builder();
-    const names = [['محمد', 'Mohammed'], ['أحمد', 'Ahmed'], ['فاطمة', 'Fatima'], ['علي', 'Ali'], ['خديجة', 'Khadija'], ['حسن', 'Hassan'], ['مريم', 'Maryam'], ['عبد الله', 'Abdullah']];
+    const names = [['محمد', 'Mohammed'], ['أحمد', 'Ahmad'], ['فاطمة', 'Fatima'], ['علي', 'Ali'], ['خديجة', 'Khadija'], ['حسن', 'Hassan'], ['مريم', 'Maryam'], ['عبد الله', 'Abdullah']];
     let n = 0;
     const person = (gender) => {
       const [ar, en] = names[n % names.length];

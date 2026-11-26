@@ -90,7 +90,7 @@ function pronoun(person) {
   return person?.gender === 'm' ? 'هو' : person?.gender === 'f' ? 'هي' : '';
 }
 
-/** "Ahmed is your paternal uncle" / "أحمد هو عمّك" from a relation label. */
+/** "Ahmad is your paternal uncle" / "أحمد هو عمّك" from a relation label. */
 function isSentence(bPerson, label) {
   const name = nameOf(bPerson);
   if (lang() === 'ar') {
@@ -102,7 +102,7 @@ function isSentence(bPerson, label) {
 
 /**
  * Describe what b is to a in one sentence.
- *   you: true → "Ahmed is your paternal uncle"; false → "Ahmed is Khalid's paternal uncle".
+ *   you: true → "Ahmad is your paternal uncle"; false → "Ahmad is Khalid's paternal uncle".
  * Returns {rel, label, text, type}.
  */
 export function relationSentence(graph, aId, bId, { you = aId === store.me } = {}) {

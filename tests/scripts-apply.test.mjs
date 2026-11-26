@@ -505,7 +505,7 @@ describe('apply: undo', () => {
     assert.equal(s.command.action, 'undo-refused');
     assert.equal(s.command.reason, 'changed');
     assert.match(lastBot(gh, a), /these records changed after it was applied/);
-    assert.match(lastBot(gh, a), /Ahmed/);
+    assert.match(lastBot(gh, a), /Ahmad/);
     assert.equal(portal.originLog().length, 3);
     const s2 = await keeperSays(gh, ctx, a, '/undo', 'cousin');
     assert.equal(s2.command.action, 'unauthorized');

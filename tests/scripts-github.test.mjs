@@ -137,7 +137,7 @@ describe('comments: bilingual texts', () => {
   test('success comment links people with ?rev and a WhatsApp link', () => {
     const body = appliedComment({
       commitUrl: 'https://github.com/o/r/commit/abc', commitShort: 'abc', rev: 9, issue: 3,
-      people: [{ ar: 'أحمد <b>', en: 'Ahmed [x]', url: 'https://x.y/#/p/p1?rev=9' }], whatsappUrl: whatsappLink('https://x.y/#/p/p1?rev=9'),
+      people: [{ ar: 'أحمد <b>', en: 'Ahmad [x]', url: 'https://x.y/#/p/p1?rev=9' }], whatsappUrl: whatsappLink('https://x.y/#/p/p1?rev=9'),
       warnings: { ar: [], en: [] }, skipped: [2],
     });
     assert.match(body, /#\/p\/p1\?rev=9/);

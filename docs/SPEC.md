@@ -77,7 +77,7 @@ All site paths are relative. GitHub automation & the issue form only work once m
 ```jsonc
 {
   "id": "pa1b2c3d",
-  "name":       {"ar": "أحمد", "en": "Ahmed"},  // GIVEN name only (ism; compounds like "عبد الله", "عماد الدين" are one name)
+  "name":       {"ar": "أحمد", "en": "Ahmad"},  // GIVEN name only (ism; compounds like "عبد الله", "عماد الدين" are one name)
   "nameStatus": "known",                       // "known" | "unknown" | "withheld"  (see below)
   "surname":    {"ar": "", "en": ""},          // family/tribe name or rest of a married-in spouse's full name, rendered VERBATIM
   "nickname":   {"ar": "", "en": ""},          // kunya/laqab/other name: "أبو خالد", "بيبي"
@@ -316,14 +316,14 @@ excluding `createdAt`; async, `crypto.subtle`) · `skipOps(p, indexes)` → prop
 `kind:"gft-proposal"`; ignores codes on quoted lines (`> `) when `{ignoreQuoted:true}`; stops inflating at 1 MB; throws Error with
 `.code ∈ NO_PROPOSAL | BAD_CODE | BAD_JSON | TRUNCATED_CODE | TOO_LARGE` · `extractProposal(body, opts)` → `{proposal, code}|null` (async).
 
-**describe.js** — `describeOp(op, ctx, lang)` one-line plain text (no HTML/markdown), e.g. EN `Add “Ahmed” as son of Mohammed Hassan`,
+**describe.js** — `describeOp(op, ctx, lang)` one-line plain text (no HTML/markdown), e.g. EN `Add “Ahmad” as son of Mohammed Hassan`,
 AR `إضافة «أحمد» ابناً لـ محمد حسن`; ctx = `{graph, refNames}` (temp refs named from their add-person op) ·
 `describeProposal(p, graph, lang)` → `{title, lines, destructive, counts:{add, edit, mark, arrange, remove}}` · Arabic is natural MSA with
 gender agreement (ابناً/ابنةً، زوجاً/زوجةً، والداً/والدةً); never echo removal reasons beyond the reason-code label.
 
 **kinship.js** — `findRelationship(graph, aId, bId)` → `{type:"self"|"blood"|"spouse"|"affinal"|"tie"|"none", up, down, path, lca,
 half, via, side:"paternal"|"maternal"|null, spouseVia?, tie?}` ("what is b to a"; shortest path; cousin marriages → shortest) ·
-`relationLabel(rel, graph, lang, {you:true, name})`: EN "your paternal uncle" / "Ahmed's paternal uncle"; AR "عمّك" / "عمّ أحمد".
+`relationLabel(rel, graph, lang, {you:true, name})`: EN "your paternal uncle" / "Ahmad's paternal uncle"; AR "عمّك" / "عمّ أحمد".
 Vocabulary — EN: father/mother, son/daughter, brother/sister (half-brother via father/mother), grandfather/grandmother (paternal/maternal),
 grandson/granddaughter, great-…, uncle/aunt (paternal/maternal), great-uncle, nephew/niece, first cousin, n-th cousin k times removed,
 husband/wife (late husband/wife; "former" only when showDivorce), *-in-law, "spouse of your …", "your spouse's …", milk mother/brother,

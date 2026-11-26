@@ -13,7 +13,7 @@ test('compounds and particles', () => {
   const cases = {
     'عبد الرحمن': 'Abdulrahman', 'عبدالرحمن': 'Abdulrahman', 'عبد الإله': 'Abdulelah', 'عبدالحليم': 'Abdulhalim',
     'عماد الدين': 'Emad Al-Din', 'نور الدين': 'Nour Al-Din', 'أبو خالد': 'Abu Khalid', 'أم خالد': 'Umm Khalid',
-    'محمد بن أحمد': 'Muhammad bin Ahmed', 'فاطمة بنت علي': 'Fatima bint Ali',
+    'محمد بن أحمد': 'Muhammad bin Ahmad', 'فاطمة بنت علي': 'Fatima bint Ali',
   };
   for (const [ar, en] of Object.entries(cases)) assert.equal(transliterate(ar), en, ar);
 });

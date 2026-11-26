@@ -4,7 +4,7 @@
 // Pure ES module — runs unchanged in modern browsers and Node ≥ 20 (no DOM, no fetch, no node: imports).
 // See docs/SPEC.md §3.3 / §3.4 (operations) and §4 (describe.js).
 //
-//   describeOp(op, ctx, lang)          ctx = {graph, refNames}; e.g. EN Add “Ahmed” as son of Muhammad Ahmed Alam
+//   describeOp(op, ctx, lang)          ctx = {graph, refNames}; e.g. EN Add “Ahmad” as son of Muhammad Ahmad Alam
 //                                                                    AR إضافة «أحمد» ابناً لـ محمد أحمد عالم
 //   refNames(proposalOrOps, graph?)    temp refs → what describe needs to name them ("new3" → its PersonInput,
 //                                      "newu4" → the partners of the union it binds)
@@ -12,7 +12,7 @@
 //   opCategory(type)                   "add" | "edit" | "mark" | "arrange" | "remove" | null
 //
 // People already in the tree are named by their lineage (given + father + family name); people added by the
-// proposal are quoted («أحمد» / “Ahmed”). Arabic agrees with gender (ابناً/ابنةً، زوجاً/زوجةً، والداً/والدةً).
+// proposal are quoted («أحمد» / “Ahmad”). Arabic agrees with gender (ابناً/ابنةً، زوجاً/زوجةً، والداً/والدةً).
 // Removals only ever show the label of their reason code — never free text.
 
 import { fullName } from './names.js';
@@ -635,7 +635,7 @@ function clip(s, max = TITLE_MAX) {
  * Summary of a proposal: {title, lines, destructive, counts:{add, edit, mark, arrange, remove}}.
  *   lines: describeOp of every op (same order as proposal.ops; numbering is up to the renderer)
  *   destructive: a destructive op is present (static check; a REPARENT is only known after applying)
- *   title: one line ≤ 100 chars, e.g. "Add “Ahmed” and “Sara” to the family of Muhammad Ahmed Alam",
+ *   title: one line ≤ 100 chars, e.g. "Add “Ahmad” and “Sara” to the family of Muhammad Ahmad Alam",
  *          "3 new people, 2 corrections — family of …" / "3 أفراد جدد، تصحيحان — عائلة …"
  */
 export function describeProposal(p, graph = null, lang = 'ar') {
@@ -659,7 +659,7 @@ export function describeProposal(p, graph = null, lang = 'ar') {
     const focusName = focus ? personLabel(focus, L, ctx) : '';
     const names = adds.map((op) => newPersonName(op.person, L)).filter(Boolean);
     if (adds.length === ops.length && adds.length <= 3 && names.length === adds.length) {
-      // "Add “Ahmed” and “Sara” to the family of X"
+      // "Add “Ahmad” and “Sara” to the family of X"
       const list = listText(names, L);
       if (L === 'en') title = `Add ${list}${focusName ? ` to the family of ${focusName}` : ''}`;
       else title = `إضافة ${list}${focusName ? ` إلى عائلة ${focusName}` : ''}`;

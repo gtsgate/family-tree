@@ -689,7 +689,7 @@ function tieUnitEn(graph, seg) {
   return enWord(milk ? 'milkChild' : 'fosterChild', b);
 }
 
-/** English label of a relationship. possessor = "your" | "Ahmed's". */
+/** English label of a relationship. possessor = "your" | "Ahmad's". */
 function englishLabel(rel, graph, possessor, showDivorce) {
   const segs = rel.segments;
   // Units from a to b; in-law pairs collapse into one word (father-in-law, brother-in-law, stepson …).
@@ -749,7 +749,7 @@ function englishLabel(rel, graph, possessor, showDivorce) {
 /**
  * Name a relationship ("what is b to a").
  *   you:true  → EN "your paternal uncle", AR "عمّك" (the suffix ك is the same for both genders when unvowelled)
- *   you:false → EN "Ahmed's paternal uncle", AR "عمّ أحمد"; `name` defaults to a's display name.
+ *   you:false → EN "Ahmad's paternal uncle", AR "عمّ أحمد"; `name` defaults to a's display name.
  *   showDivorce: say "former" for divorced spouses (config.showDivorce); otherwise they read like any marriage.
  */
 export function relationLabel(rel, graph, lang = 'ar', { you = true, name, showDivorce = false } = {}) {

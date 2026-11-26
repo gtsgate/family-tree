@@ -84,7 +84,7 @@ describe('kinship: blood relations (synthetic family)', () => {
   test('parents and children', () => {
     assert.deepEqual(labels(g, 'pme', 'pfa'), ['والدك', 'والد علي', 'your father', "Ali's father"]);
     assert.deepEqual(labels(g, 'pme', 'pmo'), ['والدتك', 'والدة علي', 'your mother', "Ali's mother"]);
-    assert.deepEqual(labels(g, 'pfa', 'pme'), ['ابنك', 'ابن أحمد', 'your son', "Ahmed's son"]);
+    assert.deepEqual(labels(g, 'pfa', 'pme'), ['ابنك', 'ابن أحمد', 'your son', "Ahmad's son"]);
     assert.deepEqual(labels(g, 'pfa', 'psis').slice(0, 3), ['ابنتك', 'ابنة أحمد', 'your daughter']);
     const rel = findRelationship(g, 'pme', 'pfa');
     assert.equal(rel.type, 'blood');

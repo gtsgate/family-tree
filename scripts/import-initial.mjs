@@ -98,7 +98,7 @@ const head1 = P('محمد', 'Muhammad', 'm', { surname: ['عالم', 'Alam'] });
 U([hassan0], [head1]);
 
 // Children of محمد حسن سالم عالم (their mother is not named in the notes)
-const ahmed1 = P('أحمد', 'Ahmed', 'm');
+const ahmed1 = P('أحمد', 'Ahmad', 'm');
 const khadijaBibi = P('خديجة', 'Khadija', 'f', { nickname: ['بيبي', 'Bibi'] });
 const aisha1 = P('عائشة', 'Aisha', 'f');
 const maryam1 = P('مريم', 'Maryam', 'f');
@@ -119,7 +119,7 @@ U([head1], [ahmed1, khadijaBibi, aisha1, maryam1, ali1]);
 
   // محمد - زكية إسماعيل قربان
   M(mohammed, P('زكية', 'Zakiya', 'f', { surname: ['إسماعيل قربان', 'Ismail Qurban'] }), [
-    P('هدى', 'Huda', 'f'), P('سامي', 'Sami', 'm'), P('أحمد', 'Ahmed', 'm'),
+    P('هدى', 'Huda', 'f'), P('سامي', 'Sami', 'm'), P('أحمد', 'Ahmad', 'm'),
     P('هيفاء', 'Haifa', 'f'), P('سلوى', 'Salwa', 'f'), P('هيام', 'Hiyam', 'f'),
   ]);
 
@@ -160,7 +160,7 @@ U([head1], [ahmed1, khadijaBibi, aisha1, maryam1, ali1]);
 }
 
 // عائشة - أحمد الحوَتي
-M(aisha1, P('أحمد', 'Ahmed', 'm', { surname: ['الحوَتي', 'Al-Hawati'] }), [
+M(aisha1, P('أحمد', 'Ahmad', 'm', { surname: ['الحوَتي', 'Al-Hawati'] }), [
   P('يوسف', 'Yousef', 'm'), P('سعاد', 'Suad', 'f'), P('نائلة', 'Naila', 'f'),
 ]);
 
@@ -258,7 +258,7 @@ M(wFatima, P('حسين', 'Hussein', 'm', { surname: ['الريس', 'Al-Rayyis'] 
   // نفيسة - فاروق أحمد جودت
   const sanaa = P('سناء', 'Sanaa', 'f');
   const rajaa = P('رجاء', 'Rajaa', 'f');
-  M(nafisa, P('فاروق', 'Farouk', 'm', { surname: ['أحمد جودت', 'Ahmed Jawdat'] }), [sanaa, rajaa, P('أحمد', 'Ahmed', 'm')]);
+  M(nafisa, P('فاروق', 'Farouk', 'm', { surname: ['أحمد جودت', 'Ahmad Jawdat'] }), [sanaa, rajaa, P('أحمد', 'Ahmad', 'm')]);
   M(sanaa, P('طارق', 'Tariq', 'm', { surname: ['عاشور', 'Ashour'] }));
   M(rajaa, P('سمير', 'Samir', 'm', { surname: ['عاشور', 'Ashour'] }));
 }
@@ -276,7 +276,7 @@ M(wFatima, P('حسين', 'Hussein', 'm', { surname: ['الريس', 'Al-Rayyis'] 
   M(mahmoud, P('مها', 'Maha', 'f', { surname: ['صالح المدني', 'Saleh Al-Madani'] }));
   M(omaima, P('عمر', 'Omar', 'm', { surname: ['محمد حسين', 'Muhammad Hussein'] }));
   M(sahar, P('أنور', 'Anwar', 'm', { surname: ['محمد حسين', 'Muhammad Hussein'] }));
-  M(haifa, P('أحمد', 'Ahmed', 'm', { surname: ['السقاف', 'Al-Saqqaf'] }));
+  M(haifa, P('أحمد', 'Ahmad', 'm', { surname: ['السقاف', 'Al-Saqqaf'] }));
   M(ruwaida, P('محمد', 'Muhammad', 'm', { surname: ['الركا', 'Al-Raka'] }));
 }
 
@@ -302,7 +302,7 @@ M(wFatima, P('حسين', 'Hussein', 'm', { surname: ['الريس', 'Al-Rayyis'] 
 }
 
 // عبداللطيف - شادية أحمد جودت ، - زبيدة
-M(abdullatif2, P('شادية', 'Shadia', 'f', { surname: ['أحمد جودت', 'Ahmed Jawdat'] }), [
+M(abdullatif2, P('شادية', 'Shadia', 'f', { surname: ['أحمد جودت', 'Ahmad Jawdat'] }), [
   P('حسين', 'Hussein', 'm'), P('وعد', 'Waad', 'f'), P('ولاء', 'Walaa', 'f'), P('وصال', 'Wesal', 'f'),
 ]);
 M(abdullatif2, P('زبيدة', 'Zubaida', 'f'), [

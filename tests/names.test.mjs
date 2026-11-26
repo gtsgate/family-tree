@@ -90,11 +90,11 @@ describe('personName', () => {
   test('English: typed English, else automatic spelling of the Arabic; Arabic falls back to English', () => {
     const p = fullPerson({ id: 'pa1', name: { ar: 'أحمد', en: '' } });
     assert.equal(personName(p, 'ar'), 'أحمد');
-    assert.equal(personName(p, 'en'), 'Ahmed');
+    assert.equal(personName(p, 'en'), 'Ahmad');
     assert.equal(personName(fullPerson({ id: 'pa7', name: { ar: 'محمد', en: '' } }), 'en'), 'Muhammad');
     assert.equal(personName(fullPerson({ id: 'pa8', name: { ar: 'محمد', en: 'Mohamed' } }), 'en'), 'Mohamed');
-    const q = fullPerson({ id: 'pa2', name: { ar: '', en: 'Ahmed' } });
-    assert.equal(personName(q, 'ar'), 'Ahmed');
+    const q = fullPerson({ id: 'pa2', name: { ar: '', en: 'Ahmad' } });
+    assert.equal(personName(q, 'ar'), 'Ahmad');
   });
   test('auto English everywhere a name is shown in English', () => {
     const p = fullPerson({ id: 'pa9', name: { ar: 'خديجة' }, nickname: { ar: 'بيبي' }, surname: { ar: 'آل غالب' } });
@@ -352,7 +352,7 @@ describe('skeletonKey', () => {
       ['Mohamed', 'محمد'], ['Muhammad', 'محمد'], ['Mohammed', 'Muhammad'], ['مُحَمَّد', 'محمد'],
       ['abdulrahman', 'عبد الرحمن'], ['Abdul Rahman', 'عبدالرحمن'], ['Abd al-Rahman', 'عبد الرحمن'],
       ['alharbi', 'الحربي'], ['Al-Harbi', 'الحربي'], ['3li', 'علي'], ['Ali', 'علي'],
-      ['Ahmed', 'أحمد'], ['Ibrahim', 'إبراهيم'], ['Ilham', 'إلهام'], ['Yousef', 'يوسف'], ['Walid', 'وليد'],
+      ['Ahmad', 'أحمد'], ['Ibrahim', 'إبراهيم'], ['Ilham', 'إلهام'], ['Yousef', 'يوسف'], ['Walid', 'وليد'],
       ['Khadija', 'خديجة'], ['Aisha', 'عائشة'], ['Faiza', 'فايزه'], ['Abdullah', 'عبد الله'],
       ['Emad Al-Din', 'عماد الدين'], ['Qandil', 'قنديل'], ['Daghestani', 'داغستاني'], ['7assan', 'حسن'],
       ['5aled', 'خالد'], ['Ghazi', 'غازي'], ['Shadia', 'شادية'],
@@ -362,7 +362,7 @@ describe('skeletonKey', () => {
   });
   test('no absurd collisions', () => {
     const differ = [
-      ['محمد', 'أحمد'], ['Mohamed', 'Ahmed'], ['Ali', 'Layla'], ['علي', 'ليلى'], ['أحمد', 'حامد'],
+      ['محمد', 'أحمد'], ['Mohamed', 'Ahmad'], ['Ali', 'Layla'], ['علي', 'ليلى'], ['أحمد', 'حامد'],
       ['Khalid', 'Walid'], ['سالم', 'سلمان'], ['فاطمة', 'فايزة'], ['عصام', 'عماد'], ['يوسف', 'سيف'],
       ['Hassan', 'Ahsan'], ['عبد الله', 'عبد الرحمن'], ['Omar', 'Mohammed'],
     ];
@@ -383,7 +383,7 @@ describe('skeletonKey', () => {
 
 describe('looksLikeFullName / splitFullName', () => {
   test('detects full names', () => {
-    for (const s of ['محمد حسن سالم عالم', 'محمد بن حسن', 'فاطمة بنت علي', 'Mohammed Ali Mahmoud', 'Ahmed bin Saeed', 'زكية إسماعيل قربان']) {
+    for (const s of ['محمد حسن سالم عالم', 'محمد بن حسن', 'فاطمة بنت علي', 'Mohammed Ali Mahmoud', 'Ahmad bin Saeed', 'زكية إسماعيل قربان']) {
       assert.equal(looksLikeFullName(s), true, s);
     }
   });

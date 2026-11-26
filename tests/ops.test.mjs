@@ -352,7 +352,7 @@ test('add-person: NAME_LOOKS_FULL and MINOR_DETAIL', () => {
   const r = preview(fixture(), [
     person({ name: { ar: 'محمد بن حسن' } }, { ref: 'new1' }),
     person({ name: { ar: 'عبد الرحمن' } }, { ref: 'new2' }), // one compound name: fine
-    person({ name: { en: 'Ahmed Hassan Salem' } }, { ref: 'new3' }),
+    person({ name: { en: 'Ahmad Hassan Salem' } }, { ref: 'new3' }),
     person({ name: { ar: 'ريم' }, gender: 'f', birth: { date: '2015-03-04', place: { ar: 'الرياض' } }, privacy: 'full', occupation: { ar: 'طالبة' }, photo: 'https://example.org/r.jpg' }, { ref: 'new4' }),
   ]);
   assertOk(r);

@@ -825,7 +825,7 @@ describe('§2.1/§3.3 add-person input', () => {
   test('§3.3 NAME_LOOKS_FULL for بن/bin or > 2 tokens after joining compounds; compounds alone are fine', () => {
     const d = fixture();
     for (const ar of ['محمد بن حسن', 'محمد حسن سالم']) warns(ok(preview(d, [add('new1', M(ar))])), 'NAME_LOOKS_FULL', 0);
-    warns(ok(preview(d, [add('new1', { name: { en: 'Ahmed bin Ali' }, gender: 'm' })])), 'NAME_LOOKS_FULL', 0);
+    warns(ok(preview(d, [add('new1', { name: { en: 'Ahmad bin Ali' }, gender: 'm' })])), 'NAME_LOOKS_FULL', 0);
     for (const ar of ['عبد الرحمن', 'نور الدين', 'محمد']) noWarn(ok(preview(d, [add('new1', M(ar))])), 'NAME_LOOKS_FULL');
   });
 
