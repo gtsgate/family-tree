@@ -2,6 +2,39 @@
   "entries": [
     {
       "issue": null,
+      "proposalId": "5qlzuat95w",
+      "hash": "",
+      "commit": "",
+      "rev": 9,
+      "at": "2026-11-26T14:32:11.201Z",
+      "title": "Mark Hussein Ali Alam as deceased",
+      "summary": {
+        "en": [
+          "Mark Hussein Ali Alam as deceased"
+        ],
+        "ar": [
+          "تسجيل وفاة حسين علي عالم"
+        ]
+      },
+      "submitter": {
+        "name": "",
+        "relation": ""
+      },
+      "approvedBy": "gtsgate",
+      "people": [
+        "pv4fdb68"
+      ],
+      "touched": {
+        "people": [
+          "pv4fdb68"
+        ],
+        "unions": []
+      },
+      "destructive": false,
+      "action": "owner-edit"
+    },
+    {
+      "issue": null,
       "proposalId": "qtk16ac9n7",
       "hash": "",
       "commit": "",

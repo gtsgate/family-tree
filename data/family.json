@@ -6,8 +6,8 @@
       "en": "The Grand Family Tree"
     },
     "rootPersonId": "pg8caja6",
-    "revision": 8,
-    "updatedAt": "2026-11-26T14:31:44.280Z"
+    "revision": 9,
+    "updatedAt": "2026-11-26T14:32:11.201Z"
   },
   "people": {
     "pg8caja6": {
@@ -1035,12 +1035,19 @@
         "ar": "حسين"
       },
       "gender": "m",
+      "deceased": true,
       "privacy": "year",
       "history": [
         {
           "issue": null,
           "at": "2026-11-25T00:00:00Z",
           "action": "import"
+        },
+        {
+          "issue": null,
+          "rev": 9,
+          "at": "2026-11-26T14:32:11.201Z",
+          "action": "mark"
         }
       ]
     },
