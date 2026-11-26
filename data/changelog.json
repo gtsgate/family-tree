@@ -2,6 +2,39 @@
   "entries": [
     {
       "issue": null,
+      "proposalId": "hle8on854e",
+      "hash": "",
+      "commit": "",
+      "rev": 27,
+      "at": "2026-11-26T17:02:03.539Z",
+      "title": "Edit Reema Adnan Al-Fawaz: Arabic nickname: “أم دان”",
+      "summary": {
+        "en": [
+          "Edit Reema Adnan Al-Fawaz: Arabic nickname: “أم دان”"
+        ],
+        "ar": [
+          "تعديل بيانات ريما عدنان الفواز: الكنية أو اللقب بالعربية: «أم دان»"
+        ]
+      },
+      "submitter": {
+        "name": "",
+        "relation": ""
+      },
+      "approvedBy": "gtsgate",
+      "people": [
+        "psy6unmh"
+      ],
+      "touched": {
+        "people": [
+          "psy6unmh"
+        ],
+        "unions": []
+      },
+      "destructive": false,
+      "action": "owner-edit"
+    },
+    {
+      "issue": null,
       "proposalId": "41mhu6taxj",
       "hash": "",
       "commit": "",

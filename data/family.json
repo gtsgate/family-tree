@@ -6,8 +6,8 @@
       "en": "The Grand Family Tree"
     },
     "rootPersonId": "pg8caja6",
-    "revision": 26,
-    "updatedAt": "2026-11-26T17:00:48.331Z"
+    "revision": 27,
+    "updatedAt": "2026-11-26T17:02:03.539Z"
   },
   "people": {
     "pg8caja6": {
@@ -3269,6 +3269,9 @@
       "name": {
         "ar": "ريما"
       },
+      "nickname": {
+        "ar": "أم دان"
+      },
       "gender": "f",
       "privacy": "year",
       "history": [
@@ -3277,6 +3280,12 @@
           "rev": 10,
           "at": "2026-11-26T16:34:10.951Z",
           "action": "add-person"
+        },
+        {
+          "issue": null,
+          "rev": 27,
+          "at": "2026-11-26T17:02:03.539Z",
+          "action": "edit-person"
         }
       ]
     },
