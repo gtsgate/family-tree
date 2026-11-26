@@ -573,7 +573,7 @@ function arabicLabel(rel, graph, owner, ownerGender, showDivorce) {
     const b = personOf(graph, rel.b);
     const text = renderArabic([tok('relative', b)], owner, { modifier: rel.type === 'affinal' ? 'inLaw' : null });
     const lca = rel.type === 'blood' ? personOf(graph, rel.lca) : null;
-    const lcaName = lca ? displayName(lca, 'ar', graph) : '';
+    const lcaName = lca ? displayName(lca, 'ar', graph, { kunya: false }) : '';
     if (!lcaName) return text;
     return `${text} (${genderOf(lca) === 'f' ? 'الجدّة المشتركة' : 'الجدّ المشترك'}: ${lcaName})`;
   }
@@ -756,7 +756,7 @@ export function relationLabel(rel, graph, lang = 'ar', { you = true, name, showD
   const L = langOf(lang);
   if (!rel) return '';
   const aPerson = personOf(graph, rel.a);
-  const ownerName = you ? '' : (name || displayName(aPerson, L, graph) || (L === 'ar' ? 'غير معروف' : 'Unknown'));
+  const ownerName = you ? '' : (name || displayName(aPerson, L, graph, { kunya: false }) || (L === 'ar' ? 'غير معروف' : 'Unknown'));
   if (rel.type === 'self') return you ? (L === 'ar' ? 'أنت' : 'you') : ownerName;
   if (rel.type === 'none' || !rel.segments?.length) {
     if (L === 'ar') return you ? 'لا توجد صلة قرابة معروفة' : `لا توجد صلة قرابة معروفة مع ${ownerName}`;

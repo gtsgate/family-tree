@@ -16,7 +16,7 @@ import {
 } from '../forms/dialogs.js';
 import { formatDate } from '../core/dates.js';
 import { isAutoEnglish } from '../core/translit.js';
-import { personName, displayName } from '../core/names.js';
+import { personName, displayName, autoKunya } from '../core/names.js';
 import { findRelationship, relationLabel } from '../core/kinship.js';
 import { isPersonId, isUnionId } from '../core/schema.js';
 
@@ -329,7 +329,8 @@ function header(P) {
   const main = given || nameOf(P);
   const otherGiven = known ? personName(P, otherLang()) : '';
   const other = otherGiven || displayName(P, otherLang(), store.working);
-  const nick = known && given ? (P.nickname?.[L] || P.nickname?.[otherLang()] || '') : '';
+  // Recorded kunya/nickname, else the automatic kunya (eldest son, else eldest daughter).
+  const nick = known && given ? (P.nickname?.[L] || P.nickname?.[otherLang()] || autoKunya(P, L, store.working) || '') : '';
   const lineage = lineageOf(P, { depth: 4 });
   const years = yearsOf(P);
   const isMe = store.me === P.id;

@@ -174,12 +174,43 @@ function relationalLabel(p, lang, graph, status) {
  *   unknown / withheld → nickname, else a polite relational label (needs `graph`);
  *              plus their own surname: "أم خالد الحربي", "زوجة محمد علي محمود (داغستاني)".
  */
-export function displayName(p, lang = 'ar', graph = null) {
+const kunyaMemo = new WeakMap(); // graph → Map("id|lang" → kunya)
+
+/**
+ * Automatic kunya when none is recorded: «أبو/أم <eldest son>», else «أبو/أم <eldest daughter>»
+ * ("Abu …" / "Umm …"). Children in the graph's order (birth year when known). '' without a graph, without a
+ * known gender, or without named children. A recorded nickname always takes precedence (see displayName).
+ */
+export function autoKunya(p, lang = 'ar', graph = null) {
+  p = asPerson(p, graph);
+  if (!p || !graph || typeof graph.children !== 'function') return '';
+  if (p.gender !== 'm' && p.gender !== 'f') return '';
+  const L = langOf(lang);
+  let memo = kunyaMemo.get(graph);
+  if (!memo) { memo = new Map(); kunyaMemo.set(graph, memo); }
+  const key = `${p.id}|${L}`;
+  if (memo.has(key)) return memo.get(key);
+  let out = '';
+  try {
+    const kids = (graph.children(p.id) || []).filter((c) => nameStatusOf(c) === 'known' && (personName(c, 'ar') || personName(c, 'en')));
+    const pick = kids.find((c) => c.gender === 'm') || kids.find((c) => c.gender === 'f');
+    if (pick) {
+      const nm = personName(pick, L);
+      if (nm) out = L === 'en' ? `${p.gender === 'm' ? 'Abu' : 'Umm'} ${nm}` : `${p.gender === 'm' ? 'أبو' : 'أم'} ${nm}`;
+    }
+  } catch { out = ''; }
+  memo.set(key, out);
+  return out;
+}
+
+export function displayName(p, lang = 'ar', graph = null, { kunya = true } = {}) {
   p = asPerson(p, graph);
   if (!p) return '';
   const L = langOf(lang);
   const given = personName(p, L);
-  const nick = biText(p.nickname, L);
+  // A recorded nickname/kunya wins; otherwise the automatic kunya from the eldest son (or daughter) —
+  // left out where a plain name reads better (kinship sentences: «عمّ علي», not «عمّ علي (أبو زياد)»).
+  const nick = biText(p.nickname, L) || (kunya ? autoKunya(p, L, graph) : '');
   if (given) return nick && nick !== given ? `${given} (${nick})` : given;
   const status = nameStatusOf(p);
   if (status === 'known' && nick) return nick; // kunya-only ("أبو خالد")

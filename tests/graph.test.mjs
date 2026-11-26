@@ -658,7 +658,7 @@ describe('real data', () => {
     // إبراهيم's mother is not recorded → not claimed as a half-brother
     assert.ok(hs.unspecified.some((p) => p.name.ar === 'إبراهيم'));
     assert.equal(g.father(hussein.id).id, head2.id);
-    assert.equal(displayName(g.mother(hussein.id), 'ar', g), 'زوجة محمد علي محمود (داغستاني)');
+    assert.equal(displayName(g.mother(hussein.id), 'ar', g), 'أم حسين داغستاني');
   });
 
   test('head of family 2: unions follow spouseOrder', () => {

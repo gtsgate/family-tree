@@ -144,14 +144,17 @@ describe('displayName', () => {
   const g = buildGraph(b.data());
 
   test('known: given name, "(nickname)" and kunya-only', () => {
-    assert.equal(displayName(g.person('pmoh'), 'ar', g), 'محمد');
+    assert.equal(displayName(g.person('pmoh'), 'ar', g, { kunya: false }), 'محمد');
+    assert.equal(displayName(g.person('pmoh'), 'ar', g), 'محمد (أبو خديجة)', 'automatic kunya from the eldest child when none is recorded');
     assert.equal(displayName(g.person('pknown'), 'ar', g), 'خديجة (بيبي)');
     assert.equal(displayName(g.person('pknown'), 'en', g), 'Khadija (Bibi)');
     assert.equal(displayName(g.person('pabu'), 'ar', g), 'أبو خالد');
   });
   test('unknown / withheld wife: زوجة / حرم + surname', () => {
-    assert.equal(displayName(g.person('pwife'), 'ar', g), 'زوجة محمد حسن عالم (داغستاني)');
-    assert.equal(displayName(g.person('pwife'), 'en', g), 'Wife of Mohammed Hassan Alam (Daghestani)');
+    assert.equal(displayName(g.person('pwife'), 'ar', g, { kunya: false }), 'زوجة محمد حسن عالم (داغستاني)');
+    assert.equal(displayName(g.person('pwife'), 'ar', g), 'أم خديجة داغستاني', 'a mother whose name is not known is called by her kunya');
+    assert.equal(displayName(g.person('pwife'), 'en', g), 'Umm Khadija Daghestani');
+    assert.equal(displayName(g.person('pwife'), 'en', g, { kunya: false }), 'Wife of Mohammed Hassan Alam (Daghestani)');
     assert.equal(displayName(g.person('pwife2'), 'ar', g), 'حرم محمد حسن عالم');
     assert.equal(displayName(g.person('pwife2'), 'en', g), 'Wife of Mohammed Hassan Alam');
   });
@@ -167,8 +170,10 @@ describe('displayName', () => {
   test('husband and parent labels, kunya in the genitive', () => {
     assert.equal(displayName(g.person('phus'), 'ar', g), 'زوج نورة (الحربي)');
     assert.equal(displayName(g.person('phus'), 'en', g), 'Husband of Noura (Al-Harbi)');
-    assert.equal(displayName(g.person('pdad'), 'ar', g), 'والد سعد');
-    assert.equal(displayName(g.person('pdad'), 'en', g), 'Father of Saad');
+    assert.equal(displayName(g.person('pdad'), 'ar', g, { kunya: false }), 'والد سعد');
+    assert.equal(displayName(g.person('pdad'), 'ar', g), 'أبو سعد');
+    assert.equal(displayName(g.person('pdad'), 'en', g), 'Abu Saad');
+    assert.equal(displayName(g.person('pdad'), 'en', g, { kunya: false }), 'Father of Saad');
     assert.equal(displayName(g.person('pkid'), 'ar', g), 'ابن أبي خالد');
     assert.equal(displayName(g.person('pkid'), 'en', g), 'Son of Abi Khalid');
   });
@@ -183,7 +188,8 @@ describe('displayName', () => {
     assert.equal(displayName(g.person('pwife')), 'غير معروف (داغستاني)');
   });
   test('accepts an id when a graph is given', () => {
-    assert.equal(displayName('pmoh', 'en', g), 'Mohammed');
+    assert.equal(displayName('pmoh', 'en', g, { kunya: false }), 'Mohammed');
+    assert.equal(displayName('pmoh', 'en', g), 'Mohammed (Abu Khadija)');
   });
 });
 
@@ -258,8 +264,9 @@ describe('lineageName', () => {
     assert.equal(lineageName(g, 'psami2', 'ar'), 'رامي');
   });
   test('unknown person → display label', () => {
-    assert.equal(lineageName(g, 'punk', 'ar'), 'والد غازي عالم');
-    assert.equal(displayName(g.person('punk'), 'en', g), 'Father of Ghazi Alam');
+    assert.equal(lineageName(g, 'punk', 'ar'), 'أبو غازي عالم');
+    assert.equal(displayName(g.person('punk'), 'en', g), 'Abu Ghazi Alam');
+    assert.equal(displayName(g.person('punk'), 'en', g, { kunya: false }), 'Father of Ghazi Alam');
     assert.equal(lineageName(g, 'nobody', 'ar'), '');
   });
   test('setLineageStyle changes the default; invalid values are ignored', () => {
@@ -417,11 +424,38 @@ describe('real data labels', () => {
       }
     }
     const dagh = unknown.find((p) => p.surname.ar === 'داغستاني');
-    assert.equal(displayName(dagh, 'ar', g), 'زوجة محمد علي محمود (داغستاني)');
-    assert.equal(displayName(dagh, 'en', g), 'Wife of Muhammad Ali Mahmoud (Daghestani)');
+    assert.equal(displayName(dagh, 'ar', g), 'أم حسين داغستاني');
+    assert.equal(displayName(dagh, 'en', g), 'Umm Hussein Daghestani');
+    assert.equal(displayName(dagh, 'en', g, { kunya: false }), 'Wife of Muhammad Ali Mahmoud (Daghestani)');
     const alem = unknown.find((p) => p.surname.ar === 'عالم');
-    assert.equal(displayName(alem, 'ar', g), 'زوج علوية مراد (عالم)');
+    assert.equal(displayName(alem, 'ar', g), 'أبو غازي عالم');
+    assert.equal(displayName(alem, 'ar', g, { kunya: false }), 'زوج علوية مراد (عالم)');
     const kids = unknown.filter((p) => !p.gender).map((p) => displayName(p, 'ar', g)).sort();
     assert.deepEqual(kids, ['أحد أبناء حسين أصغر', 'أحد أبناء علوية مراد']);
   });
 });
+
+describe('automatic kunya (eldest son, else eldest daughter; a recorded nickname wins)', () => {
+  const g = buildGraph(realData());
+  const find = (ar, pred = () => true) => g.people().find((p) => p.name?.ar === ar && pred(p));
+  test('father and mother are called after the eldest son', () => {
+    const essam = find('عصام', (p) => g.father(p.id)?.name.ar === 'علي');
+    assert.equal(displayName(essam, 'ar', g), 'عصام (أبو علي)');
+    assert.equal(displayName(essam, 'en', g), 'Essam (Abu Ali)');
+    assert.equal(displayName(find('زلفى'), 'ar', g), 'زلفى (أم علي)');
+  });
+  test('the first SON, even when a daughter was born first', () => {
+    assert.equal(displayName(find('زكية'), 'ar', g), 'زكية (أم سامي)');
+  });
+  test('a recorded kunya or nickname always wins', () => {
+    assert.equal(displayName(find('علي', (p) => p.nickname?.ar === 'أبو دان'), 'ar', g), 'علي (أبو دان)');
+    assert.equal(displayName(find('خديجة', (p) => p.nickname?.ar === 'بيبي'), 'ar', g), 'خديجة (بيبي)');
+  });
+  test('no children → no kunya; kunya off on request', () => {
+    const hiyam = find('هيام');
+    assert.equal(displayName(hiyam, 'ar', g), 'هيام');
+    const essam = find('عصام', (p) => g.father(p.id)?.name.ar === 'علي');
+    assert.equal(displayName(essam, 'ar', g, { kunya: false }), 'عصام');
+  });
+});
+

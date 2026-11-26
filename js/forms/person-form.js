@@ -25,7 +25,7 @@ import { t, register, lang, intlLocale } from '../i18n.js';
 import { store } from '../store.js';
 import { whatsappUrl, ownerName, lineageOf } from '../ui.js';
 import { transliterate } from '../core/translit.js';
-import { looksLikeFullName, splitFullName } from '../core/names.js';
+import { looksLikeFullName, splitFullName, autoKunya } from '../core/names.js';
 import {
   toAsciiDigits, isValidDate, isValidHijri, hijriToGregorian, gregorianToHijri, isMinor,
   HIJRI_MONTHS, LEVANTINE_MONTHS, getMonthNames, yearOf,
@@ -64,6 +64,7 @@ register({
     'pf.nickname': 'Nickname or kunya',
     'pf.nicknamePh': 'Abu Khalid',
     'pf.nicknameHint': 'Optional — how the family knows them.',
+    'pf.nicknameAuto': 'Shown automatically as “{k}” (from the eldest son, or daughter) unless something else is written here.',
     'pf.life': 'Living or passed away?',
     'pf.living': 'Living',
     'pf.deceased': 'Passed away',
@@ -142,6 +143,7 @@ register({
     'pf.nickname': 'الكنية أو اللقب',
     'pf.nicknamePh': 'أبو خالد، أم خالد، الحاج',
     'pf.nicknameHint': 'اختياري — الاسم الذي تعرفه به العائلة.',
+    'pf.nicknameAuto': 'تظهر تلقائياً «{k}» (من الابن الأكبر، أو البنت) ما لم يُكتب هنا غيرها.',
     'pf.life': 'على قيد الحياة أم في ذمّة الله؟',
     'pf.living': 'على قيد الحياة',
     'pf.deceased': 'في ذمّة الله',
@@ -542,8 +544,11 @@ export function personForm({ mode = 'add', person = null, context = {} } = {}) {
   const surBi = bilingualInputs({ id: surId, value: p.surname, kind: 'surname', maxLength: LIMITS.surname, placeholderAr: 'عالم', placeholderEn: 'Alam' });
   const surField = field({ label: t('pf.surname'), control: surBi.el, id: surId, hint: t('pf.surnameHint') });
   const nickId = uid('nick');
-  const nickBi = bilingualInputs({ id: nickId, value: p.nickname, kind: 'given', maxLength: LIMITS.nickname, placeholderAr: 'أبو خالد', placeholderEn: 'Abu Khalid' });
-  const nickField = field({ label: t('pf.nickname'), control: nickBi.el, id: nickId, hint: t('pf.nicknameHint') });
+  // Without a recorded kunya the tree shows an automatic one (eldest son, else eldest daughter): show it as the
+  // placeholder so it is clear what appears unless something else is typed.
+  const autoK = mode === 'edit' && p.id ? { ar: autoKunya(p, 'ar', store.working), en: autoKunya(p, 'en', store.working) } : { ar: '', en: '' };
+  const nickBi = bilingualInputs({ id: nickId, value: p.nickname, kind: 'given', maxLength: LIMITS.nickname, placeholderAr: autoK.ar || 'أبو خالد', placeholderEn: autoK.en || 'Abu Khalid' });
+  const nickField = field({ label: t('pf.nickname'), control: nickBi.el, id: nickId, hint: autoK.ar ? t('pf.nicknameAuto', { k: lang() === 'ar' ? autoK.ar : autoK.en }) : t('pf.nicknameHint') });
 
   // --- life status ---------------------------------------------------------------------------------------
   const lifeId = uid('life');

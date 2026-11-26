@@ -1019,7 +1019,7 @@ flow('owner mode: sign in → a child added on the person page is committed at o
   await page.locator('.wiz-done').click();
   await page.waitForFunction((id) => location.hash === `#/p/${id}`, mahyar?.id);
   await settle(page);
-  check((await page.locator('#app').innerText()).includes(displayName(mahyar, 'en', wg)), W, 'the saved person page does not open');
+  check((await page.locator('#app').innerText()).includes(displayName(mahyar, 'en', wg, { kunya: false })), W, 'the saved person page does not open');
 
   // (5) Sign out → the normal proposal flow returns
   await load(page, '#/admin');
