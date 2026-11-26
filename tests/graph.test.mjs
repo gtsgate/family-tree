@@ -561,10 +561,12 @@ describe('recentlyAdded', () => {
 });
 
 // ---------------------------------------------------------------------------------------------------------
-// The real family data (data/family.json, 193 people).
+// The real family data (data/family.json; it grows as proposals are approved, so counts come from the file).
 
 describe('real data', () => {
   const g = buildGraph(realData());
+  // Active (not removed) people in the stored file — the expected count for every check below.
+  const ACTIVE = Object.values(realData().people).filter((p) => !p.removed).length;
   const byName = (ar, pred = () => true) => g.people().filter((p) => p.name.ar === ar && pred(p));
   const head2 = byName('محمد علي', (p) => p.surname.ar === 'محمود')[0];
   const salem = byName('سالم', (p) => !g.parents(p.id).length)[0];
@@ -573,9 +575,10 @@ describe('real data', () => {
   const ali = byName('علي', (p) => g.spouses(p.id).some((s) => s.person.id === faiza.id))[0];
 
   test('loads and also works on the compact stored form', () => {
-    assert.equal(g.people().length, 193);
+    assert.equal(g.people().length, ACTIVE);
+    assert.ok(ACTIVE >= 193, 'the imported family is all there');
     const compact = buildGraph(realCompact());
-    assert.equal(compact.people().length, 193);
+    assert.equal(compact.people().length, ACTIVE);
     assert.deepEqual(compact.stats(), g.stats());
     assert.deepEqual(compact.branches().map((x) => x.person.id), g.branches().map((x) => x.person.id));
     assert.equal(compact.search('Faiza')[0].person.id, faiza.id);
@@ -594,10 +597,10 @@ describe('real data', () => {
 
   test('stats', () => {
     const s = g.stats();
-    assert.equal(s.people, 193);
+    assert.equal(s.people, ACTIVE);
     assert.equal(s.unions, 60);
     assert.equal(s.branches, 2);
-    assert.equal(s.living + s.deceased, 193);
+    assert.equal(s.living + s.deceased, ACTIVE);
     assert.ok(s.generations >= 5);
   });
 
