@@ -2,6 +2,51 @@
   "entries": [
     {
       "issue": null,
+      "proposalId": "l0e6s94lfe",
+      "hash": "",
+      "commit": "",
+      "rev": 5,
+      "at": "2026-11-26T13:17:27.748Z",
+      "title": "Add “Lama” and “Hassan” to the family of Adel Ali Alam",
+      "summary": {
+        "en": [
+          "Add “Lama” as wife of Adel Ali Alam",
+          "Add “Hassan” as son of Adel Ali Alam and “Lama” (b. 2026)"
+        ],
+        "ar": [
+          "إضافة «لمى» زوجةً لـ عادل علي عالم",
+          "إضافة «حسن» ابناً لـ عادل علي عالم و«لمى» (م 2026)"
+        ]
+      },
+      "submitter": {
+        "name": "",
+        "relation": ""
+      },
+      "approvedBy": "gtsgate",
+      "people": [
+        "pglussip",
+        "pzp4ktxd"
+      ],
+      "touched": {
+        "people": [
+          "pglussip",
+          "pzp4ktxd"
+        ],
+        "unions": [
+          "uckqhthy"
+        ]
+      },
+      "destructive": false,
+      "action": "owner-edit",
+      "idMap": {
+        "new26": "pglussip",
+        "new25": "pzp4ktxd",
+        "newu27": "uckqhthy",
+        "newu28": "uckqhthy"
+      }
+    },
+    {
+      "issue": null,
       "proposalId": "qmbd7sfgyx",
       "hash": "",
       "commit": "",

@@ -6,8 +6,8 @@
       "en": "The Grand Family Tree"
     },
     "rootPersonId": "pg8caja6",
-    "revision": 4,
-    "updatedAt": "2026-11-26T13:04:00.070Z"
+    "revision": 5,
+    "updatedAt": "2026-11-26T13:17:27.748Z"
   },
   "people": {
     "pg8caja6": {
@@ -3197,6 +3197,41 @@
           "action": "add-person"
         }
       ]
+    },
+    "pglussip": {
+      "id": "pglussip",
+      "name": {
+        "ar": "لمى"
+      },
+      "gender": "f",
+      "privacy": "year",
+      "history": [
+        {
+          "issue": null,
+          "rev": 5,
+          "at": "2026-11-26T13:17:27.748Z",
+          "action": "add-person"
+        }
+      ]
+    },
+    "pzp4ktxd": {
+      "id": "pzp4ktxd",
+      "name": {
+        "ar": "حسن"
+      },
+      "gender": "m",
+      "birth": {
+        "date": "2026"
+      },
+      "privacy": "year",
+      "history": [
+        {
+          "issue": null,
+          "rev": 5,
+          "at": "2026-11-26T13:17:27.748Z",
+          "action": "add-person"
+        }
+      ]
     }
   },
   "unions": {
@@ -3886,6 +3921,17 @@
       "children": [
         "po3uyog1",
         "pdyiak53"
+      ],
+      "status": "married"
+    },
+    "uckqhthy": {
+      "id": "uckqhthy",
+      "partners": [
+        "psa46soz",
+        "pglussip"
+      ],
+      "children": [
+        "pzp4ktxd"
       ],
       "status": "married"
     }
