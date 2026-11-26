@@ -2,6 +2,45 @@
   "entries": [
     {
       "issue": null,
+      "proposalId": "1zxk8wj0b1",
+      "hash": "",
+      "commit": "",
+      "rev": 17,
+      "at": "2026-11-26T16:41:41.752Z",
+      "title": "Add “Aleen” as daughter of Ali Essam Alam and Reema Adnan Al-Fawaz (b. 2018)",
+      "summary": {
+        "en": [
+          "Add “Aleen” as daughter of Ali Essam Alam and Reema Adnan Al-Fawaz (b. 2018)"
+        ],
+        "ar": [
+          "إضافة «ألين» ابنةً لـ علي عصام عالم وريما عدنان الفواز (م 2018)"
+        ]
+      },
+      "submitter": {
+        "name": "",
+        "relation": ""
+      },
+      "approvedBy": "gtsgate",
+      "people": [
+        "py05um8r"
+      ],
+      "touched": {
+        "people": [
+          "py05um8r"
+        ],
+        "unions": [
+          "u8uddl58"
+        ]
+      },
+      "destructive": false,
+      "action": "owner-edit",
+      "idMap": {
+        "new47": "py05um8r",
+        "newu48": "u8uddl58"
+      }
+    },
+    {
+      "issue": null,
       "proposalId": "7k4cx36jra",
       "hash": "",
       "commit": "",
