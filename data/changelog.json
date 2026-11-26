@@ -2,6 +2,39 @@
   "entries": [
     {
       "issue": null,
+      "proposalId": "e9l1m4gn63",
+      "hash": "",
+      "commit": "",
+      "rev": 22,
+      "at": "2026-11-26T16:55:29.086Z",
+      "title": "Edit Abdulrahman: Arabic family name: “الريس”; English family name: “Al-Rayess”",
+      "summary": {
+        "en": [
+          "Edit Abdulrahman: Arabic family name: “الريس”; English family name: “Al-Rayess”"
+        ],
+        "ar": [
+          "تعديل بيانات عبدالرحمن: اسم العائلة بالعربية: «الريس»؛ اسم العائلة بالإنجليزية: «Al-Rayess»"
+        ]
+      },
+      "submitter": {
+        "name": "",
+        "relation": ""
+      },
+      "approvedBy": "gtsgate",
+      "people": [
+        "pfi4d2li"
+      ],
+      "touched": {
+        "people": [
+          "pfi4d2li"
+        ],
+        "unions": []
+      },
+      "destructive": false,
+      "action": "owner-edit"
+    },
+    {
+      "issue": null,
       "proposalId": "ootmo02l0d",
       "hash": "",
       "commit": "",
