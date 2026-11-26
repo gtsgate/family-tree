@@ -6,8 +6,8 @@
       "en": "The Grand Family Tree"
     },
     "rootPersonId": "pg8caja6",
-    "revision": 18,
-    "updatedAt": "2026-11-26T16:42:39.488Z"
+    "revision": 19,
+    "updatedAt": "2026-11-26T16:43:11.519Z"
   },
   "people": {
     "pg8caja6": {
@@ -3414,6 +3414,25 @@
           "action": "add-person"
         }
       ]
+    },
+    "pn81y3cb": {
+      "id": "pn81y3cb",
+      "name": {
+        "ar": "جمان"
+      },
+      "gender": "f",
+      "birth": {
+        "date": "2024"
+      },
+      "privacy": "year",
+      "history": [
+        {
+          "issue": null,
+          "rev": 19,
+          "at": "2026-11-26T16:43:11.519Z",
+          "action": "add-person"
+        }
+      ]
     }
   },
   "unions": {
@@ -4133,7 +4152,8 @@
       "children": [
         "p8lut0o5",
         "py05um8r",
-        "pje7dray"
+        "pje7dray",
+        "pn81y3cb"
       ],
       "status": "married"
     },

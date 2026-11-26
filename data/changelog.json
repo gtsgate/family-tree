@@ -2,6 +2,45 @@
   "entries": [
     {
       "issue": null,
+      "proposalId": "mlu6n8fmf0",
+      "hash": "",
+      "commit": "",
+      "rev": 19,
+      "at": "2026-11-26T16:43:11.519Z",
+      "title": "Add “Jaman” as daughter of Ali Essam Alam and Reema Adnan Al-Fawaz (b. 2024)",
+      "summary": {
+        "en": [
+          "Add “Jaman” as daughter of Ali Essam Alam and Reema Adnan Al-Fawaz (b. 2024)"
+        ],
+        "ar": [
+          "إضافة «جمان» ابنةً لـ علي عصام عالم وريما عدنان الفواز (م 2024)"
+        ]
+      },
+      "submitter": {
+        "name": "",
+        "relation": ""
+      },
+      "approvedBy": "gtsgate",
+      "people": [
+        "pn81y3cb"
+      ],
+      "touched": {
+        "people": [
+          "pn81y3cb"
+        ],
+        "unions": [
+          "u8uddl58"
+        ]
+      },
+      "destructive": false,
+      "action": "owner-edit",
+      "idMap": {
+        "new51": "pn81y3cb",
+        "newu52": "u8uddl58"
+      }
+    },
+    {
+      "issue": null,
       "proposalId": "4h0kmj0h2b",
       "hash": "",
       "commit": "",
