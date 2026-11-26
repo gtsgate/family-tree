@@ -2,6 +2,45 @@
   "entries": [
     {
       "issue": null,
+      "proposalId": "4h0kmj0h2b",
+      "hash": "",
+      "commit": "",
+      "rev": 18,
+      "at": "2026-11-26T16:42:39.488Z",
+      "title": "Add “Al-Rayyan” as son of Ali Essam Alam and Reema Adnan Al-Fawaz (b. 2023)",
+      "summary": {
+        "en": [
+          "Add “Al-Rayyan” as son of Ali Essam Alam and Reema Adnan Al-Fawaz (b. 2023)"
+        ],
+        "ar": [
+          "إضافة «الريان» ابناً لـ علي عصام عالم وريما عدنان الفواز (م 2023)"
+        ]
+      },
+      "submitter": {
+        "name": "",
+        "relation": ""
+      },
+      "approvedBy": "gtsgate",
+      "people": [
+        "pje7dray"
+      ],
+      "touched": {
+        "people": [
+          "pje7dray"
+        ],
+        "unions": [
+          "u8uddl58"
+        ]
+      },
+      "destructive": false,
+      "action": "owner-edit",
+      "idMap": {
+        "new49": "pje7dray",
+        "newu50": "u8uddl58"
+      }
+    },
+    {
+      "issue": null,
       "proposalId": "1zxk8wj0b1",
       "hash": "",
       "commit": "",
