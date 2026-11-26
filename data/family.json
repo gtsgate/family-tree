@@ -6,8 +6,8 @@
       "en": "The Grand Family Tree"
     },
     "rootPersonId": "pg8caja6",
-    "revision": 24,
-    "updatedAt": "2026-11-26T16:57:05.730Z"
+    "revision": 25,
+    "updatedAt": "2026-11-26T16:57:53.263Z"
   },
   "people": {
     "pg8caja6": {
@@ -3489,6 +3489,25 @@
           "action": "edit-person"
         }
       ]
+    },
+    "p9c6efj9": {
+      "id": "p9c6efj9",
+      "name": {
+        "ar": "ماجد"
+      },
+      "surname": {
+        "ar": "قعدان"
+      },
+      "gender": "m",
+      "privacy": "year",
+      "history": [
+        {
+          "issue": null,
+          "rev": 25,
+          "at": "2026-11-26T16:57:53.263Z",
+          "action": "add-person"
+        }
+      ]
     }
   },
   "unions": {
@@ -4248,6 +4267,14 @@
       ],
       "children": [
         "ptiafno2"
+      ],
+      "status": "divorced"
+    },
+    "uktgsf2i": {
+      "id": "uktgsf2i",
+      "partners": [
+        "petlxraf",
+        "p9c6efj9"
       ],
       "status": "divorced"
     }

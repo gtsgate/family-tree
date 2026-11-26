@@ -2,6 +2,45 @@
   "entries": [
     {
       "issue": null,
+      "proposalId": "08rgh4tqxp",
+      "hash": "",
+      "commit": "",
+      "rev": 25,
+      "at": "2026-11-26T16:57:53.263Z",
+      "title": "Add “Majed Qadan” as former husband of Zulfa Al-Rayyis",
+      "summary": {
+        "en": [
+          "Add “Majed Qadan” as former husband of Zulfa Al-Rayyis"
+        ],
+        "ar": [
+          "إضافة «ماجد قعدان» زوجاً سابقاً لـ زلفى الريس"
+        ]
+      },
+      "submitter": {
+        "name": "",
+        "relation": ""
+      },
+      "approvedBy": "gtsgate",
+      "people": [
+        "p9c6efj9"
+      ],
+      "touched": {
+        "people": [
+          "p9c6efj9"
+        ],
+        "unions": [
+          "uktgsf2i"
+        ]
+      },
+      "destructive": false,
+      "action": "owner-edit",
+      "idMap": {
+        "new57": "p9c6efj9",
+        "newu58": "uktgsf2i"
+      }
+    },
+    {
+      "issue": null,
       "proposalId": "btbnoabsxv",
       "hash": "",
       "commit": "",
