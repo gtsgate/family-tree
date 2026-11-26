@@ -2,6 +2,39 @@
   "entries": [
     {
       "issue": null,
+      "proposalId": "126h8tnwgz",
+      "hash": "",
+      "commit": "",
+      "rev": 7,
+      "at": "2026-11-26T14:31:23.874Z",
+      "title": "Remove Lama and erase their personal details (reason: entered by mistake)",
+      "summary": {
+        "en": [
+          "Remove Lama and erase their personal details (reason: entered by mistake)"
+        ],
+        "ar": [
+          "حذف لمى مع مسح بياناتها الشخصية (السبب: إدخال عن طريق الخطأ)"
+        ]
+      },
+      "submitter": {
+        "name": "",
+        "relation": ""
+      },
+      "approvedBy": "gtsgate",
+      "people": [],
+      "touched": {
+        "people": [
+          "pglussip"
+        ],
+        "unions": [
+          "uckqhthy"
+        ]
+      },
+      "destructive": true,
+      "action": "owner-edit"
+    },
+    {
+      "issue": null,
       "proposalId": "45r0ozroq3",
       "hash": "",
       "commit": "",

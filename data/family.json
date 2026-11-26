@@ -6,8 +6,8 @@
       "en": "The Grand Family Tree"
     },
     "rootPersonId": "pg8caja6",
-    "revision": 6,
-    "updatedAt": "2026-11-26T14:30:53.439Z"
+    "revision": 7,
+    "updatedAt": "2026-11-26T14:31:23.874Z"
   },
   "people": {
     "pg8caja6": {
@@ -3200,17 +3200,27 @@
     },
     "pglussip": {
       "id": "pglussip",
-      "name": {
-        "ar": "لمى"
-      },
+      "nameStatus": "withheld",
       "gender": "f",
-      "privacy": "year",
+      "privacy": "hidden",
+      "removed": {
+        "at": "2026-11-26T14:31:23.874Z",
+        "reasonCode": "entered-by-mistake",
+        "issue": null,
+        "by": "gtsgate"
+      },
       "history": [
         {
           "issue": null,
           "rev": 5,
           "at": "2026-11-26T13:17:27.748Z",
           "action": "add-person"
+        },
+        {
+          "issue": null,
+          "rev": 7,
+          "at": "2026-11-26T14:31:23.874Z",
+          "action": "remove-person"
         }
       ]
     },
@@ -3940,7 +3950,14 @@
       "children": [
         "pzp4ktxd"
       ],
-      "status": "married"
+      "status": "married",
+      "removed": {
+        "at": "2026-11-26T14:31:23.874Z",
+        "reasonCode": "entered-by-mistake",
+        "issue": null,
+        "by": "gtsgate",
+        "with": "pglussip"
+      }
     }
   }
 }
