@@ -6,8 +6,8 @@
       "en": "The Grand Family Tree"
     },
     "rootPersonId": "pg8caja6",
-    "revision": 5,
-    "updatedAt": "2026-11-26T13:17:27.748Z"
+    "revision": 6,
+    "updatedAt": "2026-11-26T14:30:53.439Z"
   },
   "people": {
     "pg8caja6": {
@@ -3216,20 +3216,27 @@
     },
     "pzp4ktxd": {
       "id": "pzp4ktxd",
-      "name": {
-        "ar": "حسن"
-      },
+      "nameStatus": "withheld",
       "gender": "m",
-      "birth": {
-        "date": "2026"
+      "privacy": "hidden",
+      "removed": {
+        "at": "2026-11-26T14:30:53.439Z",
+        "reasonCode": "entered-by-mistake",
+        "issue": null,
+        "by": "gtsgate"
       },
-      "privacy": "year",
       "history": [
         {
           "issue": null,
           "rev": 5,
           "at": "2026-11-26T13:17:27.748Z",
           "action": "add-person"
+        },
+        {
+          "issue": null,
+          "rev": 6,
+          "at": "2026-11-26T14:30:53.439Z",
+          "action": "remove-person"
         }
       ]
     }

@@ -2,6 +2,37 @@
   "entries": [
     {
       "issue": null,
+      "proposalId": "45r0ozroq3",
+      "hash": "",
+      "commit": "",
+      "rev": 6,
+      "at": "2026-11-26T14:30:53.439Z",
+      "title": "Remove Hassan Adel Alam and erase their personal details (reason: entered by mistake)",
+      "summary": {
+        "en": [
+          "Remove Hassan Adel Alam and erase their personal details (reason: entered by mistake)"
+        ],
+        "ar": [
+          "حذف حسن عادل عالم مع مسح بياناته الشخصية (السبب: إدخال عن طريق الخطأ)"
+        ]
+      },
+      "submitter": {
+        "name": "",
+        "relation": ""
+      },
+      "approvedBy": "gtsgate",
+      "people": [],
+      "touched": {
+        "people": [
+          "pzp4ktxd"
+        ],
+        "unions": []
+      },
+      "destructive": true,
+      "action": "owner-edit"
+    },
+    {
+      "issue": null,
       "proposalId": "l0e6s94lfe",
       "hash": "",
       "commit": "",
