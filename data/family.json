@@ -6,8 +6,8 @@
       "en": "The Grand Family Tree"
     },
     "rootPersonId": "pg8caja6",
-    "revision": 10,
-    "updatedAt": "2026-11-26T16:34:10.951Z"
+    "revision": 11,
+    "updatedAt": "2026-11-26T16:35:07.832Z"
   },
   "people": {
     "pg8caja6": {
@@ -3279,6 +3279,31 @@
           "action": "add-person"
         }
       ]
+    },
+    "ps6tfskb": {
+      "id": "ps6tfskb",
+      "name": {
+        "ar": "عدنان"
+      },
+      "surname": {
+        "ar": "الفواز"
+      },
+      "nickname": {
+        "ar": "أبو سلطان"
+      },
+      "gender": "m",
+      "birth": {
+        "date": "1947"
+      },
+      "privacy": "year",
+      "history": [
+        {
+          "issue": null,
+          "rev": 11,
+          "at": "2026-11-26T16:35:07.832Z",
+          "action": "add-person"
+        }
+      ]
     }
   },
   "unions": {
@@ -3996,6 +4021,15 @@
         "psy6unmh"
       ],
       "status": "married"
+    },
+    "u5x0eo2y": {
+      "id": "u5x0eo2y",
+      "partners": [
+        "ps6tfskb"
+      ],
+      "children": [
+        "psy6unmh"
+      ]
     }
   }
 }

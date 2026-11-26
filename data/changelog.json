@@ -2,6 +2,45 @@
   "entries": [
     {
       "issue": null,
+      "proposalId": "oovrjfvt78",
+      "hash": "",
+      "commit": "",
+      "rev": 11,
+      "at": "2026-11-26T16:35:07.832Z",
+      "title": "Add “Adnan Al-Fawaz (Abu Sultan)” as father of Reema (b. 1947)",
+      "summary": {
+        "en": [
+          "Add “Adnan Al-Fawaz (Abu Sultan)” as father of Reema (b. 1947)"
+        ],
+        "ar": [
+          "إضافة «عدنان الفواز (أبو سلطان)» والداً لـ ريما (م 1947)"
+        ]
+      },
+      "submitter": {
+        "name": "",
+        "relation": ""
+      },
+      "approvedBy": "gtsgate",
+      "people": [
+        "ps6tfskb"
+      ],
+      "touched": {
+        "people": [
+          "ps6tfskb"
+        ],
+        "unions": [
+          "u5x0eo2y"
+        ]
+      },
+      "destructive": false,
+      "action": "owner-edit",
+      "idMap": {
+        "new39": "ps6tfskb",
+        "newu40": "u5x0eo2y"
+      }
+    },
+    {
+      "issue": null,
       "proposalId": "nizs0r3dnw",
       "hash": "",
       "commit": "",
