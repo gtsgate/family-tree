@@ -2,6 +2,45 @@
   "entries": [
     {
       "issue": null,
+      "proposalId": "nizs0r3dnw",
+      "hash": "",
+      "commit": "",
+      "rev": 10,
+      "at": "2026-11-26T16:34:10.951Z",
+      "title": "Add “Reema” as wife of Ali Essam Alam",
+      "summary": {
+        "en": [
+          "Add “Reema” as wife of Ali Essam Alam"
+        ],
+        "ar": [
+          "إضافة «ريما» زوجةً لـ علي عصام عالم"
+        ]
+      },
+      "submitter": {
+        "name": "",
+        "relation": ""
+      },
+      "approvedBy": "gtsgate",
+      "people": [
+        "psy6unmh"
+      ],
+      "touched": {
+        "people": [
+          "psy6unmh"
+        ],
+        "unions": [
+          "u8uddl58"
+        ]
+      },
+      "destructive": false,
+      "action": "owner-edit",
+      "idMap": {
+        "new37": "psy6unmh",
+        "newu38": "u8uddl58"
+      }
+    },
+    {
+      "issue": null,
       "proposalId": "5qlzuat95w",
       "hash": "",
       "commit": "",
