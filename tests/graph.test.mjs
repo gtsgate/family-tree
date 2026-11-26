@@ -598,7 +598,8 @@ describe('real data', () => {
   test('stats', () => {
     const s = g.stats();
     assert.equal(s.people, ACTIVE);
-    assert.equal(s.unions, 60);
+    assert.equal(s.unions, Object.values(realData().unions).filter((u) => !u.removed).length);
+    assert.ok(s.unions >= 60);
     assert.equal(s.branches, 2);
     assert.equal(s.living + s.deceased, ACTIVE);
     assert.ok(s.generations >= 5);

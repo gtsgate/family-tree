@@ -99,8 +99,9 @@ describe('familyTrees — real data', () => {
   });
   test('counts: men of the line, women around them', () => {
     const [alam] = fams;
-    assert.equal(alam.stats.men, 17);
-    assert.ok(alam.stats.women > 0 && alam.stats.gens === 6);
+    // The tree grows as edits are approved: at least the imported family (17 men, 6 generations).
+    assert.ok(alam.stats.men >= 17, `men ${alam.stats.men}`);
+    assert.ok(alam.stats.women > 0 && alam.stats.gens >= 6);
   });
   test('the marriage of علي (آل عالم) and فايزة (آل محمود) joins the two families', () => {
     const bridges = familyBridges(G, fams);
