@@ -2,6 +2,37 @@
   "entries": [
     {
       "issue": null,
+      "proposalId": "q2s2bambip",
+      "hash": "",
+      "commit": "",
+      "rev": 28,
+      "at": "2026-11-26T17:04:25.778Z",
+      "title": "Edit the marriage of Essam Ali Alam and Sawsan Muhammad Eid: marriage status: divorced",
+      "summary": {
+        "en": [
+          "Edit the marriage of Essam Ali Alam and Sawsan Muhammad Eid: marriage status: divorced"
+        ],
+        "ar": [
+          "تعديل بيانات زواج عصام علي عالم وسوسن محمد عيد: حالة الزواج: طلاق"
+        ]
+      },
+      "submitter": {
+        "name": "",
+        "relation": ""
+      },
+      "approvedBy": "gtsgate",
+      "people": [],
+      "touched": {
+        "people": [],
+        "unions": [
+          "u5bbbyq6"
+        ]
+      },
+      "destructive": false,
+      "action": "owner-edit"
+    },
+    {
+      "issue": null,
       "proposalId": "hle8on854e",
       "hash": "",
       "commit": "",
