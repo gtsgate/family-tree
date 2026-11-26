@@ -2,6 +2,39 @@
   "entries": [
     {
       "issue": null,
+      "proposalId": "qmbd7sfgyx",
+      "hash": "",
+      "commit": "",
+      "rev": 4,
+      "at": "2026-11-26T13:04:00.070Z",
+      "title": "Edit Basma Hashim Muhammad Makki Al-Marzouqi: Arabic name: “ابتسام”; Arabic nickname: “بسمة”",
+      "summary": {
+        "en": [
+          "Edit Basma Hashim Muhammad Makki Al-Marzouqi: Arabic name: “ابتسام”; Arabic nickname: “بسمة”"
+        ],
+        "ar": [
+          "تعديل بيانات بسمة هاشم محمد مكي المرزوقي: الاسم بالعربية: «ابتسام»؛ الكنية أو اللقب بالعربية: «بسمة»"
+        ]
+      },
+      "submitter": {
+        "name": "",
+        "relation": ""
+      },
+      "approvedBy": "gtsgate",
+      "people": [
+        "pljqthu1"
+      ],
+      "touched": {
+        "people": [
+          "pljqthu1"
+        ],
+        "unions": []
+      },
+      "destructive": false,
+      "action": "owner-edit"
+    },
+    {
+      "issue": null,
       "proposalId": "bnuuuok1qb",
       "hash": "",
       "commit": "",

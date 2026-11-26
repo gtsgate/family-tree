@@ -6,8 +6,8 @@
       "en": "The Grand Family Tree"
     },
     "rootPersonId": "pg8caja6",
-    "revision": 3,
-    "updatedAt": "2026-11-26T12:41:48.018Z"
+    "revision": 4,
+    "updatedAt": "2026-11-26T13:04:00.070Z"
   },
   "people": {
     "pg8caja6": {
@@ -1764,10 +1764,10 @@
     "pljqthu1": {
       "id": "pljqthu1",
       "name": {
-        "ar": "بسمة"
+        "ar": "ابتسام"
       },
       "nickname": {
-        "ar": "ابتسام"
+        "ar": "بسمة"
       },
       "gender": "f",
       "privacy": "year",
@@ -1776,6 +1776,12 @@
           "issue": null,
           "at": "2026-11-25T00:00:00Z",
           "action": "import"
+        },
+        {
+          "issue": null,
+          "rev": 4,
+          "at": "2026-11-26T13:04:00.070Z",
+          "action": "edit-person"
         }
       ]
     },
