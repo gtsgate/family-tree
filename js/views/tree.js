@@ -11,7 +11,8 @@
 //     600 people, "paternal line only" toggle, ?focus=<pid> expands the path and centres that person.
 // UI state (pan/zoom/expanded per root+direction, paternal toggle) lives in module variables so re-renders
 // (language switch, draft changes) keep the view exactly where it was.
-import { h, icon, bdi, toast } from '../dom.js';
+import { h, icon, bdi, toast, modal } from '../dom.js';
+import { personPicker } from '../forms/picker.js';
 import { t, register, lang, dir as textDir, fmtNumber, bi } from '../i18n.js';
 import { store } from '../store.js';
 import { nameOf, nameLabel, avatar, badges, yearsOf, lineageOf, emptyState } from '../ui.js';
@@ -19,6 +20,10 @@ import { nameOf, nameLabel, avatar, badges, yearsOf, lineageOf, emptyState } fro
 register({
   en: {
     'tree.title': 'Family tree',
+    'tree.findMe': 'Find me',
+    'tree.findMeTitle': 'Show my place in the tree',
+    'tree.whoAreYou': 'Who are you in the tree?',
+    'tree.whoHint': 'Search for your name. This device will remember it.',
     'tree.familyOf': 'The family of {name}',
     'tree.ancestorsOf': 'The ancestors of {name}',
     'tree.branch': 'Branch',
@@ -74,6 +79,10 @@ register({
   },
   ar: {
     'tree.title': 'شجرة العائلة',
+    'tree.findMe': 'موقعي في الشجرة',
+    'tree.findMeTitle': 'إظهار موقعي في الشجرة',
+    'tree.whoAreYou': 'من أنت في الشجرة؟',
+    'tree.whoHint': 'البحث عن اسمك، وسيتذكّره هذا الجهاز.',
     'tree.familyOf': 'عائلة {name}',
     'tree.ancestorsOf': 'آباء وأجداد {name}',
     'tree.branch': 'الفرع',
@@ -158,6 +167,29 @@ function stateFor(rootId, dir) {
     states.set(key, st);
   }
   return st;
+}
+
+/** Branch to open for a person: the family they descend from, else the family of a spouse, else their own. */
+function rootFor(g, id, branches) {
+  const inBranch = (pid) => branches.find((b) => b.person.id === pid || g.descendants(b.person.id).has(pid));
+  const own = inBranch(id);
+  if (own) return { root: own.person.id, focus: id };
+  for (const sp of g.spouses(id)) {
+    const b = inBranch(sp.person.id);
+    if (b) return { root: b.person.id, focus: sp.person.id }; // married in: show them beside their spouse
+  }
+  return { root: id, focus: id };
+}
+
+/** "Who are you?" picker → person id (or null). */
+function askWhoAmI() {
+  return modal({
+    title: t('tree.whoAreYou'),
+    size: 'md',
+    body: (close) => h('div', { class: 'stack' },
+      h('p', { class: 'muted' }, t('tree.whoHint')),
+      personPicker({ autofocus: true, onPick: (p) => close(p.id) })),
+  });
 }
 
 function treeHash(id, { view = null, dir = 'down', focus = null } = {}) {
@@ -1251,6 +1283,26 @@ function build(root, params, query) {
       { label: t('tree.up'), icon: 'arrowUp', on: dir === 'up', go: () => setQuery({ dir: 'up', view: explicitView }) },
     ]),
     h('div', { class: 'tree-actions' },
+      h('button', {
+        type: 'button',
+        class: 'btn btn-sm btn-primary tree-findme',
+        attrs: { title: t('tree.findMeTitle') },
+        on: {
+          click: async () => {
+            let me = store.me && g.resolve(store.me) ? g.resolve(store.me).id : null;
+            if (!me) {
+              me = await askWhoAmI();
+              if (!me) return;
+              store.setMe(me);
+            }
+            const { root: target, focus } = rootFor(g, me, branches);
+            const hash = treeHash(target, { view: explicitView, dir: 'down', focus });
+            lastFocusHash = null; // focus again even when the address is the same
+            if (location.hash === hash) window.dispatchEvent(new HashChangeEvent('hashchange'));
+            else location.hash = hash;
+          },
+        },
+      }, icon('target', { size: 16 }), h('span', null, t('tree.findMe'))),
       h('button', {
         type: 'button',
         class: 'chip tree-paternal',
