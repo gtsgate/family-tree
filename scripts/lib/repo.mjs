@@ -3,7 +3,7 @@
 //   const git = createGit({cwd})               cwd = the portal directory (paths are relative to it, never "family-tree/")
 //   git.run(args) · git.head() · git.show(rev, relPath) · git.fetch(remote, branch) · git.resetHard(ref)
 //   git.add(paths) · git.hasStaged() · git.commit(message) (via `git commit -F <file>`) · git.push(remote, branch)
-//   git.commitTrailers(relDir) → Map("apply:<issue>:<rev>" | "undo:<issue>:<rev>" → sha)
+//   git.commitTrailers(relDir) → Map("apply:<issue>:<rev>" | "undo:<issue>:<rev>" | "owner:<proposalId>" → sha)
 //
 //   commitAndPush({git, branch, build, attempts = 5, sleep, log, dryRun})
 //     build(attempt) writes the files from the CURRENT working tree and returns {message, paths, value}
@@ -88,6 +88,10 @@ export function createGit({ cwd, env = process.env } = {}) {
         }
         for (const m of msg.matchAll(/^Gft-Undo: #(\d+) rev (\d+)\s*$/gm)) {
           if (!map.has(`undo:${m[1]}:${m[2]}`)) map.set(`undo:${m[1]}:${m[2]}`, sha.trim());
+        }
+        // Direct edits committed from the site in owner mode (js/owner.js).
+        for (const m of msg.matchAll(/^Gft-Owner-Edit: ([a-z0-9]{4,32})\s*$/gm)) {
+          if (!map.has(`owner:${m[1]}`)) map.set(`owner:${m[1]}`, sha.trim());
         }
       }
       return map;

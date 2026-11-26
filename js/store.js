@@ -1,6 +1,8 @@
 // App state: configuration, canonical data, the visitor's draft proposal, proposals already sent
-// (awaiting approval) and the "working" graph = data + sent proposals + draft, applied in preview mode,
-// so pending changes appear everywhere in the UI.  See docs/SPEC.md §7.3.
+// (awaiting approval) and the "working" graph = data + owner saves in progress + sent proposals + draft, applied in
+// preview mode, so pending changes appear everywhere in the UI.  See docs/SPEC.md §7.3.
+// Owner mode (js/owner.js, SPEC §5.1): while the keeper is signed in on this device, addOps() saves straight into
+// the tree (store.saving holds the edits being committed) instead of adding them to the draft.
 import { buildGraph } from './core/graph.js';
 import { applyProposal, newProposal, opRefs } from './core/ops.js';
 import { normalizeData, newProposalId } from './core/schema.js';
@@ -14,8 +16,12 @@ const COUNTER_KEY = 'gft.counter.v1';
 const ME_KEY = 'gft.me';
 const APPROVED_KEY = 'gft.approved.v1';
 const DIGITS_KEY = 'gft.digits';
+const SAVING_KEY = 'gft.saving.v1';
+const UNCERTAIN_KEY = 'gft.uncertain.v1';
+const ALIASES_KEY = 'gft.aliases.v1';
+const ALIASES_MAX = 400;
 
-const listeners = { draft: new Set(), sent: new Set(), data: new Set(), me: new Set() };
+const listeners = { draft: new Set(), sent: new Set(), data: new Set(), me: new Set(), owner: new Set() };
 
 function loadJSON(key) {
   try { const s = localStorage.getItem(key); return s ? JSON.parse(s) : null; } catch { return null; }
@@ -51,6 +57,40 @@ function rewriteRefs(value, map) {
   return value;
 }
 
+/**
+ * Ops with every temp ref they USE (never the refs they declare: `ref`, `unionRef`) that `map` names replaced by the
+ * real id — values inside `person`, `set` and `before` are data, never refs. Used when owner saves turn temp refs
+ * into real records while other changes still name them.
+ */
+export function swapUsedRefs(ops, map) {
+  const list = Array.isArray(ops) ? ops : [];
+  const has = (k) => Object.prototype.hasOwnProperty.call(map || {}, k);
+  if (!list.length || !Object.keys(map || {}).length) return list;
+  const declared = new Set(list.flatMap((op) => opRefs(op).declares));
+  // Top-level fields that hold data or declarations, never a reference to swap.
+  const KEEP = new Set(['person', 'set', 'before', 'ref', 'unionRef', 'note', 'marriage', 'date', 'hijri']);
+  const swap = (v, uses) => {
+    if (typeof v === 'string') return uses.has(v) ? map[v] : v;
+    if (Array.isArray(v)) return v.map((x) => swap(x, uses));
+    if (v && typeof v === 'object') return Object.fromEntries(Object.entries(v).map(([k, x]) => [k, swap(x, uses)]));
+    return v;
+  };
+  return list.map((op) => {
+    const uses = new Set(opRefs(op).uses.filter((u) => !declared.has(u) && has(u)));
+    if (!uses.size) return op;
+    return Object.fromEntries(Object.entries(op).map(([k, x]) => [k, KEEP.has(k) ? x : swap(x, uses)]));
+  });
+}
+
+/** applied.json ledger → {proposalId: {idMap, issue}} (undone proposals no longer resolve their temp refs). */
+function appliedById(ledger) {
+  const byId = {};
+  for (const entry of Object.values(ledger || {})) {
+    if (entry && entry.proposalId && !entry.undone && !byId[entry.proposalId]) byId[entry.proposalId] = { idMap: entry.idMap || {}, issue: entry.issue ?? null };
+  }
+  return byId;
+}
+
 const PREVIEW = () => ({ mode: 'preview', now: new Date().toISOString(), allowDestructive: true });
 
 export const store = {
@@ -75,6 +115,20 @@ export const store = {
   pending: { draft: new Set(), sent: new Set(), created: new Set() },
   draftErrors: [],
   draftWarnings: [],
+  /**
+   * Owner mode: direct edits being saved into the tree ([{id, at, proposal}], oldest first; kept in localStorage until
+   * committed). Shown in the working graph without "pending" badges (the header shows "Saving…").
+   */
+  saving: [],
+  /** Temp refs of owner saves → the real ids they got (so open pages, the wizard and "me" follow them). */
+  aliases: {},
+  /**
+   * Owner saves interrupted while committing (the connection dropped): [{id, ops}] — their ops are in the draft, but the
+   * commit may have landed. The next save (or load) checks the repository's changelog before anything is applied twice.
+   */
+  uncertain: [],
+  /** Owner-mode hook set by js/owner.js: {active() → boolean, enqueue(id)}; null → every change goes to the draft. */
+  direct: null,
   changelog: null,
   /** applied.json ledger: proposalId → {idMap} for proposals already approved (resolves refs of dependants) */
   appliedById: {},
@@ -101,6 +155,12 @@ export const store = {
     if (Array.isArray(savedSent)) this.sent = savedSent.filter((s) => s && s.proposal && Array.isArray(s.proposal.ops));
     const savedApproved = loadJSON(APPROVED_KEY);
     if (Array.isArray(savedApproved)) this.approved = savedApproved.filter((a) => a && a.id);
+    const savedSaving = loadJSON(SAVING_KEY);
+    if (Array.isArray(savedSaving)) this.saving = savedSaving.filter((x) => x && typeof x.id === 'string' && x.proposal && Array.isArray(x.proposal.ops));
+    const savedUncertain = loadJSON(UNCERTAIN_KEY);
+    if (Array.isArray(savedUncertain)) this.uncertain = savedUncertain.filter((x) => x && typeof x.id === 'string' && Array.isArray(x.ops));
+    const savedAliases = loadJSON(ALIASES_KEY);
+    if (savedAliases && typeof savedAliases === 'object' && !Array.isArray(savedAliases)) this.aliases = savedAliases;
     const savedMe = loadJSON(ME_KEY);
     this.me = savedMe ? (this.base.resolve ? this.base.resolve(savedMe)?.id || savedMe : savedMe) : null;
 
@@ -150,10 +210,20 @@ export const store = {
     return changed;
   },
 
-  /** Replace canonical data (initial load or "publishing…" refresh). */
-  setData(raw, { silent = false } = {}) {
+  /**
+   * Replace canonical data (initial load, "publishing…" refresh, owner save). `ledgers` = {changelog, applied} known
+   * together with the data (owner mode reads them from the repository): used as they are instead of fetching the
+   * published copies, which GitHub Pages may still serve from before the change.
+   */
+  setData(raw, { silent = false, ledgers = null } = {}) {
     this.data = normalizeData(raw);
     this.base = buildGraph(this.data);
+    if (ledgers) {
+      if (ledgers.changelog && Array.isArray(ledgers.changelog.entries)) this.changelog = ledgers.changelog;
+      if (ledgers.applied && typeof ledgers.applied === 'object') this.appliedById = appliedById(ledgers.applied);
+      if (!silent) { this.reconcileSent(); this.remapTempIds(); this.recompute(); this.emit('data'); }
+      return;
+    }
     if (!silent) {
       this.changelog = null;
       Promise.all([this.loadChangelog(), this.loadApplied()])
@@ -162,9 +232,10 @@ export const store = {
     }
   },
 
+  /** Re-read the published data; only a NEWER revision is adopted (an owner save may be ahead of GitHub Pages). */
   async refreshData() {
     const raw = await fetchJSON('data/family.json');
-    if ((raw?.meta?.revision ?? 0) !== (this.data?.meta?.revision ?? 0)) this.setData(raw);
+    if ((raw?.meta?.revision ?? 0) > (this.data?.meta?.revision ?? 0)) this.setData(raw);
     return raw?.meta?.revision ?? 0;
   },
 
@@ -178,20 +249,18 @@ export const store = {
   async loadApplied() {
     let ledger = {};
     try { ledger = await fetchJSON('data/applied.json'); } catch { ledger = {}; }
-    const byId = {};
-    for (const entry of Object.values(ledger || {})) {
-      // Proposals later reverted with /undo no longer resolve their temp refs.
-      if (entry && entry.proposalId && !entry.undone) byId[entry.proposalId] = { idMap: entry.idMap || {}, issue: entry.issue ?? null };
-    }
-    this.appliedById = byId;
-    return byId;
+    this.appliedById = appliedById(ledger);
+    return this.appliedById;
   },
 
   /** "This is me" / submitter set to a person who was pending (temp ref) → their real id once approved. */
   remapTempIds() {
+    // Only this visitor's own proposals (sent / approved) and owner saves: temp refs of other devices are unrelated.
+    const own = [...this.sent.map((x) => x.id), ...this.approved.map((x) => x.id)];
     const real = (ref) => {
       if (!ref || !/^new\d+$/.test(ref)) return ref;
-      for (const entry of Object.values(this.appliedById)) if (entry.idMap && entry.idMap[ref]) return entry.idMap[ref];
+      if (Object.prototype.hasOwnProperty.call(this.aliases, ref)) return this.aliases[ref];
+      for (const id of own) { const m = this.appliedById[id]?.idMap; if (m && m[ref]) return m[ref]; }
       return ref;
     };
     const me = real(this.me);
@@ -214,6 +283,11 @@ export const store = {
     const map = {};
     for (const id of dependsOn || []) Object.assign(map, this.appliedById[id]?.idMap || {});
     return map;
+  },
+
+  /** The real id an owner save gave to a temp ref (or the id itself). */
+  realId(id) {
+    return id && Object.prototype.hasOwnProperty.call(this.aliases, id) ? this.aliases[id] : id;
   },
 
   /** Ids of dependsOn proposals that are already applied. */
@@ -249,8 +323,9 @@ export const store = {
    * Returns { data, refMap, sentResults, draftResult }.
    */
   overlay(draftProposal) {
-    let data = this.data;
-    const refMap = {};
+    const base = this.savingOverlay();
+    let data = base.data;
+    const refMap = { ...base.refMap };
     const sentTouched = new Set();
     const created = new Set();
     this.sentStale = new Set();
@@ -273,12 +348,34 @@ export const store = {
     return { data, refMap, sentTouched, created, draftResult };
   },
 
-  /** Re-apply sent proposals + draft on top of the canonical data. */
+  /**
+   * Canonical data + the owner's direct edits that are still being saved (preview mode) → {data, refMap}. Cached
+   * per data/saving state: every overlay starts from it.
+   */
+  savingOverlay() {
+    const key = this.saving.map((s) => `${s.id}:${s.proposal.ops.length}`).join(',');
+    const c = this._savingCache;
+    if (c && c.data === this.data && c.key === key && c.aliases === this.aliases) return c.value;
+    let data = this.data;
+    const refMap = {};
+    for (const s of this.saving) {
+      const r = applyProposal(data, s.proposal, { ...PREVIEW(), refMap: { ...this.aliases, ...refMap } });
+      if (!r.ok) continue;
+      data = r.data;
+      for (const ref of Object.keys(r.idMap || {})) refMap[ref] = r.idMap[ref];
+      for (const op of s.proposal.ops) for (const d of opRefs(op).declares) if (!(d in refMap)) refMap[d] = d;
+    }
+    const value = { data, refMap };
+    this._savingCache = { data: this.data, key, aliases: this.aliases, value };
+    return value;
+  },
+
+  /** Re-apply owner saves in progress + sent proposals + draft on top of the canonical data. */
   recompute() {
     this.draftErrors = [];
     this.draftWarnings = [];
     this.pending = { draft: new Set(), sent: new Set(), created: new Set() };
-    if (!this.sent.length && !this.draft.ops.length) { this.working = this.base; return; }
+    if (!this.saving.length && !this.sent.length && !this.draft.ops.length) { this.working = this.base; return; }
     const { data, sentTouched, created, draftResult } = this.overlay(this.draftProposal());
     this.pending.sent = sentTouched;
     this.pending.created = created;
@@ -332,7 +429,13 @@ export const store = {
    */
   addOps(ops) {
     if (this.syncFromStorage()) this.recompute();
-    const list = (Array.isArray(ops) ? ops : [ops]).map((o) => structuredClone(o));
+    let list = (Array.isArray(ops) ? ops : [ops]).map((o) => structuredClone(o));
+    if (this.direct?.active?.()) {
+      // A dialog opened before an owner save finished may still name its temp refs.
+      list = swapUsedRefs(list, this.aliases);
+      const res = this.addOpsDirect(list);
+      if (res) return res;
+    }
     const trial = this.draftProposal();
     trial.ops.push(...list);
     // Refs used but not declared in the draft must come from sent proposals → dependsOn.
@@ -346,6 +449,138 @@ export const store = {
     this.draft.dependsOn = trial.dependsOn;
     this.touchDraft();
     return { ok: true, warnings: draftResult.warnings, idMap: draftResult.idMap };
+  },
+
+  /**
+   * Owner mode: save `list` straight into the tree. Trial-applied (preview) on the canonical data + the saves still in
+   * progress — exactly what will be committed — then queued for js/owner.js, which commits it asynchronously.
+   * → {ok:true, saving:true, warnings, idMap} | {ok:false, errors, warnings} (op indexes offset by the draft length,
+   * as for the draft path), or null when the ops build on unsaved draft or sent changes: those cannot go to the tree
+   * alone, so they join the draft like a visitor's (the draft page saves it with one button).
+   */
+  addOpsDirect(list) {
+    const own = new Set(list.flatMap((o) => opRefs(o).declares));
+    const uses = [...new Set(list.flatMap((o) => opRefs(o).uses))].filter((r) => /^newu?\d+$/.test(r) && !own.has(r));
+    const draftRefs = new Set(this.draft.ops.flatMap((o) => opRefs(o).declares));
+    if (uses.some((r) => draftRefs.has(r)) || this.sentProposalsDeclaring(uses).length) return null;
+    const p = newProposal();
+    p.baseRevision = this.data?.meta?.revision ?? 0;
+    p.ops = list;
+    const { data, refMap } = this.savingOverlay();
+    const r = applyProposal(data, p, { ...PREVIEW(), refMap: { ...this.aliases, ...refMap } });
+    const base = this.draft.ops.length;
+    const shift = (x) => (Number.isInteger(x?.op) ? { ...x, op: x.op + base } : x);
+    if (!r.ok) return { ok: false, errors: (r.errors || []).map(shift), warnings: (r.warnings || []).map(shift) };
+    this.saving = [...this.saving, { id: p.id, at: p.createdAt, proposal: p }];
+    this.persistSaving();
+    this.recompute();
+    this.emit('draft');
+    this.emit('owner');
+    try { this.direct.enqueue(p.id); } catch (e) { console.error(e); }
+    return { ok: true, saving: true, warnings: (r.warnings || []).map(shift), idMap: r.idMap };
+  },
+
+  persistSaving() { saveJSON(SAVING_KEY, this.saving.length ? this.saving : null); },
+
+  /**
+   * Owner mode: a save finished. `data`/`changelog`/`applied` = the repository's files after it (or as they are, when
+   * nothing was committed); `savedIds` = direct edits now in the tree; `idMap` = their temp refs → real ids;
+   * `draftSaved` = {id, ops} when the draft was saved ("Save all to the tree"): those ops leave the draft.
+   */
+  finishSave({ data = null, changelog = null, applied = null, savedIds = [], idMap = {}, draftSaved = null } = {}) {
+    this.addAliases(idMap);
+    if (savedIds.length || Object.keys(idMap || {}).length) {
+      // Edits still waiting may name the refs that just became real records.
+      this.saving = this.saving.filter((s) => !savedIds.includes(s.id))
+        .map((s) => ({ ...s, proposal: { ...s.proposal, ops: swapUsedRefs(s.proposal.ops, idMap || {}) } }));
+      this.persistSaving();
+    }
+    this.syncFromStorage();
+    if (draftSaved && this.draft.id === draftSaved.id) this.removeDraftOps(draftSaved.ops);
+    if (Object.keys(idMap || {}).length && this.draft.ops.length) {
+      this.draft.ops = swapUsedRefs(this.draft.ops, idMap);
+      this.persistDraft();
+    }
+    const ledgers = { changelog, applied };
+    if (data && (data?.meta?.revision ?? 0) >= (this.data?.meta?.revision ?? 0)) this.setData(data, { ledgers });
+    else {
+      if (changelog) this.changelog = changelog;
+      if (applied) this.appliedById = appliedById(applied);
+      this.reconcileSent();
+      this.remapTempIds();
+      this.recompute();
+      this.emit('data');
+    }
+    this.emit('owner');
+  },
+
+  /** Remember temp ref → real id pairs of owner saves (≤ ALIASES_MAX, newest kept). */
+  addAliases(idMap) {
+    if (!Object.keys(idMap || {}).length) return;
+    const merged = { ...this.aliases, ...idMap };
+    const keys = Object.keys(merged);
+    this.aliases = keys.length > ALIASES_MAX ? Object.fromEntries(keys.slice(-ALIASES_MAX).map((k) => [k, merged[k]])) : merged;
+    saveJSON(ALIASES_KEY, this.aliases);
+  },
+
+  /** Take `ops` (saved into the tree) out of the draft: the leading run when it matches, else each equal op once. */
+  removeDraftOps(ops) {
+    const key = (o) => JSON.stringify(o);
+    const saved = (ops || []).map(key);
+    if (!saved.length) return;
+    const head = this.draft.ops.slice(0, saved.length).map(key);
+    let rest;
+    if (head.join('\n') === saved.join('\n')) rest = this.draft.ops.slice(saved.length);
+    else {
+      const left = [...saved];
+      rest = this.draft.ops.filter((o) => { const i = left.indexOf(key(o)); if (i < 0) return true; left.splice(i, 1); return false; });
+    }
+    if (rest.length) this.draft.ops = rest;
+    else this.draft = emptyDraft(this.draft.submitter);
+    this.persistDraft();
+  },
+
+  /**
+   * Owner mode: the repository's changelog says which interrupted saves (store.uncertain) did land — their ops leave the
+   * draft (they are in the tree) and their temp refs get the real ids. Every uncertain save is settled. → number landed
+   */
+  settleUncertain(changelog) {
+    if (!this.uncertain.length) return 0;
+    const byId = new Map((changelog?.entries || []).filter((e) => e && e.action === 'owner-edit').map((e) => [e.proposalId, e]));
+    const landed = this.uncertain.filter((u) => byId.has(u.id));
+    this.uncertain = [];
+    saveJSON(UNCERTAIN_KEY, null);
+    if (!landed.length) return 0;
+    const idMap = Object.assign({}, ...landed.map((u) => byId.get(u.id).idMap || {}));
+    this.addAliases(idMap);
+    this.syncFromStorage();
+    this.removeDraftOps(landed.flatMap((u) => u.ops));
+    if (Object.keys(idMap).length && this.draft.ops.length) this.draft.ops = swapUsedRefs(this.draft.ops, idMap);
+    this.touchDraft();
+    return landed.length;
+  },
+
+  /**
+   * Owner mode: saves that could not be made (signed out, network, refused) — their ops join the draft, in order, so
+   * nothing is lost. ids: which ones (default: all); uncertain: ids whose commit may have landed (lost answer).
+   */
+  moveSavingToDraft(ids = null, { uncertain = [] } = {}) {
+    const moving = this.saving.filter((s) => !ids || ids.includes(s.id));
+    if (!moving.length) return 0;
+    this.syncFromStorage();
+    this.saving = this.saving.filter((s) => !moving.includes(s));
+    this.persistSaving();
+    const ops = swapUsedRefs(moving.flatMap((s) => s.proposal.ops), this.aliases);
+    for (const s of moving) {
+      if (uncertain.includes(s.id)) this.uncertain.push({ id: s.id, ops: swapUsedRefs(s.proposal.ops, this.aliases) });
+    }
+    if (this.uncertain.length) saveJSON(UNCERTAIN_KEY, this.uncertain);
+    this.draft.ops.push(...ops.map((o) => structuredClone(o)));
+    const deps = new Set([...(this.draft.dependsOn || []), ...moving.flatMap((s) => s.proposal.dependsOn || [])]);
+    this.draft.dependsOn = [...deps];
+    this.touchDraft();
+    this.emit('owner');
+    return ops.length;
   },
 
   /**

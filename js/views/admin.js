@@ -1,5 +1,6 @@
-// Owner tools (#/admin) — docs/SPEC.md §7.8. Static helpers for the tree keeper; the page is public, the real power
-// is GitHub permissions. Tabs:
+// Owner tools (#/admin) — docs/SPEC.md §7.8. Helpers for the tree keeper; the page is public, the real power is GitHub
+// permissions. On top: «وضع المشرف» / Owner mode (js/owner-ui.js) — the keeper signs in on this device with a GitHub
+// key and then edits the tree directly. Tabs:
 //   Requests  — paste one or more codes (or a whole WhatsApp message) → inline preview → "Create request and approve";
 //               open requests from the public REST API (on demand; rate-limit friendly) → GitHub / #/preview/<n>.
 //   Restore   — removed people & unions with "Restore" (adds restore-person / restore-union to the draft).
@@ -11,7 +12,8 @@
 import { h, icon, bdi, toast, copyText } from '../dom.js';
 import { t, register, lang, fmtNumber } from '../i18n.js';
 import { store } from '../store.js';
-import { personChip, ownerName, spinner, nameOf, avatar, whatsappUrl } from '../ui.js';
+import { personChip, ownerName, spinner, nameOf, avatar, whatsappUrl, notifyAdded, ownerMode } from '../ui.js';
+import { ownerCard } from '../owner-ui.js';
 import { personPicker } from '../forms/picker.js';
 import { buildGraph } from '../core/graph.js';
 import { validateData, serializeData } from '../core/schema.js';
@@ -50,6 +52,7 @@ register({
     'admin.open.all': 'All requests on GitHub',
     'admin.restore.title': 'Removed people and marriages',
     'admin.restore.lead': 'Removals are never final. Restoring adds the change to your draft; it applies once approved.',
+    'admin.restore.leadOwner': 'Removals are never final. Owner mode is on: restoring saves straight into the tree.',
     'admin.restore.people': 'People',
     'admin.restore.unions': 'Marriages and family groups',
     'admin.restore.none': 'Nothing has been removed.',
@@ -147,6 +150,7 @@ register({
     'admin.open.all': 'جميع الطلبات على GitHub',
     'admin.restore.title': 'الأشخاص والزيجات المحذوفة',
     'admin.restore.lead': 'الحذف ليس نهائياً أبداً. الاستعادة تُضاف إلى مسودتك، وتُطبَّق بعد الموافقة عليها.',
+    'admin.restore.leadOwner': 'الحذف ليس نهائياً أبداً. وضع المشرف مفعّل، لذا تُحفظ الاستعادة في الشجرة مباشرة.',
     'admin.restore.people': 'الأشخاص',
     'admin.restore.unions': 'الزيجات ومجموعات الأبناء',
     'admin.restore.none': 'لم يُحذف شيء.',
@@ -414,7 +418,8 @@ function anyName(id) {
 
 function restoreOp(op) {
   const res = store.addOps([op]);
-  if (res.ok) toast(t('admin.restore.added'), { type: 'success', action: { label: t('common.viewDraft'), href: '#/draft' } });
+  if (res.ok && res.saving) notifyAdded(res);
+  else if (res.ok) toast(t('admin.restore.added'), { type: 'success', action: { label: t('common.viewDraft'), href: '#/draft' } });
   else toast((res.errors || []).map((e) => formatIssue(e, lang(), { graph: allGraph(), withOp: false })).join(' · ') || t('common.error'), { type: 'error', timeout: 9000 });
 }
 
@@ -466,7 +471,7 @@ function restoreCard() {
   };
   return h('section', { class: 'card stack admin-section', attrs: { 'aria-labelledby': 'admin-restore-title' } },
     h('h2', { id: 'admin-restore-title' }, t('admin.restore.title')),
-    h('p', { class: 'muted small' }, t('admin.restore.lead')),
+    h('p', { class: 'muted small' }, ownerMode() ? t('admin.restore.leadOwner') : t('admin.restore.lead')),
     !people.length && !unions.length ? h('p', { class: 'admin-ok' }, icon('check', { size: 18 }), h('span', null, t('admin.restore.none'))) : null,
     people.length ? h('h3', { class: 'admin-sub' }, t('admin.restore.people'), ` (${fmtNumber(people.length)})`) : null,
     people.length ? h('ul', { class: 'list' }, people.map(personItem)) : null,
@@ -703,7 +708,8 @@ function photosCard() {
               on: {
                 click: () => {
                   const res = store.addOps([{ op: 'edit-person', id: p.id, set: { photo: path }, before: { photo: p.photo || '' } }]);
-                  if (res.ok) toast(t('admin.photo.added'), { type: 'success', action: { label: t('common.viewDraft'), href: '#/draft' } });
+                  if (res.ok && res.saving) notifyAdded(res);
+                  else if (res.ok) toast(t('admin.photo.added'), { type: 'success', action: { label: t('common.viewDraft'), href: '#/draft' } });
                   else toast((res.errors || []).map((e) => formatIssue(e, lang(), { graph: store.working, withOp: false })).join(' · '), { type: 'error' });
                 },
               },
@@ -771,7 +777,8 @@ function render(root) {
   else panel = dataCard();
   root.append(
     h('header', { class: 'page-head' }, h('h1', null, t('admin.title')), h('p', { class: 'lead' }, t('admin.lead'))),
-    h('div', { class: 'notice notice-info admin-public' }, icon('info'), h('p', null, t('admin.public'))),
+    ownerCard({ rerender }),
+    h('div', { class: 'notice notice-info admin-public' }, icon('info'), h('p', null, ownerMode() ? t('owner.publicOn') : t('admin.public'))),
     tabs,
     h('div', { id: 'admin-panel', class: 'admin-panel', attrs: { role: 'tabpanel', 'aria-labelledby': `admin-tab-${tab}` } }, panel));
 }

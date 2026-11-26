@@ -9,10 +9,13 @@
 // Every step: Skip, and "Tell {owner} on WhatsApp instead (voice notes welcome)".
 // Each committed row → store.addOps immediately (progress survives reloads). Wizard state lives in module variables
 // (re-renders on store events keep input); the step and who-you-are persist in sessionStorage.
+// Owner mode (js/owner.js): committed rows are saved straight into the tree — the rows of a step are committed together
+// on "Next" (one commit; "+ another" only checks them); temp refs then become real ids (store.realId) and the final step
+// is "Done" instead of "Review & send".
 import { h, icon, bdi, toast, debounce } from '../dom.js';
 import { t, register, lang } from '../i18n.js';
 import { store } from '../store.js';
-import { nameOf, lineageOf, yearsOf, avatar, badges, ownerName, whatsappUrl } from '../ui.js';
+import { nameOf, lineageOf, yearsOf, avatar, badges, ownerName, whatsappUrl, notifyAdded, ownerMode } from '../ui.js';
 import { personPicker } from '../forms/picker.js';
 import { transliterate } from '../core/translit.js';
 import { toAsciiDigits, isValidDate, isValidHijri, gregorianToHijri } from '../core/dates.js';
@@ -129,6 +132,13 @@ register({
     'wiz.removed': 'Removed from your proposal.',
     'wiz.removedMore': 'Removed, together with {n} changes that depended on it.',
     'wiz.pendingLabel': 'Remove {name} from your proposal',
+    'wiz.leadOwner': 'A few quick steps: who it is about, the spouse, then the children. Owner mode is on: each entry is saved straight into the tree.',
+    'wiz.review.ownerTitle': 'Saved to the tree',
+    'wiz.review.ownerLead': 'Everything added here was saved straight into the tree; it appears on the site within about a minute.',
+    'wiz.review.ownerSaving': 'Still saving the last entries…',
+    'wiz.review.ownerUnsaved': 'These changes could not be saved yet and are kept on this device:',
+    'wiz.review.ownerSave': 'Review & save',
+    'wiz.review.done': 'Done',
   },
   ar: {
     'wiz.title': 'إضافة عائلتي',
@@ -235,6 +245,13 @@ register({
     'wiz.removed': 'حُذف من مقترحك.',
     'wiz.removedMore': 'حُذف ومعه {n} من التعديلات المرتبطة به.',
     'wiz.pendingLabel': 'حذف {name} من مقترحك',
+    'wiz.leadOwner': 'خطوات قليلة وسريعة: صاحب العائلة، ثم الزوج أو الزوجة، ثم الأبناء. وضع المشرف مفعّل، لذا تُحفظ كل إضافة في الشجرة مباشرة.',
+    'wiz.review.ownerTitle': 'حُفظت في الشجرة',
+    'wiz.review.ownerLead': 'حُفظ كل ما أُضيف هنا في الشجرة مباشرة، ويظهر في الموقع خلال دقيقة تقريباً.',
+    'wiz.review.ownerSaving': 'جارٍ حفظ آخر الإضافات…',
+    'wiz.review.ownerUnsaved': 'هذه التعديلات لم تُحفظ بعد، وهي باقية على هذا الجهاز:',
+    'wiz.review.ownerSave': 'مراجعة وحفظ',
+    'wiz.review.done': 'تم',
   },
 });
 
@@ -366,6 +383,18 @@ function validateRow(row) {
   return '';
 }
 
+/** Validate the non-blank rows of a group without committing them (errors shown on the rows). */
+function checkGroup(key) {
+  const todo = rowsOf(key).filter((r) => !isBlank(r));
+  let bad = false;
+  for (const r of todo) {
+    r.err = validateRow(r);
+    if (r.err) bad = true;
+  }
+  if (bad) { focusRowKey = todo.find((r) => r.err)?.key || null; rerender(); }
+  return !bad;
+}
+
 /**
  * Commit the non-blank rows of a group: build one op per row with makeOp(row) and add them to the draft in one go.
  * Returns true when every row was committed (or there was nothing to commit).
@@ -404,6 +433,7 @@ function addOpsFor(ops, rows, onOk) {
     return false;
   }
   onOk?.();
+  if (res.saving) notifyAdded(res); // owner mode: saved straight into the tree
   const fresh = (res.warnings || []).filter((w) => Number.isInteger(w.op) && w.op >= base && ['POSSIBLE_DUPLICATE', 'NAME_LOOKS_FULL'].includes(w.code));
   if (fresh.length) {
     const wctx = { graph: store.working, refNames: refNames(store.draft.ops, store.working) };
@@ -637,8 +667,9 @@ function rowGroup({ key, kind, ctx, fixedGender = '', addLabel, autoOne = true, 
     type: 'button', class: 'btn wiz-another',
     on: {
       click: () => {
-        // Commit what is filled in so far (progress survives reloads), then open a fresh row.
-        if (onAnother && !onAnother()) return;
+        // Commit what is filled in so far (progress survives reloads), then open a fresh row. Owner mode: rows added
+        // together are saved together (one commit, on "Next"), so they are only checked here.
+        if (onAnother && (ownerMode() ? !checkGroup(key) : !onAnother())) return;
         const fresh = newRow(kind, fixedGender ? { gender: fixedGender, fixedGender: true } : {});
         rowsOf(key).push(fresh);
         focusRowKey = fresh.key;
@@ -993,6 +1024,7 @@ function parentsStep() {
 function reviewStep() {
   const ops = store.draft.ops;
   const summary = ops.length ? draftSummary() : { lines: [], title: '' };
+  if (ownerMode()) return ownerReviewStep(ops, summary);
   return h('div', { class: 'wiz-step wiz-step-review' },
     h('h2', { class: 'wiz-step-title' }, t('wiz.review.title')),
     h('p', { class: 'muted wiz-step-lead' }, ops.length ? t('wiz.review.lead') : t('wiz.review.empty')),
@@ -1024,10 +1056,54 @@ function restart() {
   rerender();
 }
 
+/** Owner mode: the entries are already in the tree — "Done" (plus anything that could not be saved yet). */
+function ownerReviewStep(ops, summary) {
+  const saving = store.saving.length > 0;
+  const doneHref = W.self && g().person(W.self) ? `#/p/${encodeURIComponent(W.self)}` : '#/';
+  return h('div', { class: 'wiz-step wiz-step-review wiz-review-owner' },
+    h('h2', { class: 'wiz-step-title' }, t('wiz.review.ownerTitle')),
+    h('p', { class: 'muted wiz-step-lead' }, t('wiz.review.ownerLead')),
+    saving ? h('p', { class: 'small wiz-owner-saving', attrs: { role: 'status' } }, h('span', { class: 'spinner owner-pill-spin', attrs: { 'aria-hidden': 'true' } }), ' ', t('wiz.review.ownerSaving')) : null,
+    ops.length ? h('section', { class: 'card wiz-review' },
+      h('p', { class: 'small' }, t('wiz.review.ownerUnsaved')),
+      h('ol', { class: 'draft-ops wiz-review-list' }, ops.map((op, i) => {
+        const { cat, icon: ic } = opIcon(op);
+        return h('li', { class: ['draft-op', `draft-op-${cat}`] },
+          h('span', { class: 'draft-op-num', attrs: { 'aria-hidden': 'true' } }, String(i + 1)),
+          h('span', { class: 'draft-op-icon', attrs: { 'aria-hidden': 'true' } }, icon(ic, { size: 16 })),
+          h('span', { class: 'draft-op-text' }, bdi(summary.lines[i] || '')));
+      })),
+      h('a', { class: 'btn btn-sm', href: '#/draft' }, t('wiz.review.ownerSave'))) : null,
+    h('div', { class: 'wiz-review-actions' },
+      h('a', { class: 'btn btn-primary btn-lg btn-block wiz-send wiz-done', href: doneHref }, icon('check', { size: 20 }), t('wiz.review.done')),
+      h('div', { class: 'row' },
+        h('button', { type: 'button', class: 'btn', on: { click: () => { W.stack = []; setState({ stack: [] }); go(W.self ? STEP.CHILDREN : STEP.WHO); } } }, icon('plus', { size: 18 }), t('wiz.review.more')),
+        h('button', { type: 'button', class: 'btn btn-ghost btn-sm', on: { click: () => back() } }, t('common.back')))));
+}
+
+/**
+ * Owner saves turn temp refs (newN) into real ids: follow them in the wizard's state and in the keys of rows still
+ * being typed (so nothing resets and no typed row is lost).
+ */
+function followSaved() {
+  if (!Object.keys(store.aliases || {}).length) return;
+  const f = (id) => (id ? store.realId(id) : id);
+  const next = { self: f(W.self), anchor: f(W.anchor), near: f(W.near), stack: W.stack.map(f) };
+  if (next.self !== W.self || next.anchor !== W.anchor || next.near !== W.near || next.stack.some((x, i) => x !== W.stack[i])) setState(next);
+  for (const key of [...groups.keys()]) {
+    const moved = key.split(':').map((part) => store.realId(part)).join(':');
+    if (moved === key) continue;
+    const rows = groups.get(key);
+    groups.delete(key);
+    if (!groups.has(moved) || !groups.get(moved).length) groups.set(moved, rows);
+  }
+}
+
 function render(root, params, query = {}) {
   lastRoot = root;
   lastQuery = query || {};
   root.replaceChildren();
+  followSaved();
   // ?near= scopes the first step's search.
   if (query.near && W.step === STEP.WHO && W.near !== query.near) setState({ near: query.near });
   // The person the steps are about must still exist (the draft may have been cleared or sent and dropped).
@@ -1053,7 +1129,7 @@ function render(root, params, query = {}) {
       h('div', { class: 'row row-between wiz-head-row' },
         h('h1', null, t('wiz.title')),
         W.step !== STEP.WHO || W.self ? h('button', { type: 'button', class: 'btn btn-ghost btn-sm wiz-restart', on: { click: restart } }, icon('restore', { size: 16 }), t('wiz.restart')) : null),
-      W.step === STEP.WHO ? h('p', { class: 'lead' }, t('wiz.lead')) : null),
+      W.step === STEP.WHO ? h('p', { class: 'lead' }, ownerMode() ? t('wiz.leadOwner') : t('wiz.lead')) : null),
     stepper(),
     notice,
     h('div', { class: 'wiz-body' }, body),

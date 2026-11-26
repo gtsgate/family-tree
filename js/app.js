@@ -3,6 +3,8 @@
 import { h, icon, mount, clear, toast } from './dom.js';
 import { t, lang, setLang, onLangChange, bi, applyToDocument, register } from './i18n.js';
 import { store } from './store.js';
+import { owner } from './owner.js';
+import { ownerHeader, initOwnerUi } from './owner-ui.js';
 
 register({
   en: {
@@ -93,6 +95,7 @@ function buildHeader() {
   const title = bi(store.data?.meta?.title) || t('app.title');
   const active = parseHash().segments[0] || '';
   const draftCount = store.draft.ops.length;
+  const ownerOn = owner.active();
   const navLinks = NAV.map((n) => h('a', {
     href: n.hash,
     class: ['nav-link', active === n.match ? 'active' : ''],
@@ -116,8 +119,11 @@ function buildHeader() {
         h('span', { class: 'brand-mark', attrs: { 'aria-hidden': 'true' } }, icon('tree', { size: 22 })),
         h('span', { class: 'brand-text' }, h('span', { class: 'brand-title' }, title), h('span', { class: 'brand-tagline' }, t('app.tagline')))),
       h('div', { class: 'header-actions' },
+        // Owner mode: «المشرف» / Saving… / Saved ✓ replaces the "pending" pill (which then counts unsaved changes only).
+        ownerOn ? ownerHeader() : null,
         draftCount
-          ? h('a', { class: 'draft-pill', href: '#/draft', attrs: { 'aria-label': t('nav.draft') } }, icon('send', { size: 16 }), h('span', null, t('draft.badge', { n: draftCount })))
+          ? h('a', { class: ['draft-pill', ownerOn ? 'is-owner' : ''], href: '#/draft', attrs: { 'aria-label': t('nav.draft') } }, icon(ownerOn ? 'warning' : 'send', { size: 16 }),
+            h('span', null, ownerOn ? t('owner.unsavedPill', { n: draftCount }) : t('draft.badge', { n: draftCount })))
           : null,
         store.me
           ? h('a', { class: 'btn-icon me-link', href: '#/me', attrs: { 'aria-label': t('shell.me'), title: t('shell.me') } }, icon('user'))
@@ -166,10 +172,11 @@ function refreshChrome() {
     bar.hidden = !n || onDraft;
     document.body.classList.toggle('has-draft-bar', !!n && !onDraft);
     if (n && !onDraft) {
-      mount(bar, h('div', { class: 'draft-bar-inner' },
-        icon('send', { size: 18 }),
-        h('span', { class: 'draft-bar-text' }, t('shell.unsent', { n })),
-        h('a', { class: 'btn btn-primary btn-sm', href: '#/draft' }, t('shell.send'))));
+      const ownerOn = owner.active();
+      mount(bar, h('div', { class: ['draft-bar-inner', ownerOn ? 'is-owner' : ''] },
+        icon(ownerOn ? 'warning' : 'send', { size: 18 }),
+        h('span', { class: 'draft-bar-text' }, ownerOn ? t('owner.unsavedBar', { n }) : t('shell.unsent', { n })),
+        h('a', { class: 'btn btn-primary btn-sm', href: '#/draft' }, ownerOn ? t('owner.reviewSave') : t('shell.send'))));
     } else clear(bar);
   }
 }
@@ -322,6 +329,7 @@ async function boot() {
       h('button', { type: 'button', class: 'btn btn-primary', on: { click: () => location.reload() } }, t('common.retry'))));
     return;
   }
+  try { owner.load(); } catch (e) { console.error(e); } // owner mode on this device? (before the first render)
   document.body.classList.remove('booting');
   window.addEventListener('hashchange', render);
   onLangChange(render);
@@ -329,7 +337,14 @@ async function boot() {
   store.on('data', render);
   store.on('me', render);
   store.on('sent', render);
+  // Owner mode: the save status only changes the header (re-rendering the page would disturb typing).
+  initOwnerUi();
+  store.on('owner', () => {
+    if (header) mount(header, ...buildHeader());
+    if ((parseHash().segments[0] || '') === 'draft') render(); // its "Save all to the tree" card follows the save
+  });
   await render();
+  try { owner.start(); } catch (e) { console.error(e); }
 }
 
 /** "Your changes were approved" — after boot or when the page picks up a newly published revision. */

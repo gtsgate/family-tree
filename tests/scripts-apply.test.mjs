@@ -13,6 +13,7 @@ import { hashProposal } from '../scripts/lib/hash.mjs';
 import { applyProposal } from '../js/core/ops.js';
 import { validateData, serializeData } from '../js/core/schema.js';
 import { main as applyMain } from '../scripts/apply-proposal.mjs';
+import { planSave } from '../js/owner.js';
 import {
   makePortal, makeCtx, fakeGitHub, proposal, P, codeBody, openProposal, commentEvent, sh,
 } from './scripts-kit.mjs';
@@ -526,6 +527,66 @@ describe('apply: undo', () => {
     const data = JSON.parse(portal.originShow('data/family.json'));
     assert.ok(!Object.values(data.people).some((x) => x.name?.ar === 'يوسف'));
     assert.equal(data.people.pmona001.occupation.ar, 'معلمة', 'the other proposal of the batch stays');
+  });
+});
+
+describe('apply: owner-mode commits (js/owner.js)', () => {
+  /** What the site does in owner mode, as a local commit pushed to origin. */
+  function ownerCommit(portal, items) {
+    const files = portal.files.loadAll();
+    const plan = planSave(files, items, { actor: 'keeper', now: '2026-11-25T09:00:00.000Z' });
+    assert.equal(plan.ok, true);
+    writeFileSync(join(portal.portalDir, 'data', 'family.json'), plan.texts.data);
+    writeFileSync(join(portal.portalDir, 'data', 'changelog.json'), plan.texts.changelog);
+    if (plan.texts.applied !== null) writeFileSync(join(portal.portalDir, 'data', 'applied.json'), plan.texts.applied);
+    sh(portal.work, 'add', '-A');
+    sh(portal.work, 'commit', '--quiet', '-m', plan.message);
+    sh(portal.work, 'push', '--quiet', 'origin', 'main');
+    return { plan, sha: portal.git.head() };
+  }
+
+  test('a proposal the keeper applied directly ("Apply now", no request) is reported as such, never applied twice', async () => {
+    const portal = newPortal();
+    const gh = fakeGitHub();
+    const ctx = makeCtx(portal, gh);
+    const p = proposal([P.addChild('pahmed01', 'يونس')]);
+    const { hash } = await hashProposal(p);
+    const { sha } = ownerCommit(portal, [{ id: p.id, kind: 'apply', proposal: p, hash, issue: null }]);
+    assert.equal(JSON.parse(portal.originShow('data/applied.json'))[hash].issue, null);
+    // The same proposal arrives later as a request (e.g. sent by WhatsApp too).
+    const n = await submitted(gh, ctx, p);
+    const check = gh.botComments(n)[0].body;
+    assert.match(check, /The keeper already applied these exact changes directly from the site/);
+    assert.ok(!check.includes('#0'));
+    const s = await keeperSays(gh, ctx, n, `/approve ${(await hashProposal(p)).fp}`);
+    assert.deepEqual(s.queue.applied, []);
+    assert.match(lastBot(gh, n), /already applied these exact changes directly from the site/);
+    assert.ok(!lastBot(gh, n).includes('#0'));
+    assert.deepEqual(gh.labelsOf(n).sort(), ['applied', 'approve', 'duplicate', 'family-tree']);
+    assert.equal(issueOf(gh, n).state, 'closed');
+    assert.equal(Object.values(JSON.parse(portal.originShow('data/family.json')).people).filter((x) => x.name?.ar === 'يونس').length, 1);
+    // The next commit by the bot fills the ledgers' empty "commit" fields from the Gft-Owner-Edit trailer.
+    const m = await submitted(gh, ctx, proposal([P.edit('pmona001', { 'occupation.ar': 'معلمة' })]));
+    await keeperSays(gh, ctx, m, '/approve');
+    assert.equal(JSON.parse(portal.originShow('data/applied.json'))[hash].commit, sha);
+    const entries = JSON.parse(portal.originShow('data/changelog.json')).entries;
+    assert.equal(entries.find((e) => e.proposalId === p.id).commit, sha);
+  });
+
+  test('owner edits: trailers name the proposal ids; the changelog entries get their commit backfilled', async () => {
+    const portal = newPortal({ layout: 'sub' });
+    const gh = fakeGitHub();
+    const ctx = makeCtx(portal, gh);
+    const e = proposal([P.edit('pahmed01', { 'occupation.ar': 'طبيب' })]);
+    const { sha, plan } = ownerCommit(portal, [{ id: e.id, kind: 'edit', proposal: e }]);
+    assert.match(sh(portal.work, 'log', '-1', '--format=%B'), new RegExp(`^Gft-Owner-Edit: ${e.id}$`, 'm'));
+    assert.equal(portal.git.commitTrailers('data').get(`owner:${e.id}`), sha);
+    assert.equal(plan.changelog.entries[0].action, 'owner-edit');
+    const n = await submitted(gh, ctx, proposal([P.addChild('pahmed01', 'يونس')]));
+    await keeperSays(gh, ctx, n, '/approve');
+    const entries = JSON.parse(portal.originShow('data/changelog.json')).entries;
+    assert.equal(entries.find((x) => x.proposalId === e.id).commit, sha);
+    assert.equal(JSON.parse(portal.originShow('data/family.json')).people.pahmed01.occupation.ar, 'طبيب');
   });
 });
 

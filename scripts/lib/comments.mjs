@@ -31,6 +31,7 @@ export const TEXTS = {
   more: (p) => [`…و${p.n} غيرها — التفاصيل في المعاينة`, `…and ${p.n} more — see the preview`],
   preview: ['معاينة التعديلات على الموقع', 'Preview the changes on the site'],
   sameAsApplied: (p) => [`سبق تطبيق هذه التعديلات نفسها في ${p.ref}.`, `These exact changes were already applied in ${p.ref}.`],
+  sameAsAppliedDirect: ['سبق أن طبّق المشرف هذه التعديلات نفسها مباشرةً من الموقع.', 'The keeper already applied these exact changes directly from the site.'],
   sameAsOpen: (p) => [`هذه التعديلات مطابقة للمقترح ${p.ref}.`, `These changes are identical to ${p.ref}.`],
   dependsOn: (p) => [`يعتمد هذا المقترح على ${p.ref} — تلزم الموافقة عليه أولاً.`, `This builds on ${p.ref} — approve that one first.`],
   forKeeper: ['للمشرف', 'For the tree keeper'],
@@ -89,6 +90,7 @@ export const TEXTS = {
     `This proposal’s id (${p.id}) was already used by a different proposal, applied in ${p.ref}; two different proposals can’t share an id. Please send the changes again from the site.`,
   ],
   alreadyApplied: (p) => [`ℹ️ سبق تطبيق هذه التعديلات نفسها في ${p.ref}، فلا حاجة إلى تطبيقها مرة أخرى.`, `ℹ️ These exact changes were already applied in ${p.ref}, so there is nothing more to do.`],
+  alreadyAppliedDirect: ['ℹ️ سبق أن طبّق المشرف هذه التعديلات نفسها مباشرةً من الموقع، فلا حاجة إلى تطبيقها مرة أخرى.', 'ℹ️ The keeper already applied these exact changes directly from the site, so there is nothing more to do.'],
   approvalReceived: ['وصلت الموافقة، وجارٍ التطبيق…', 'Approval received — applying now…'],
   correctionReceived: ['وصل المقترح المصحّح، وحُدّثت المراجعة أعلاه.', 'Corrected proposal received — the check above is updated.'],
   correctionBroken: ['تعذّرت قراءة الرمز المصحّح', 'The corrected code could not be read'],
@@ -191,7 +193,9 @@ export function checkComment(p) {
   head.push(`### ${{ failing: '❌', readyDestructive: '⚠️', ready: '✅' }[status]} ${bi(status)}`);
   const meta = [submitterLine(p.proposal, p.formFields), noteLine(p.proposal, p.formFields)].filter(Boolean);
   if (meta.length) head.push(meta.join('  \n'));
-  if (p.appliedIn) head.push(`ℹ️ ${bi('sameAsApplied', { ref: issueRef(p.appliedIn) })}`);
+  // appliedIn 'direct': applied by the keeper in owner mode without a request (applied.json issue: null).
+  if (p.appliedIn === 'direct') head.push(`ℹ️ ${bi('sameAsAppliedDirect')}`);
+  else if (p.appliedIn) head.push(`ℹ️ ${bi('sameAsApplied', { ref: issueRef(p.appliedIn) })}`);
   for (const n of p.identicalTo || []) head.push(`ℹ️ ${bi('sameAsOpen', { ref: issueRef(n) })}`);
   for (const n of p.dependsOnIssues || []) head.push(`⏳ ${bi('dependsOn', { ref: issueRef(n) })}`);
 

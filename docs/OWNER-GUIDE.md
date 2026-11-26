@@ -2,6 +2,94 @@
 
 <div dir="rtl">
 
+## وضع المشرف — التعديل المباشر (تسجيل دخول مرة واحدة لكل جهاز)
+
+في وضع المشرف لا مقترحات ولا خطوة موافقة: كل إضافة أو تصحيح يقوم به المشرف من الموقع يُحفظ في الشجرة فوراً، ويظهر للجميع خلال دقيقة تقريباً. يكفي تسجيل الدخول مرة واحدة على كل جهاز (الجوال، الحاسوب) بمفتاح من GitHub.
+
+**(أ) إنشاء المفتاح في GitHub (مرة واحدة، نحو دقيقتين)**
+
+1. فتح github.com بحساب `gtsgate`، ثم الصورة الشخصية (أعلى الصفحة) ← **Settings**.
+2. في آخر القائمة الجانبية: **Developer settings** ← **Personal access tokens** ← **Fine-grained tokens** ← **Generate new token**.
+3. **Token name:** ‏`family-tree keeper`. **Expiration:** ‏*1 year* (أو *Custom* وتاريخ بعد سنة)، مع تذكير في التقويم قبل انتهائه بأسبوع.
+4. **Repository access:** ‏*Only select repositories* ثم اختيار **family-tree**.
+5. **Permissions** ← **Repository permissions**:
+   - **Contents** ← *Read and write*
+   - **Issues** ← *Read and write*
+
+   (تُضاف صلاحية Metadata للقراءة تلقائياً.) لا شيء غير ذلك.
+6. **Generate token** ثم نسخ المفتاح (يبدأ بـ `github_pat_`). لا يظهر إلا مرة واحدة.
+
+**(ب) تسجيل الدخول في الموقع (مرة لكل جهاز)**
+
+1. فتح الموقع ← في أسفل أي صفحة: **أدوات المشرف** (أو `https://gtsgate.github.io/family-tree/#/admin`).
+2. في البطاقة الأولى **وضع المشرف**: لصق المفتاح في الحقل ← **تسجيل الدخول**.
+3. يتحقق الموقع مع GitHub من أن الحساب من المشرفين (`approvers` في `config.json`) وأن المفتاح يستطيع الحفظ، ثم تظهر عبارة «تمّ تسجيل الدخول باسم gtsgate على هذا الجهاز»، وفي أعلى كل صفحة شارة **المشرف** 🔑.
+
+**الاستخدام اليومي**
+
+- كل إضافة أو تصحيح (إضافة قريب، تصحيح المعلومات، وضع علامة، إعادة الترتيب، تغيير الوالدين، الدمج، معالج «إضافة عائلتي») يُحفظ في الشجرة مباشرة: تظهر رسالة **«تم الحفظ — يظهر في الموقع خلال دقيقة»**، وتصبح الشارة «جارٍ الحفظ…» ثم «تم الحفظ ✓». ويظهر التعديل على الجهاز نفسه فوراً.
+- في معالج «إضافة عائلتي» تُحفظ كل مجموعة صفوف عند الانتقال إلى الخطوة التالية، وتصبح الخطوة الأخيرة **«تم»** بدل الإرسال.
+- الحذف والدمج وتغيير الوالدين: تبقى أسئلة التأكيد كما هي (السبب وكتابة الاسم)، ثم يُحفظ التعديل مباشرة، فالمشرف هو صاحب الموافقة. ويمكن استعادة المحذوف من **أدوات المشرف ← الاستعادة**.
+- **مقترحات الأقارب:** في معاينة أي مقترح (رابط المعاينة في رسالة البريد أو في تعليق الروبوت، أو لصق الرمز في أدوات المشرف ← «معاينة») يظهر زر **«تطبيق مباشرة»**: يطبّق المقترح فوراً، ويسجّله في `applied.json` حتى لا يُطبَّق مرة ثانية إن وصل من طريق آخر، وإن كان طلباً في GitHub يُغلَق مع ملاحظة شكر. (الموافقة بالرد على البريد تعمل كما كانت.)
+- كل حفظ يظهر في **«آخر التحديثات»**، ويُسجَّل في GitHub بإيداع (commit) عنوانه `family-tree: owner edit (rev N, K changes)`.
+- **إذا تعذّر الحفظ** (انقطاع الاتصال مثلاً) لا يضيع شيء: يبقى التعديل على الجهاز في **«مقترحي»**، وفيها زر **«حفظ الكل في الشجرة»**.
+- **تسجيل الخروج:** أدوات المشرف ← وضع المشرف ← **تسجيل الخروج** (يُمحى المفتاح من هذا الجهاز فقط). بعدها يعمل الموقع بالمقترحات كما يراه الأقارب.
+
+**مفتاح واحد للأمرين:** هذا المفتاح يصلح أيضاً لوسيط البريد (القسم التالي): يكفي وضعه في خاصية `GITHUB_TOKEN` في إعدادات السكربت (الخطوة (ب) 4 هناك)، فيُجدَّد مفتاح واحد فقط كل سنة.
+
+**عند انتهاء المفتاح أو تجديده:** تظهر في الموقع رسالة «توقّف وضع المشرف»، ويبقى ما لم يُحفظ في «مقترحي». يُنشأ مفتاح جديد (أو **Regenerate token**) ويُلصق في أدوات المشرف على كل جهاز، وفي `GITHUB_TOKEN` إن كان الوسيط يستخدمه.
+
+**الأمان:** يُحفظ المفتاح في متصفح هذا الجهاز فقط (لا في الموقع ولا في GitHub)، ولا يُرسل إلا إلى GitHub. يُستحسن استخدام وضع المشرف على الجوال أو الحاسوب الشخصي، وتسجيل الخروج من أي جهاز مشترك. وإذا فُقد الجهاز: GitHub ← Settings ← Developer settings ← Fine-grained tokens ← المفتاح ← **Delete**، فيتوقف فوراً.
+
+**حلّ المشكلات:** «لا يملك هذا المفتاح صلاحية الحفظ» ← صلاحية Contents ليست *Read and write*. «لا يصل هذا المفتاح إلى المستودع» ← لم يُختر family-tree في Repository access. «رفض GitHub الحفظ» بعد أن كان يعمل ← ربما فُعّلت حماية للفرع `main` تشترط طلبات الدمج (Settings ← Branches)، أو تغيّرت صلاحيات المفتاح.
+
+</div>
+
+## Owner mode — edit directly (one-time sign-in per device)
+
+In owner mode there are no proposals and no approval step: every addition or correction the keeper makes on the site is saved into the tree at once and appears for everyone within about a minute. Each device (phone, computer) needs a one-time sign-in with a GitHub key.
+
+**(a) Create the key on GitHub (once — about two minutes)**
+
+1. Open github.com signed in as `gtsgate` → profile picture (top right) → **Settings**.
+2. At the bottom of the left menu: **Developer settings** → **Personal access tokens** → **Fine-grained tokens** → **Generate new token**.
+3. **Token name:** `family-tree keeper`. **Expiration:** *1 year* (or *Custom*, a date one year from today) — and a calendar reminder a week before it expires.
+4. **Repository access:** *Only select repositories* → **family-tree**.
+5. **Permissions** → **Repository permissions**:
+   - **Contents** → *Read and write*
+   - **Issues** → *Read and write*
+
+   (*Metadata: Read-only* is added by itself.) Nothing else.
+6. **Generate token**, then copy it (it starts with `github_pat_`). It is shown only once.
+
+**(b) Sign in on the site (once per device)**
+
+1. Open the site → at the bottom of any page: **Owner tools** (or `https://gtsgate.github.io/family-tree/#/admin`).
+2. In the first card, **Owner mode**: paste the key → **Sign in**.
+3. The site checks with GitHub that the account is an approver (`approvers` in `config.json`) and that the key can save, then shows “Signed in as gtsgate on this device”; an **Owner** 🔑 badge appears at the top of every page.
+
+**Everyday use**
+
+- Every addition or correction (add a relative, correct info, mark as…, re-arrange, change parents, merge, the “Add my family” wizard) is saved straight into the tree: a **“Saved — live on the site in about a minute”** message appears and the badge shows “Saving…”, then “Saved ✓”. The change shows on the same device at once.
+- In the “Add my family” wizard each group of rows is saved when moving on, and the last step is **“Done”** instead of sending.
+- Removals, merges and parent changes keep their confirmations (reason, typed name), then save directly — the keeper is the approver. Removed records can be restored from **Owner tools → Restore**.
+- **Relatives’ proposals:** every proposal preview (the preview link in the e-mail or the bot comment, or a code pasted in Owner tools → *Preview*) offers **“Apply now”**: the proposal is applied at once and recorded in `applied.json`, so it is never applied twice if it also arrives another way; a GitHub request is closed with a thank-you note. (Approving by replying to the e-mail still works.)
+- Every save is listed on **Updates** and recorded on GitHub as a commit `family-tree: owner edit (rev N, K changes)`.
+- **If a save fails** (no connection, for example) nothing is lost: the change stays on the device in **“My proposal”**, which offers **“Save all to the tree”**.
+- **Sign out:** Owner tools → Owner mode → **Sign out** (forgets the key on this device only). The site then works with proposals, as relatives see it.
+
+**One key for both:** the same key also serves the e-mail relay (next section): put it in the relay’s `GITHUB_TOKEN` script property (step (b) 4 there), so only one key needs renewing each year.
+
+**When the key expires or is renewed:** the site says “Owner mode was turned off” and keeps anything unsaved in “My proposal”. Create a new key (or **Regenerate token**) and paste it in Owner tools on each device — and in `GITHUB_TOKEN` if the relay uses it.
+
+**Security:** the key is kept in this device’s browser only (not on the site, not on GitHub) and is sent to GitHub alone. Use owner mode on a personal phone or computer and sign out of any shared device. If a device is lost: GitHub → Settings → Developer settings → Fine-grained tokens → the key → **Delete** — it stops working at once.
+
+**Troubleshooting:** “This key cannot save to the repository” → *Contents* is not *Read and write*. “This key cannot see the repository” → family-tree was not chosen under *Repository access*. “GitHub refused to save” after it used to work → `main` may have gained a branch protection rule requiring pull requests (Settings → Branches), or the key’s permissions changed.
+
+---
+
+<div dir="rtl">
+
 ## الموافقة بالبريد الإلكتروني — إعداد لمرة واحدة (10 دقائق)
 
 بعد هذا الإعداد يضغط القريب في الموقع زرّاً واحداً: **«إرسال إلى» + اسم المشرف**. فتصل إلى بريد Gmail رسالة لكل مقترح، ويكفي الرد عليها بكلمة واحدة مثل «موافق». لا نسخ للرموز، ولا حاجة إلى فتح GitHub.

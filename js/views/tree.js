@@ -178,7 +178,7 @@ function defaultRootId(g) {
 }
 
 function resolveRoot(g, params) {
-  if (params.id) return g.resolve(params.id);
+  if (params.id) return g.resolve(params.id) || g.resolve(store.realId(params.id)); // owner save: temp ref → real id
   const id = defaultRootId(g);
   return id ? g.person(id) : null;
 }
@@ -1199,7 +1199,7 @@ function build(root, params, query) {
   // ?focus=<pid>: expand the path and centre that person (once per address).
   if (query.focus && location.hash !== lastFocusHash) {
     lastFocusHash = location.hash;
-    const target = g.resolve(query.focus);
+    const target = g.resolve(query.focus) || g.resolve(store.realId(query.focus));
     if (target && expandPathTo(g, rootId, target.id, dir, st)) st.pendingFocus = target.id;
   }
 

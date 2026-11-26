@@ -10,8 +10,11 @@
 // * Checks the string registry: every key in both languages; no Arabic string starts with a masculine imperative.
 // * Runs the main flows end to end: wizard → draft → WhatsApp code that applies in FINAL mode; person-page dialogs;
 //   send via "copy code" → #/me → simulated approval (new family.json + changelog + applied ledger) → toast;
-//   admin paste → preview → approve-issue URL; home family trees (options, popover, keyboard, viewer, no overlaps).
+//   admin paste → preview → approve-issue URL; home family trees (options, popover, keyboard, viewer, no overlaps);
+//   owner mode (api.github.com routed to tests/fake-github-api.mjs): sign in, a child added from the person page is
+//   committed at once and shown without a proposal, "Apply now" on a preview; signed out → the proposal flow again.
 // Needs Playwright with Chromium (`require('playwright')` must resolve, e.g. via NODE_PATH or a global install).
+// --flow=<text> runs only the flows whose name contains <text> (with the i18n check and route sweep unless --flows-only).
 import { createRequire } from 'node:module';
 import http from 'node:http';
 import fs from 'node:fs';
@@ -24,7 +27,8 @@ import { applyProposal, newProposal, proposalHash } from '../../js/core/ops.js';
 import { normalizeData, serializeData, validateData } from '../../js/core/schema.js';
 import { buildGraph } from '../../js/core/graph.js';
 import { describeProposal } from '../../js/core/describe.js';
-import { lineageName } from '../../js/core/names.js';
+import { lineageName, displayName } from '../../js/core/names.js';
+import { createFakeGitHub, FAKE_TOKEN } from '../fake-github-api.mjs';
 
 const require = createRequire(import.meta.url);
 let chromium;
@@ -43,6 +47,7 @@ const SHOTS = path.resolve(argVal('shots') || process.env.GFT_E2E_SHOTS || path.
 const ROUTES_ONLY = ARGS.includes('--routes-only');
 const FLOWS_ONLY = ARGS.includes('--flows-only');
 const QUICK = ARGS.includes('--quick'); // light theme only for the route sweep
+const ONLY_FLOW = argVal('flow');
 fs.mkdirSync(SHOTS, { recursive: true });
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -286,7 +291,7 @@ async function i18nCheck(browser) {
   await load(page, '#/about');
   const result = await page.evaluate(async () => {
     const mods = ['home', 'tree', 'person', 'search', 'wizard', 'draft', 'me', 'relationship', 'changes', 'about', 'admin', 'preview']
-      .map((m) => `./js/views/${m}.js`).concat(['./js/forms/dialogs.js', './js/forms/person-form.js', './js/forms/picker.js', './js/ui.js', './js/submit.js', './js/app.js']);
+      .map((m) => `./js/views/${m}.js`).concat(['./js/forms/dialogs.js', './js/forms/person-form.js', './js/forms/picker.js', './js/ui.js', './js/submit.js', './js/owner-ui.js', './js/app.js']);
     for (const m of mods) await import(new URL(m, location.href).href);
     const i18n = await import(new URL('./js/i18n.js', location.href).href);
     const d = i18n.dictionaries();
@@ -881,6 +886,168 @@ flow('home family trees: options, popover, keyboard, viewer (ar 1280px + 360px)'
   await context.close();
 });
 
+flow('owner mode: sign in → a child added on the person page is committed at once; Apply now; sign out → proposals (en, 360px)', async (browser) => {
+  const W = 'owner';
+  const CONFIG = JSON.parse(fs.readFileSync(path.join(SITE, 'config.json'), 'utf8'));
+  const files = Object.fromEntries(['family.json', 'changelog.json', 'applied.json'].map((f) => [`data/${f}`, fs.readFileSync(path.join(SITE, 'data', f), 'utf8')]));
+  const gh = createFakeGitHub({ files, owner: CONFIG.repo.owner, repo: CONFIG.repo.name, branch: CONFIG.repo.branch || 'main', login: CONFIG.approvers[0] });
+  const context = await newContext(browser, { lang: 'en', width: 360, height: 740 });
+  // Registered after newContext's stub, so it answers first: a fake GitHub with a real in-memory repository.
+  await context.route((url) => url.hostname === 'api.github.com', async (route) => {
+    const req = route.request();
+    const r = gh.handle({ method: req.method(), url: req.url(), headers: await req.allHeaders(), body: req.postData() });
+    if (r.network) { await route.abort('failed'); return; }
+    await route.fulfill({ status: r.status, headers: r.headers, body: r.body });
+  });
+  const page = await context.newPage();
+  const problems = watch(page);
+  const remote = () => normalizeData(JSON.parse(gh.file('data/family.json')));
+
+  // (1) Sign in on #/admin
+  await load(page, '#/admin');
+  check(await page.locator('.owner-card #owner-token').count() === 1, W, 'no token field in the Owner mode card');
+  check(await page.locator('.owner-pill').count() === 0, W, 'owner pill shown before signing in');
+  await page.fill('#owner-token', FAKE_TOKEN);
+  await shot(page, 'owner-0-sign-in');
+  await page.click('.owner-signin');
+  await page.waitForSelector('.owner-card.is-on', { timeout: 10000 });
+  check(/Signed in as gtsgate on this device/i.test(await page.locator('.owner-card').innerText()), W, 'no "Signed in as …" text');
+  check(await page.locator('.owner-pill').count() === 1, W, 'no owner pill in the header');
+  const stored = await page.evaluate(() => JSON.parse(localStorage.getItem('gft.owner.v1') || 'null'));
+  check(stored?.login === 'gtsgate' && stored?.token === FAKE_TOKEN, W, 'credentials not stored on the device');
+  check(gh.log.every((l) => !l.path.includes(FAKE_TOKEN)), W, 'the token appeared in a URL');
+  check(gh.commitsOf().length === 1, W, 'signing in committed something');
+  await shot(page, 'owner-1-signed-in');
+
+  // (2) Add a child through the person dialog → one commit, shown at once, no proposal
+  const head0 = gh.head();
+  const rev0 = await page.evaluate(() => globalThis.__gft.data.meta.revision);
+  await load(page, `#/p/${DLG_PERSON}`);
+  await page.click('.person-btn-add');
+  await modalOpen(page);
+  await page.click('dialog.modal[open] .dlg-tile-child');
+  await page.waitForSelector('dialog.dlg-add-child[open]');
+  check(/Save to the tree/.test(await primaryAction(page).innerText()), W, 'the dialog still says "proposal"');
+  await page.locator('dialog.modal[open] input.form-input-ar[id$="-name"]').fill('نوفل');
+  await pickRadio(page, 'm');
+  await page.locator('dialog.modal[open] input.form-year').first().fill('2021');
+  await primaryAction(page).click();
+  await modalClosed(page);
+  const toastText = await page.locator('.toast-success').last().innerText().catch(() => '');
+  check(/Saved — live on the site in about a minute/.test(toastText), W, `toast says "${toastText}"`);
+  await page.waitForFunction((r) => globalThis.__gft.saving.length === 0 && globalThis.__gft.data.meta.revision > r, rev0, { timeout: 15000 });
+  await settle(page);
+  const commits = gh.commitsOf();
+  check(commits.length === 2, W, `${commits.length - 1} commits made`);
+  check(commits[0].parents[0] === head0, W, 'the commit is not on top of the branch head');
+  check(JSON.stringify(commits[0].files.sort()) === JSON.stringify(['data/changelog.json', 'data/family.json']), W, `commit files ${commits[0].files}`);
+  check(/^family-tree: owner edit \(rev \d+, 1 change\)/.test(commits[0].message) && !commits[0].message.includes('نوفل'), W, `commit message ${JSON.stringify(commits[0].message)}`);
+  const after = remote();
+  const kid = Object.values(after.people).find((p) => p.name?.ar === 'نوفل');
+  check(!!kid && /^p[a-z0-9]{7}$/.test(kid.id), W, 'the child is not in the committed family.json');
+  const entry = JSON.parse(gh.file('data/changelog.json')).entries[0];
+  check(entry.action === 'owner-edit' && entry.approvedBy === 'gtsgate' && entry.people.includes(kid?.id), W, `changelog entry ${JSON.stringify(entry).slice(0, 200)}`);
+  const st = await page.evaluate(() => ({ draft: globalThis.__gft.draft.ops.length, sent: globalThis.__gft.sent.length, rev: globalThis.__gft.data.meta.revision }));
+  check(st.draft === 0 && st.sent === 0, W, `draft ${st.draft}, sent ${st.sent} — expected no proposal at all`);
+  check(st.rev === after.meta.revision, W, 'the site did not adopt the committed data at once');
+  check(await page.locator('.draft-bar:not([hidden])').count() === 0, W, 'the "unsent changes" bar is shown in owner mode');
+  const text = await page.locator('#app').innerText();
+  const kidName = kid ? displayName(kid, 'en', buildGraph(after)) : 'Nawfal';
+  check(text.includes(kidName), W, `the new child (${kidName}) is not shown on the person page`);
+  check(!/Not sent yet|Not saved yet|awaiting approval/i.test(text), W, 'pending badges shown in owner mode');
+  check(await page.locator(`#app a[href="#/p/${kid?.id}"]`).count() >= 1, W, 'the child is not linked with its real id');
+  await shot(page, 'owner-2-saved');
+
+  // (3) Apply now: a relative's proposal from a pasted code
+  const p = newProposal();
+  p.submitter = { name: 'Smoke test', relation: 'cousin', personId: '' };
+  p.ops = [{ op: 'add-person', ref: 'new1', person: { name: { ar: 'سديم' }, gender: 'f' }, link: { as: 'child', of: LIVING, with: null }, unionRef: 'newu2' }];
+  await load(page, `#/preview?code=${encodeURIComponent(await encodeProposal(p))}`);
+  await page.waitForSelector('.owner-apply-now', { timeout: 10000 });
+  await page.click('.owner-apply-now');
+  await page.waitForSelector('.owner-applied', { timeout: 15000 });
+  const hash = await proposalHash(p);
+  const ledger = JSON.parse(gh.file('data/applied.json'));
+  check(ledger[hash]?.proposalId === p.id && ledger[hash]?.issue === null, W, 'no applied.json entry for "Apply now"');
+  check(Object.values(remote().people).some((x) => x.name?.ar === 'سديم'), W, '"Apply now" did not commit the proposal');
+  await shot(page, 'owner-3-applied');
+
+  // (4) The family wizard: each committed step is saved straight away; temp refs become real ids mid-flow; "Done".
+  const commitsBeforeWizard = gh.commitsOf().length;
+  await load(page, '#/add-family');
+  await page.locator('.wiz-tile').nth(1).click(); // "I am not listed yet"
+  await page.fill('.picker-input', lineageName(G, WIZ_FATHER, 'en'));
+  await page.waitForSelector('.picker-option');
+  await page.locator('.picker-option').first().click();
+  await page.waitForSelector('.wiz-other-parent .chip');
+  await page.locator('.wiz-other-parent .chip').first().click();
+  const self = page.locator('.wiz-step-who .wiz-row').first();
+  await self.locator('.wiz-ar').fill('مهيار');
+  await self.locator('.wiz-gender button[data-v="m"]').click();
+  await page.locator('.wiz-step-who .wiz-next').click();
+  await page.waitForSelector('.wiz-step-spouses');
+  await page.waitForFunction(() => globalThis.__gft.saving.length === 0, null, { timeout: 15000 });
+  await settle(page);
+  check(await page.locator('.wiz-step-spouses').count() === 1, W, 'the wizard left the spouse step once the first save finished');
+  const wife = page.locator('.wiz-step-spouses .wiz-row').last();
+  await wife.locator('.wiz-ar').fill('شذى');
+  if (await wife.locator('.wiz-gender button[data-v="f"]').count()) await wife.locator('.wiz-gender button[data-v="f"]').click();
+  await page.locator('.wiz-step-spouses .wiz-next').click();
+  await page.waitForSelector('.wiz-step-children');
+  const kids = [['لجين', 'f'], ['أوس', 'm'], ['قصي', 'm']];
+  for (let i = 0; i < kids.length; i++) {
+    if (i > 0) { await page.locator('.wiz-union').first().locator('.wiz-another').click(); await page.waitForTimeout(150); }
+    const row = page.locator('.wiz-union').first().locator('.wiz-row').last();
+    await row.locator('.wiz-ar').fill(kids[i][0]);
+    await row.locator(`.wiz-gender button[data-v="${kids[i][1]}"]`).click();
+  }
+  await page.locator('.wiz-step-children .wiz-footer .wiz-next').click();
+  await page.waitForSelector('.wiz-review-owner .wiz-done');
+  await page.waitForFunction(() => globalThis.__gft.saving.length === 0 && !document.querySelector('.owner-pill.is-saving'), null, { timeout: 15000 });
+  await settle(page);
+  const wz = remote();
+  const wg = buildGraph(wz);
+  const mahyar = Object.values(wz.people).find((x) => x.name?.ar === 'مهيار');
+  check(!!mahyar && wg.father(mahyar.id)?.id === WIZ_FATHER, W, 'wizard: self not committed as a child of the chosen father');
+  check(mahyar && wg.spouses(mahyar.id).some((x) => x.person.name?.ar === 'شذى'), W, 'wizard: spouse not committed');
+  check(mahyar && wg.children(mahyar.id).map((x) => x.name?.ar).sort().join(',') === ['أوس', 'قصي', 'لجين'].sort().join(','), W, 'wizard: children not committed under the couple');
+  check(gh.commitsOf().length - commitsBeforeWizard === 3, W, `wizard made ${gh.commitsOf().length - commitsBeforeWizard} commits (expected one per step: 3)`);
+  check(/3 changes/.test(gh.commitsOf()[0].message), W, 'the three children were not saved in one commit');
+  check((await draftOps(page)).length === 0, W, 'wizard left changes in the draft');
+  check(await page.locator('.wiz-done').getAttribute('href') === `#/p/${mahyar?.id}`, W, '"Done" does not lead to the saved person');
+  await shot(page, 'owner-4-wizard-done');
+  await page.locator('.wiz-done').click();
+  await page.waitForFunction((id) => location.hash === `#/p/${id}`, mahyar?.id);
+  await settle(page);
+  check((await page.locator('#app').innerText()).includes(displayName(mahyar, 'en', wg)), W, 'the saved person page does not open');
+
+  // (5) Sign out → the normal proposal flow returns
+  await load(page, '#/admin');
+  await page.click('.owner-signout');
+  await page.waitForSelector('.owner-card:not(.is-on) #owner-token');
+  check(await page.locator('.owner-pill').count() === 0, W, 'owner pill still shown after signing out');
+  check(await page.evaluate(() => localStorage.getItem('gft.owner.v1')) === null, W, 'credentials kept after signing out');
+  const before = gh.commitsOf().length;
+  await load(page, `#/p/${DLG_PERSON}`);
+  await page.click('.person-btn-add');
+  await modalOpen(page);
+  await page.click('dialog.modal[open] .dlg-tile-child');
+  await page.waitForSelector('dialog.dlg-add-child[open]');
+  check(/proposal/i.test(await primaryAction(page).innerText()), W, 'signed out, the dialog does not add to the proposal');
+  await page.locator('dialog.modal[open] input.form-input-ar[id$="-name"]').fill('رتاج');
+  await pickRadio(page, 'f');
+  await primaryAction(page).click();
+  await modalClosed(page);
+  await settle(page);
+  const ops = await draftOps(page);
+  check(ops.length === 1 && ops[0].op === 'add-person', W, `signed out, the draft has ${ops.length} ops`);
+  check(await page.locator('.draft-bar:not([hidden])').count() === 1, W, 'signed out, no "unsent changes" bar');
+  check(gh.commitsOf().length === before, W, 'signed out, something was committed');
+  await shot(page, 'owner-5-signed-out');
+  problemsOf(W, problems);
+  await context.close();
+});
+
 async function main() {
   await new Promise((resolve, reject) => { httpServer.once('error', reject); httpServer.listen(PORT, '127.0.0.1', resolve); });
   const browser = await chromium.launch();
@@ -892,6 +1059,7 @@ async function main() {
     }
     if (!ROUTES_ONLY) {
       for (const [name, fn] of FLOWS) {
+        if (ONLY_FLOW && !name.includes(ONLY_FLOW)) continue;
         console.log(`• flow ${name}`);
         try { await fn(browser); } catch (e) { fail(`flow ${name}`, e.stack || e.message); }
       }

@@ -15,12 +15,14 @@
 //
 // Each dialog builds ops, trial-applies them on top of the draft (errors stay inline and the dialog stays open;
 // warnings such as POSSIBLE_DUPLICATE / NAME_LOOKS_FULL / MINOR_DETAIL / STALE_EDIT / REPARENT are shown for
-// confirmation), then store.addOps() and a toast linking to #/draft. Before adding a person, a quick duplicate check
-// asks "Is it one of these?" so an existing record can be linked instead. Never inserts user data as HTML.
+// confirmation), then store.addOps() and a toast linking to #/draft — or, in owner mode (js/owner.js), the change is
+// saved straight into the tree and the toast says "Saved — live on the site in about a minute" (ui.js notifyAdded).
+// Before adding a person, a quick duplicate check asks "Is it one of these?" so an existing record can be linked
+// instead. Never inserts user data as HTML.
 import { h, icon, bdi, toast, copyText } from '../dom.js';
 import { t, register, lang } from '../i18n.js';
 import { store } from '../store.js';
-import { nameOf, lineageOf, avatar, nameLabel, yearsOf, whatsappUrl, ownerName } from '../ui.js';
+import { nameOf, lineageOf, avatar, nameLabel, yearsOf, whatsappUrl, ownerName, notifyAdded, ownerMode } from '../ui.js';
 import { personPicker, neighbourhood } from './picker.js';
 import { personForm, dateInput, field, bilingualInputs } from './person-form.js';
 import { formatIssue } from '../core/messages.js';
@@ -265,6 +267,15 @@ register({
     'dlg.linkCopied': 'Link copied',
     'dlg.copyFailed': 'Could not copy — please select the link and copy it.',
     'dlg.sendWhatsApp': 'Send on WhatsApp',
+    // Owner mode (the keeper's changes go straight into the tree; the keeper IS the approver)
+    'dlg.saveToDraft.owner': 'Save to the tree',
+    'dlg.addToDraft.owner': 'Save to the tree',
+    'dlg.reparentWarn.owner': 'Replacing a parent who is already recorded moves {name} and their descendants to another branch. It is saved straight into the tree.',
+    'dlg.linkReparent.owner': '{name} already has parents recorded; linking moves them to this family.',
+    'dlg.mergeApproval.owner': 'The merge is saved straight into the tree. It can be undone only by restoring from the history on GitHub.',
+    'dlg.removeLead.owner': 'Removal hides {name} from the tree. It can be restored later from Owner tools.',
+    'dlg.cons.approval.owner': 'It is saved straight into the tree (owner mode).',
+    'dlg.removeSubmit.owner': 'Remove from the tree',
   },
   ar: {
     'dlg.saveToDraft': 'حفظ في مقترحي',
@@ -490,6 +501,14 @@ register({
     'dlg.linkCopied': 'تم نسخ الرابط',
     'dlg.copyFailed': 'تعذّر النسخ — يمكن تحديد الرابط ونسخه يدوياً.',
     'dlg.sendWhatsApp': 'إرسال عبر واتساب',
+    'dlg.saveToDraft.owner': 'حفظ في الشجرة',
+    'dlg.addToDraft.owner': 'حفظ في الشجرة',
+    'dlg.reparentWarn.owner': 'استبدال والد مسجّل من قبل ينقل {name} وذريته إلى فرع آخر، ويُحفظ ذلك في الشجرة مباشرة.',
+    'dlg.linkReparent.owner': 'لـ{name} والدان مسجّلان من قبل، والربط ينقله إلى هذه العائلة.',
+    'dlg.mergeApproval.owner': 'يُحفظ الدمج في الشجرة مباشرة، ولا يمكن التراجع عنه إلا بالاستعادة من السجل على GitHub.',
+    'dlg.removeLead.owner': 'الحذف يُخفي {name} من الشجرة، ويمكن استعادته لاحقاً من أدوات المشرف.',
+    'dlg.cons.approval.owner': 'يُحفظ في الشجرة مباشرة (وضع المشرف).',
+    'dlg.removeSubmit.owner': 'الحذف من الشجرة',
   },
 });
 
@@ -504,11 +523,10 @@ const genderKey = (p) => (p?.gender === 'm' || p?.gender === 'f' ? p.gender : 'u
 /** Warnings that never need the visitor's attention. */
 const SILENT = new Set(['MERGED_REDIRECT', 'ORDER_IGNORED', 'UNKNOWN_FIELD', 'GENDER_MISSING']);
 
-let dismissLastToast = null;
-function toastAdded() {
-  if (dismissLastToast) dismissLastToast();
-  dismissLastToast = toast(t('common.addedToDraft'), { type: 'success', timeout: 7000, action: { label: t('common.viewDraft'), href: '#/draft' } });
-}
+/** Keys with an owner-mode wording (`<key>.owner`): approval steps do not exist when the keeper edits directly. */
+const OWNER_WORDING = new Set(['dlg.saveToDraft', 'dlg.addToDraft', 'dlg.reparentWarn', 'dlg.linkReparent', 'dlg.mergeApproval',
+  'dlg.removeLead', 'dlg.cons.approval', 'dlg.removeSubmit']);
+const tw = (key, vars) => t(ownerMode() && OWNER_WORDING.has(key) ? `${key}.owner` : key, vars);
 
 function safeRefNames(proposal) {
   try { return refNames(proposal, g()); } catch { return {}; }
@@ -669,7 +687,7 @@ function commit(shell, issues, ops, { skipDuplicateIds = [] } = {}) {
     return false;
   }
   shell.close(true);
-  toastAdded();
+  notifyAdded(res);
   return true;
 }
 
@@ -1017,7 +1035,7 @@ export function openAddRelative(personId, as = 'child') {
     }
     shell.setActions([
       { label: t('dlg.cancel'), variant: 'ghost', onClick: () => shell.close(false) },
-      { label: t('dlg.addToDraft'), variant: 'primary', icon: 'plus', primary: true, onClick: save },
+      { label: tw('dlg.addToDraft'), variant: 'primary', icon: 'plus', primary: true, onClick: save },
     ]);
   }
 
@@ -1194,7 +1212,7 @@ export function openEditPerson(personId) {
   shell.setActions([
     { label: t('dlg.cancel'), variant: 'ghost', onClick: () => shell.close(false) },
     {
-      label: t('dlg.saveToDraft'), variant: 'primary', icon: 'check', primary: true,
+      label: tw('dlg.saveToDraft'), variant: 'primary', icon: 'check', primary: true,
       onClick: () => {
         issues.clear();
         const v = form.validate();
@@ -1283,7 +1301,7 @@ export function openMarkAs(personId) {
   shell.setActions([
     { label: t('dlg.cancel'), variant: 'ghost', onClick: () => shell.close(false) },
     {
-      label: t('dlg.saveToDraft'), variant: 'primary', icon: 'check', primary: true,
+      label: tw('dlg.saveToDraft'), variant: 'primary', icon: 'check', primary: true,
       onClick: () => {
         issues.clear();
         const m = choice.value;
@@ -1452,7 +1470,7 @@ export function openReorderChildren(personId) {
     shell.setActions([
       unions.length > 1 ? { label: t('dlg.back'), variant: 'ghost', icon: 'chevronStart', className: 'dlg-back', onClick: pickUnion } : { label: t('dlg.cancel'), variant: 'ghost', onClick: () => shell.close(false) },
       notRef ? null : {
-        label: t('dlg.saveToDraft'), variant: 'primary', icon: 'check', primary: true,
+        label: tw('dlg.saveToDraft'), variant: 'primary', icon: 'check', primary: true,
         onClick: () => {
           issues.clear();
           const order = sorter.order();
@@ -1564,7 +1582,7 @@ export function openMarriageDetails(personId, unionId = null) {
     shell.setActions([
       back,
       {
-        label: t('dlg.saveToDraft'), variant: 'primary', icon: 'check', primary: true,
+        label: tw('dlg.saveToDraft'), variant: 'primary', icon: 'check', primary: true,
         onClick: () => {
           issues.clear();
           const m = mDate.read();
@@ -1639,7 +1657,7 @@ export function openReorderSpouses(personId) {
   shell.setActions([
     { label: t('dlg.cancel'), variant: 'ghost', onClick: () => shell.close(false) },
     notRef ? null : {
-      label: t('dlg.saveToDraft'), variant: 'primary', icon: 'check', primary: true,
+      label: tw('dlg.saveToDraft'), variant: 'primary', icon: 'check', primary: true,
       onClick: () => {
         issues.clear();
         const order = sorter.order();
@@ -1693,13 +1711,13 @@ export function openChangeParents(personId) {
   const mSlot = personSlot({ label: t('dlg.mother'), initial: mother, near: personId, filter: (p) => okParent(p, 'f'), placeholder: t('dlg.pickParent', { role: t('dlg.mother') }) });
   shell.setBody(targetCard(P, ''),
     h('p', { class: 'muted small dlg-lead' }, t('dlg.changeParentsLead', { name: nameOf(P) })),
-    parents.length ? h('div', { class: 'notice notice-warning' }, icon('warning'), h('p', null, t('dlg.reparentWarn', { name: nameOf(P) }))) : null,
+    parents.length ? h('div', { class: 'notice notice-warning' }, icon('warning'), h('p', null, tw('dlg.reparentWarn', { name: nameOf(P) }))) : null,
     issues.el,
     h('div', { class: 'dlg-slots' }, fSlot.el, mSlot.el));
   shell.setActions([
     { label: t('dlg.cancel'), variant: 'ghost', onClick: () => shell.close(false) },
     {
-      label: t('dlg.saveToDraft'), variant: 'primary', icon: 'check', primary: true,
+      label: tw('dlg.saveToDraft'), variant: 'primary', icon: 'check', primary: true,
       onClick: () => {
         issues.clear();
         const F = fSlot.value;
@@ -1763,7 +1781,7 @@ export function openLinkExisting(personId) {
         });
         extraHost.append(extra.other.el);
       }
-      if (graph.parents(chosen.id).length) extraHost.append(h('div', { class: 'notice notice-warning' }, icon('warning'), h('p', null, t('dlg.linkReparent', { name: nameOf(chosen) }))));
+      if (graph.parents(chosen.id).length) extraHost.append(h('div', { class: 'notice notice-warning' }, icon('warning'), h('p', null, tw('dlg.linkReparent', { name: nameOf(chosen) }))));
     } else if (as === 'parent') {
       const B = graph.birthUnion(personId);
       const sibs = B ? graph.childrenOfUnion(B.id).filter((c) => c.id !== personId) : [];
@@ -1786,7 +1804,7 @@ export function openLinkExisting(personId) {
         ],
       });
       extraHost.append(extra.share.el);
-      if (graph.parents(chosen.id).length) extraHost.append(h('div', { class: 'notice notice-warning' }, icon('warning'), h('p', null, t('dlg.linkReparent', { name: nameOf(chosen) }))));
+      if (graph.parents(chosen.id).length) extraHost.append(h('div', { class: 'notice notice-warning' }, icon('warning'), h('p', null, tw('dlg.linkReparent', { name: nameOf(chosen) }))));
     }
   }
 
@@ -1807,7 +1825,7 @@ export function openLinkExisting(personId) {
   shell.setActions([
     { label: t('dlg.cancel'), variant: 'ghost', onClick: () => shell.close(false) },
     {
-      label: t('dlg.saveToDraft'), variant: 'primary', icon: 'link', primary: true,
+      label: tw('dlg.saveToDraft'), variant: 'primary', icon: 'link', primary: true,
       onClick: () => {
         issues.clear();
         const as = relation.value;
@@ -1906,12 +1924,12 @@ export function openMerge(personId) {
   render();
   shell.setBody(targetCard(P, ''),
     h('p', { class: 'muted small dlg-lead' }, t('dlg.mergeLead')),
-    h('div', { class: 'notice notice-warning' }, icon('warning'), h('p', null, t('dlg.mergeApproval'))),
+    h('div', { class: 'notice notice-warning' }, icon('warning'), h('p', null, tw('dlg.mergeApproval'))),
     issues.el, host);
   shell.setActions([
     { label: t('dlg.cancel'), variant: 'ghost', onClick: () => shell.close(false) },
     {
-      label: t('dlg.saveToDraft'), variant: 'primary', icon: 'merge', primary: true,
+      label: tw('dlg.saveToDraft'), variant: 'primary', icon: 'merge', primary: true,
       onClick: () => {
         issues.clear();
         if (!other) { issues.show('danger', t('dlg.mergeRequired')); return; }
@@ -1984,7 +2002,7 @@ export function openRequestRemoval(personId) {
     const c = reason.value;
     if (c === 'duplicate') reasonNote.append(h('div', { class: 'notice notice-info' }, icon('info'), h('div', null, h('p', null, t('dlg.reasonDuplicateHint')), h('button', { type: 'button', class: 'btn btn-sm', on: { click: switchTo(openMerge) } }, icon('merge', { size: 16 }), t('dlg.useMerge')))));
     if (c === 'wrong-parents') reasonNote.append(h('div', { class: 'notice notice-info' }, icon('info'), h('div', null, h('p', null, t('dlg.reasonWrongParentsHint')), h('button', { type: 'button', class: 'btn btn-sm', on: { click: switchTo(openChangeParents) } }, icon('users', { size: 16 }), t('dlg.useChangeParents')))));
-    if (c === 'other') {
+    if (c === 'other' && !ownerMode()) {
       const text = t('dlg.reasonOtherText', { name: lineageOf(P), link: store.siteLink(`#/p/${encodeURIComponent(personId)}`) });
       reasonNote.append(h('div', { class: 'notice notice-info' }, icon('info'), h('div', null,
         h('p', null, t('dlg.reasonOther', { owner: ownerName() })),
@@ -2001,7 +2019,7 @@ export function openRequestRemoval(personId) {
     h('ul', null,
       h('li', null, t('dlg.cons.hidden', { name })),
       partnersOf.length ? h('li', null, t('dlg.cons.unions', { names: listNames(partnersOf) })) : null,
-      h('li', null, t('dlg.cons.approval'))));
+      h('li', null, tw('dlg.cons.approval'))));
 
   // Type the name to confirm
   const typeId = `dlg-type-${++dlgSeq}`;
@@ -2013,12 +2031,12 @@ export function openRequestRemoval(personId) {
   const submitBtn = () => shell.primary;
 
   shell.setBody(targetCard(P, ''),
-    h('p', { class: 'dlg-lead' }, t('dlg.removeLead', { name })),
+    h('p', { class: 'dlg-lead' }, tw('dlg.removeLead', { name })),
     issues.el, reasonField.el, reasonNote, cons, redactWrap, typeField.el);
   shell.setActions([
     { label: t('dlg.cancel'), variant: 'ghost', onClick: () => shell.close(false) },
     {
-      label: t('dlg.removeSubmit'), variant: 'danger', icon: 'trash', primary: true,
+      label: tw('dlg.removeSubmit'), variant: 'danger', icon: 'trash', primary: true,
       onClick: () => {
         issues.clear();
         if (!reason.value) { reasonField.setError(t('dlg.reasonRequired')); reason.focus(); return; }

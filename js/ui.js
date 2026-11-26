@@ -1,5 +1,6 @@
-// Shared UI building blocks used by many views (avatars, name labels, chips, badges, rows, WhatsApp links).
-import { h, icon, bdi } from './dom.js';
+// Shared UI building blocks used by many views (avatars, name labels, chips, badges, rows, WhatsApp links), and the
+// one toast every dialog, the wizard and the owner tools show after store.addOps (draft vs owner mode).
+import { h, icon, bdi, toast } from './dom.js';
 import { t, register, lang, otherLang } from './i18n.js';
 import { store } from './store.js';
 import { displayName, lineageName, initials } from './core/names.js';
@@ -14,6 +15,8 @@ register({
     'ui.deceased': 'Deceased',
     'ui.me': 'You',
     'ui.photoOf': 'Photo of {name}',
+    'ui.pendingUnsaved': 'Not saved yet',
+    'ui.savedToTree': 'Saved — live on the site in about a minute',
   },
   ar: {
     'ui.pendingDraft': 'لم يُرسل بعد',
@@ -23,8 +26,27 @@ register({
     'ui.deceased': 'متوفّى',
     'ui.me': 'أنت',
     'ui.photoOf': 'صورة {name}',
+    'ui.pendingUnsaved': 'لم يُحفظ بعد',
+    'ui.savedToTree': 'تم الحفظ — يظهر في الموقع خلال دقيقة',
   },
 });
+
+/** Owner mode is on for this device (js/owner.js): changes go straight into the tree. */
+export function ownerMode() { return !!store.direct?.active?.(); }
+
+let dismissAdded = null;
+/**
+ * The toast after a successful store.addOps(): owner mode ({saving:true}) → "Saved — live on the site in about a
+ * minute"; otherwise → "Added to your proposal" with a link to the draft. One helper, so every dialog, the wizard and
+ * the owner tools say the same thing.
+ */
+export function notifyAdded(res = {}) {
+  if (dismissAdded) dismissAdded();
+  dismissAdded = res && res.saving
+    ? toast(t('ui.savedToTree'), { type: 'success', timeout: 7000 })
+    : toast(t('common.addedToDraft'), { type: 'success', timeout: 7000, action: { label: t('common.viewDraft'), href: '#/draft' } });
+  return dismissAdded;
+}
 
 /** The graph views should read (data + sent + draft). */
 export function g() { return store.working; }
@@ -89,7 +111,8 @@ export function badges(person, { compact = false } = {}) {
   if (!person) return [];
   const out = [];
   const kind = store.pendingKind(person.id);
-  if (kind === 'draft') out.push(h('span', { class: 'badge badge-pending', title: t('ui.pendingDraft') }, compact ? '•' : t('ui.pendingDraft')));
+  const draftLabel = ownerMode() ? t('ui.pendingUnsaved') : t('ui.pendingDraft');
+  if (kind === 'draft') out.push(h('span', { class: 'badge badge-pending', title: draftLabel }, compact ? '•' : draftLabel));
   if (kind === 'sent') out.push(h('span', { class: 'badge badge-sent', title: t('ui.pendingSent') }, compact ? '•' : t('ui.pendingSent')));
   if (store.me && store.me === person.id) out.push(h('span', { class: 'badge badge-me' }, t('ui.me')));
   if ((person.tags || []).includes('needs-info')) out.push(h('span', { class: 'badge badge-needs-info', title: person.needsInfo || t('ui.needsInfo') }, compact ? '?' : t('ui.needsInfo')));

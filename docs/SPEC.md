@@ -13,6 +13,9 @@ A bilingual (Arabic / English) collaborative family-tree portal:
   Proposals never change the live data directly.
 * **Only approvers** (the owner; `config.approvers`) can approve, on GitHub (label or `/approve` comment). A GitHub Action
   validates, applies to `data/family.json`, commits, and the site updates.
+* **Owner mode** (§5.1): the keeper — an approver signed in on a device with a GitHub key — edits the tree DIRECTLY from the
+  site, always: every change is committed at once (no proposal, no approval step), and a relative's proposal can be applied
+  with "Apply now".
 * **Deletion is never casual**: removals are soft (restorable), need a reason code + typed-name confirmation, are blocked when
   they would orphan descendants, are capped per proposal, and need a *separate* approval (`approve-deletion`). Any approval can be
   undone (`/undo`).
@@ -38,17 +41,17 @@ family-tree/
     changelog.json             # applied proposals, newest first (§6.6)
     applied.json               # permanent ledger of applied proposal hashes (§6.6) — never truncated
     photos/                    # optional person photos  <personId>.jpg|webp
-  css/  base.css tree.css person.css forms.css pages.css home-tree.css flows.css
+  css/  base.css tree.css person.css forms.css pages.css home-tree.css flows.css owner.css
   js/
     core/                      # PURE logic (no DOM/fetch). Browser AND Node ES modules.
       schema.js dates.js names.js graph.js ops.js codec.js describe.js kinship.js messages.js
-    i18n.js dom.js store.js app.js ui.js submit.js
+    i18n.js dom.js store.js app.js ui.js submit.js owner.js (owner mode: GitHub API, save queue) owner-ui.js
     views/   home.js home-tree.js tree.js person.js search.js wizard.js draft.js me.js relationship.js changes.js about.js admin.js preview.js
     forms/   person-form.js dialogs.js picker.js
   scripts/
     apply-proposal.mjs  check-proposal.mjs  validate-data.mjs  import-initial.mjs  backup.mjs(optional)
     lib/  github.mjs labels.mjs commands.mjs render.mjs hash.mjs repo.mjs
-  tests/   *.test.mjs (node:test)   e2e/smoke.mjs (Playwright, local only)
+  tests/   *.test.mjs (node:test)   e2e/smoke.mjs (Playwright, local only)   fake-github-api.mjs (owner-mode fake API)
   tools/relay/Code.gs          # e-mail relay (Google Apps Script web app + 5-minute trigger, run by the owner) — §5, §6.8
   docs/    SPEC.md  OWNER-GUIDE.md
 .github/
@@ -371,6 +374,55 @@ Before any send, a mandatory notice: "Everything you send will be public on the 
 Issue title: `🌳 <describe title>` (prefix `⚠️ ` when destructive), ≤ 120 chars. The relay's owner side (e-mails, replies → commands)
 is §6.8.
 
+### 5.1 Owner mode — the keeper edits directly (`js/owner.js` logic, no DOM; `js/owner-ui.js` interface)
+The one exception to "the site never holds a GitHub credential": the keeper's own key, on the keeper's own devices.
+* **Sign-in** (`#/admin`, top card «وضع المشرف» / "Owner mode", with click-by-click key instructions): a fine-grained PAT (only this
+  repository; Contents: Read and write; Issues: Read and write — the same key can serve the relay, §6.8). `verifyToken`:
+  `GET /user` → login must be in `config.approvers` (case-insensitive); `GET /repos/{o}/{r}` → access, and `permissions.push`
+  (or maintain/admin) when GitHub reports it; `POST /repos/{o}/{r}/git/blobs` (an unreferenced blob: invisible) proves the key
+  may write contents. Refusals: `empty, format, invalid (401), notApprover, noAccess, noPush, rateLimit, network, http`, each
+  with a bilingual hint. Stored in `localStorage gft.owner.v1 {v, token, login, at}` on this device only (re-checked against
+  approvers on load); "Sign out" removes it. The token goes ONLY to `https://api.github.com`, in `Authorization: Bearer` (never in
+  a URL), with `cache: "no-store"`; errors carry kind/status/GitHub's short message only — never the token. Header pill «المشرف»
+  / "Owner" → "Saving…" / "Saved ✓" (6 s) / "Not saved" (phones: icon only); it replaces the pending pill and badges.
+* **Direct edits** (`store.direct`, set by owner.js): while signed in, `store.addOps(ops)` swaps temp refs already saved
+  (`store.aliases`); ops that use temp refs declared by the draft or a sent proposal cannot go to the tree alone → the normal
+  draft path. Otherwise: trial-apply (preview) on data + `store.saving` → `{ok:false, errors, warnings}` (op indexes offset by the
+  draft length, as for the draft) or `{ok:true, saving:true, warnings, idMap}`; the item `{id, at, proposal}` joins
+  `store.saving` (persisted `gft.saving.v1`; overlaid first in `store.working`, without pending badges) and is queued. Every
+  dialog, the wizard and the owner tools show the same toast (`ui.js notifyAdded`): «تم الحفظ — يظهر في الموقع خلال دقيقة» /
+  "Saved — live on the site in about a minute" (else "added to your proposal"). Destructive dialogs keep their confirmations
+  (reason, typed name) and then save directly — the keeper is the approver.
+* **Save queue** (one save at a time; direct edits not yet started share one commit; "Save all", "Apply now" and the startup
+  refresh are separate jobs): `GET git/ref/heads/<branch>` → head; `GET contents/<portalPath>data/{family,changelog,applied}.json
+  ?ref=<head>` (base64 → UTF-8; the blob API when a file is over 1 MB) → `planSave`: each item in final mode (`actor` = login,
+  `issue` = request number or null, `allowDestructive: true`, refMap/appliedDeps from applied.json for `dependsOn`; the keeper's
+  own refs also from aliases and earlier items of the save) → family.json (serializeData) + one changelog entry per item (bot
+  shape §6.6, `action: "owner-edit"`, `approvedBy` = login, `issue: null`, `idMap`, bilingual describe) [+ applied.json for
+  "apply" items], committed in ONE commit with the Git Data API: blobs → tree (`base_tree`) → commit (parent = head) →
+  `PATCH git/refs/heads/<branch> {force:false}`. Message (no proposal text): `family-tree: owner edit (rev N, K changes)` +
+  `Gft-Owner-Edit: <proposalId>` per item (+ `Gft-Apply: #n <hash> rev N` for a request). 409/422 on the ref update → wait
+  1/2/4 s, re-read, re-apply on the fresh data (≤ 4 tries). Idempotent: an edit whose proposal id the changelog already lists
+  as `owner-edit` (or an apply whose hash applied.json holds) counts as saved — an interrupted save resumes after a reload.
+* **After a save**: `store.finishSave` → `setData(newData, {ledgers: {changelog, applied}})` at once (before Pages rebuilds);
+  temp refs → `store.aliases` (`gft.aliases.v1`, ≤ 400; `#/p/newN`, the tree, the wizard and "me" follow them); queued edits
+  and the draft get the real ids. A signed-in device reads the repository on load and adopts a newer revision; `refreshData()`
+  only ever adopts a newer revision.
+* **Failures never lose ops**: refused on the latest data → those items join the draft + a toast with the problems
+  (formatIssue); network / rate limit / conflicts exhausted / http → every unsaved direct edit joins the draft + toast "Try
+  again" (= Save all); 401 → signed out on this device + a dialog (changes kept in "My proposal"; add a new key in Owner tools);
+  403 → a dialog (key without Contents write, or a protected branch; "Sign out").
+* **«حفظ الكل في الشجرة» / "Save all to the tree"** (`#/draft`, replaces the send card in owner mode; the draft bar reads "n
+  changes not saved in the tree yet"): the whole draft as one item; a draft with `source` (correcting a relative's proposal)
+  is an "apply" item for `source.issue` (request closed as below). Saved ops leave the draft.
+* **«تطبيق مباشرة» / "Apply now"** (owner mode, every proposal preview: `#/preview?code=`, `#/preview/<n>`, admin paste; a
+  destructive proposal asks first): changelog `action: "apply"` (submitter kept) + `applied.json {hash: {issue: n|null,
+  proposalId, commit: "", idMap, at, rev}}`, so the bot treats the same proposal arriving later as already applied; with a request
+  number: a bilingual note (no "/"), label `applied`, close (best effort). Hash already applied → "already in the tree"; an id
+  already used under another hash → refused. A relative's temp refs never become aliases (other devices' counters).
+* **Bot side**: `commitTrailers` maps `Gft-Owner-Edit: <id>` → `owner:<id>`, so `backfillCommits` fills the `commit` of owner
+  entries; an applied.json entry without issue → "already applied directly by the keeper" (check comment, queue).
+
 ## 6. GitHub automation
 
 ### 6.1 `config.json`
@@ -474,15 +526,17 @@ batch: refuse, listing those records and naming the other issues.) A push that f
 does not name the `/undo`, so the sweep (§6.3) retries it.
 ### 6.6 Ledgers
 `changelog.json`: `{"entries":[{"issue","proposalId","hash","commit","rev","at","title","summary":{"en":[],"ar":[]},"submitter",
-"approvedBy","people":[ids],"touched":{"people":[],"unions":[]},"destructive","action":"apply"|"undo"}]}` newest first, max 500.
-`applied.json`: `{"<hash>": {"issue","proposalId","commit","idMap","at"}}`, never truncated. Per `proposalId`, the FIRST applied
+"approvedBy","people":[ids],"touched":{"people":[],"unions":[]},"destructive","action":"apply"|"undo"|"owner-edit"}]}` newest first,
+max 500. Owner-mode entries (§5.1): `issue` may be null; `owner-edit` entries also hold the edit's `idMap`.
+`applied.json`: `{"<hash>": {"issue","proposalId","commit","idMap","at"}}`, never truncated (`issue: null` = applied directly by
+the keeper with "Apply now"). Per `proposalId`, the FIRST applied
 (not undone) entry is the one `dependsOn` resolves to; a different proposal re-using that id is refused by check and apply.
 ### 6.7 Backup (`family-tree-backup.yml`): weekly (`41 2 * * 5`) + dispatch: release `data-YYYY-MM-DD` with family.json, changelog.json,
 applied.json attached; keep the latest 12 data releases.
 
 ### 6.8 E-mail relay (`tools/relay/Code.gs`, Google Apps Script V8, one file, no libraries)
 Owner-run glue between the site, Gmail and the workflows above; it never decides anything itself. Script Properties: `GITHUB_TOKEN`
-(the owner's fine-grained PAT: only this repository, Issues read & write), `REPO`, `SITE_URL`, `OWNER_EMAIL` (optional; default the
+(the owner's fine-grained PAT: only this repository, Issues read & write — the owner-mode key of §5.1, which adds Contents, serves too), `REPO`, `SITE_URL`, `OWNER_EMAIL` (optional; default the
 account running the script). `setup()` validates them, tests GitHub (`GET /repos/{REPO}`), installs ONE 5-minute `checkReplies`
 trigger and sends a test e-mail; `stopRelay()` removes the trigger; `doGet` → `{ok:true}` health.
 * **doPost** (web app, Execute as: Me, Anyone): strict validation (code `/^GFT[01]:[A-Za-z0-9_-]+(\.[0-9a-z]{1,7})?$/` after removing
@@ -550,7 +604,7 @@ trigger and sends a test e-mail; `stopRelay()` removes the trigger; `doGet` → 
 | `#/relationship/:a?/:b?` | relationship | "How are we related?" with path visualization |
 | `#/changes` | changes | changelog |
 | `#/about` | about | how it works, privacy ("to hide yourself message {owner}"), deletion policy, public-data notice |
-| `#/admin` | admin | §7.8 |
+| `#/admin` | admin | §7.8 (top: owner mode sign-in, §5.1) |
 | `#/preview?code=` / `#/preview/:issue` | preview | decode (or fetch issue via public REST) → dry-run → summary, errors, "Correct this proposal", "Load into my draft" |
 Any route with `?rev=N` where N > loaded `meta.revision` shows "Publishing your update… / جارٍ نشر التحديث…" and re-fetches every 20 s for
 ≤5 min (handled by app.js). `#/p/<merged id>` redirects to its `mergedInto`.
@@ -564,7 +618,10 @@ Any route with `?rev=N` where N > loaded `meta.revision` shows "Publishing your 
   proposal automatically add it to `dependsOn`.
 * When the changelog lists a sent proposal id → drop it from the queue and toast "your changes were approved" with links. A sent proposal
   that no longer applies is hidden from the overlay and flagged on `#/me`.
-* Sticky bottom bar on every route while the draft is non-empty: "You have {n} unsent changes — Send / لديك {n} تعديلات لم تُرسل — إرسال".
+* Sticky bottom bar on every route while the draft is non-empty: "You have {n} unsent changes — Send / لديك {n} تعديلات لم تُرسل — إرسال"
+  (owner mode: "{n} changes not saved in the tree yet — Review & save", badges "Not saved yet").
+* Owner mode (§5.1): `store.saving` (direct edits being committed) is overlaid before the sent proposals, with no badges;
+  `store.addOps` returns `{ok, saving:true}` for them; `store.aliases`/`store.realId(ref)` map saved temp refs to real ids.
 * Large drafts: when ops > 150 or the code > 60,000 chars, the draft page asks to send what exists first (continuing is possible thanks to
   dependsOn).
 
@@ -585,7 +642,9 @@ Any route with `?rev=N` where N > loaded `meta.revision` shows "Publishing your 
   current/former); add parent (scope question when siblings exist); add sibling ("same father and mother / same father only / same mother
   only"); link existing; mark as…; reorder children (drag + up/down, keyboard); reorder spouses; change parents (move); merge duplicate;
   request removal (reason code select, consequences, HAS_CHILDREN/IS_ROOT blocks, type the name to confirm; "other" → WhatsApp explanation).
-  Before any add, a quick duplicate check shows "Is it one of these?" matches. Each dialog ends with `store.addOps([...])` + toast linking to the draft.
+  Before any add, a quick duplicate check shows "Is it one of these?" matches. Each dialog ends with `store.addOps([...])` + the shared
+  toast (`ui.js notifyAdded`: linking to the draft, or "Saved — live on the site in about a minute" in owner mode, whose dialogs
+  also say "Save to the tree" and drop the "needs the owner's approval" notes).
 
 ### 7.5 Person page (family card)
 Order: avatar, display name (other language small), lineage name, nickname, badges, "رحمه الله/رحمها الله" if deceased, relation to me;
@@ -613,9 +672,17 @@ mother → add self as son/daughter; (c) "I married into the family" → find sp
 with "+ another child" on ONE screen (no modal per child). Step 3 (optional per child row "add their family"): spouse & children (recursive).
 Step 4 (path c only, optional): your parents and siblings, with the public-data notice. Step 5: review describe lines → send (§5).
 Every step: Skip, and "Tell {owner} on WhatsApp instead (voice notes welcome)" → wa.me with "بخصوص: <lineageName> <siteUrl>#/p/<id>".
+Owner mode (§5.1): each committed row (rows committed together → one commit) is saved straight into the tree; the wizard's state
+and typed rows follow the new real ids (`store.realId`); step 5 becomes «تم» / "Done" (anything not saved is listed with
+"Review & save").
 Acceptance: self + spouse + 5 children in ≤3 screens and ≤25 taps at 360px. Duplicate check on each row.
 
-### 7.8 Admin `#/admin` (static tools; real power is GitHub permissions)
+### 7.8 Admin `#/admin` (tools; real power is GitHub permissions)
+**Owner mode card** first (§5.1): signed out → what it does, the key field (password, `autocomplete=off`), "Sign in", the
+click-by-click key steps (Settings → Developer settings → Personal access tokens → Fine-grained tokens → Generate new token;
+name "family-tree keeper", 1 year, only this repository, Contents + Issues: Read and write; the same key serves the relay) and
+a link to the owner guide; signed in → "Signed in as {login} on this device" + "Sign out". With owner mode on, every preview
+offers "Apply now" and restores/photo paths save directly.
 Paste code(s) → preview → **"Create issue and approve"** (issue-form URL with `&labels=family-tree,approve` or `approve-deletion` — GitHub
 honours labels only for users with triage rights; noted "needs a computer browser", as the GitHub app empties the form). With
 `config.relayUrl` set, the primary action is **"Send for approval by e-mail"** instead (same payload as the draft send, §5.0; "Sent ✓ —
@@ -644,6 +711,14 @@ links) and "weekly family news" generator from the changelog · photo tool: pick
   check and apply answering), GmailApp, PropertiesService, CacheService, LockService, ContentService, ScriptApp, Session, Utilities:
   issue-form layout parsed by check.mjs, honeypot, invalid payloads, rate limits, repeats, replies → commands, destructive gating,
   quoted text, foreign/forged senders, waiting for the check comment, forwarded problems, "✅ Applied", setup.
+* Owner mode (`tests/owner.test.mjs`, GitHub faked by `tests/fake-github-api.mjs` and injected as fetch): sign-in checks (non-approver,
+  no push, no contents write, bad/malformed token, the token only in the Authorization header to api.github.com), a direct edit =
+  ONE commit (family.json + changelog.json, parent = head, message without names), several ops → one commit and a dependent edit
+  waiting for real ids, conflict → re-applied on fresh data, 401 → signed out with ops in the draft, network → draft then "Save
+  all", refused on fresh data → draft + problems, resume after a reload without applying twice, removal applies directly,
+  "Apply now" (applied.json entry, already applied, request closed with Gft-Apply trailer, refused proposals). Bot side
+  (`tests/scripts-apply.test.mjs`): owner trailers backfill commits; a directly applied proposal arriving as a request.
 * E2E (local): `tests/e2e/smoke.mjs` — serve folder, visit every route in both languages at 360px and 1280px, add a family through the
   wizard, check the draft, the WhatsApp/GitHub URLs, the relay send (a routed fake relayUrl: failure → other ways, success → sent with
-  the request number), and that there are no console errors.
+  the request number), owner mode (api.github.com routed to the fake: sign in, a child added from the person dialog is committed at
+  once and shown without a proposal, "Apply now", sign out → proposals again), and that there are no console errors.

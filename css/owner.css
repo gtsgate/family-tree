@@ -1,0 +1,78 @@
+/* ==========================================================================
+   Owner mode (js/owner-ui.js): header pill, the «وضع المشرف» card on #/admin, "Save all to the tree" on #/draft,
+   "Apply now" on proposal previews. Built on the tokens of base.css; logical properties only (RTL/LTR).
+   ========================================================================== */
+
+/* ---- Header pill: «المشرف» / Saving… / Saved ✓ / Not saved ---- */
+.owner-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-block-size: 36px;
+  padding-inline: 10px 12px;
+  margin-inline-end: 6px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--gold-line, color-mix(in srgb, var(--gold) 45%, transparent));
+  background: var(--gold-soft);
+  color: var(--gold-ink, var(--ink));
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background-color .2s, border-color .2s, color .2s;
+}
+.owner-pill .icon { flex: none; }
+.owner-pill.is-saved { background: var(--success-soft); color: var(--success-ink); border-color: color-mix(in srgb, var(--success) 35%, transparent); }
+.owner-pill.is-error { background: var(--danger-soft); color: var(--danger); border-color: color-mix(in srgb, var(--danger) 35%, transparent); }
+@media (hover: hover) { .owner-pill:hover { border-color: var(--gold); color: var(--gold-ink, var(--ink)); } }
+.owner-pill-spin { inline-size: 16px; block-size: 16px; border-width: 2px; }
+.draft-pill.is-owner .icon { color: var(--danger); }
+.draft-bar-inner.is-owner > .icon { color: var(--danger); }
+
+/* Phones: the pill shrinks to its icon (the label stays for screen readers through aria-label). */
+@media (max-width: 760px) {
+  .owner-pill { inline-size: 40px; min-block-size: 40px; padding: 0; justify-content: center; margin-inline-end: 2px; }
+  .owner-pill-text { position: absolute; inline-size: 1px; block-size: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+}
+
+/* ---- #/admin: the Owner mode card ---- */
+.owner-card { border-inline-start: 4px solid var(--gold); }
+.owner-card.is-on { border-inline-start-color: var(--success); }
+.owner-card-head { display: flex; align-items: center; gap: var(--s2); }
+.owner-card-head h2 { margin: 0; }
+.owner-card-mark {
+  display: inline-grid;
+  place-items: center;
+  inline-size: 36px;
+  block-size: 36px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--gold-soft);
+  color: var(--gold-ink, var(--ink));
+}
+.owner-card.is-on .owner-card-mark { background: var(--success-soft); color: var(--success-ink); }
+.owner-card p { margin: 0; }
+.owner-signed { display: flex; align-items: center; gap: 8px; font-weight: 600; color: var(--success-ink); overflow-wrap: anywhere; }
+.owner-token { font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace; font-size: .9rem; inline-size: 100%; }
+.owner-form .btn[aria-busy="true"] { cursor: progress; }
+.owner-how > summary { cursor: pointer; font-weight: 600; min-block-size: 44px; display: flex; align-items: center; }
+.owner-steps { margin: var(--s2) 0; padding-inline-start: 1.4em; display: flex; flex-direction: column; gap: 6px; overflow-wrap: anywhere; }
+.owner-how p + p { margin-block-start: var(--s2); }
+
+/* ---- #/draft: Save all to the tree ---- */
+.owner-save { display: flex; flex-direction: column; gap: var(--s3); }
+.owner-save h2, .owner-save p { margin: 0; }
+.owner-save-all { white-space: normal; text-align: center; }
+.owner-save-all[aria-busy="true"] { cursor: progress; }
+.owner-save-error ul { margin: var(--s1, 4px) 0 0; padding-inline-start: 1.2em; }
+
+/* ---- Previews: Apply now ---- */
+.owner-apply { border-color: color-mix(in srgb, var(--success) 35%, transparent); background: var(--success-soft); }
+.owner-apply .preview-owner-title { color: var(--success-ink); }
+.owner-apply :is(.owner-applied, .owner-apply-error) { align-self: stretch; margin: 0; }
+.owner-apply-error ul { margin: 0; padding-inline-start: 1.2em; }
+.owner-apply-now { white-space: normal; text-align: center; }
+.owner-apply-now[aria-busy="true"] { cursor: progress; }
+
+/* ---- Wizard ---- */
+.wiz-owner-saving { display: flex; align-items: center; gap: 8px; margin: 0; }

@@ -8,7 +8,7 @@
 import { h, icon, bdi, toast } from '../dom.js';
 import { t, register, lang, otherLang, intlLocale } from '../i18n.js';
 import { store } from '../store.js';
-import { nameOf, lineageOf, avatar, badges, personChip, yearsOf, spinner } from '../ui.js';
+import { nameOf, lineageOf, avatar, badges, personChip, yearsOf, spinner, ownerMode } from '../ui.js';
 import { navigate } from '../app.js';
 import { personPicker } from '../forms/picker.js';
 import {
@@ -113,6 +113,8 @@ register({
     'person.pending.sent': 'Your changes to {name} were sent and are waiting for approval.',
     'person.pending.review': 'Review & send',
     'person.pending.mine': 'My page',
+    'person.pending.unsaved': 'There are changes to {name} on this device that are not saved in the tree yet.',
+    'person.pending.reviewSave': 'Review & save',
   },
   ar: {
     'person.notFoundTitle': 'هذا الشخص غير موجود في الشجرة',
@@ -206,6 +208,8 @@ register({
     'person.pending.sent': 'أُرسلت تعديلاتك على {name} وهي بانتظار الموافقة.',
     'person.pending.review': 'مراجعة وإرسال',
     'person.pending.mine': 'صفحتي',
+    'person.pending.unsaved': 'على هذا الجهاز تعديلات على {name} لم تُحفظ في الشجرة بعد.',
+    'person.pending.reviewSave': 'مراجعة وحفظ',
   },
 });
 
@@ -303,13 +307,15 @@ function pendingBanner(P) {
   if (!kind) return null;
   const created = store.isCreated(P.id);
   const name = nameOf(P);
-  const key = kind === 'draft' ? (created ? `person.pending.draftNew.${gkey(P)}` : 'person.pending.draft') : (created ? `person.pending.sentNew.${gkey(P)}` : 'person.pending.sent');
+  const owner = kind === 'draft' && ownerMode();
+  const key = owner ? 'person.pending.unsaved'
+    : kind === 'draft' ? (created ? `person.pending.draftNew.${gkey(P)}` : 'person.pending.draft') : (created ? `person.pending.sentNew.${gkey(P)}` : 'person.pending.sent');
   return h('div', { class: ['notice', kind === 'draft' ? 'notice-warning' : 'notice-info', 'person-pending', `person-pending-${kind}`], attrs: { role: 'status' } },
     icon(kind === 'draft' ? 'send' : 'info'),
     h('div', { class: 'person-pending-body' },
       h('p', null, t(key, { name })),
       kind === 'draft'
-        ? h('a', { class: 'btn btn-sm btn-primary', href: '#/draft' }, icon('send', { size: 16 }), t('person.pending.review'))
+        ? h('a', { class: 'btn btn-sm btn-primary', href: '#/draft' }, icon(owner ? 'check' : 'send', { size: 16 }), t(owner ? 'person.pending.reviewSave' : 'person.pending.review'))
         : (store.me ? h('a', { class: 'btn btn-sm', href: '#/me' }, t('person.pending.mine')) : null)));
 }
 
@@ -550,6 +556,9 @@ function findPerson(id) {
   if (!graph || !id) return { person: null, redirect: null };
   const p = graph.person(id);
   if (p) return { person: p, redirect: null };
+  // A record the keeper just saved in owner mode: its temp ref (newN) now names a real id.
+  const real = store.realId(id);
+  if (real !== id && graph.person(real)) return { person: null, redirect: real };
   let r = null;
   try { r = graph.resolve(id); } catch { r = null; }
   if (!r) { try { r = store.base?.resolve(id); } catch { r = null; } }

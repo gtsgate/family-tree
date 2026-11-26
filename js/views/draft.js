@@ -4,12 +4,14 @@
 // and the collapsed other ways (WhatsApp when the relay is primary, GitHub issue, e-mail, copy code; opened when a relay
 // send fails). Every link is precomputed by submit.js so click handlers stay synchronous (the relay send is a fetch).
 // After a send: a thank-you panel; sent proposals awaiting approval are listed below (with "no longer applies" flags).
-// Owner correction mode (draft.source) offers "Copy approval comment". Also exports helpers used by the wizard
-// (preDraftGraph, draftSummary, opIcon).
+// Owner correction mode (draft.source) offers "Copy approval comment". In owner mode (js/owner.js) the send card is
+// replaced by «حفظ الكل في الشجرة» / "Save all to the tree" (owner-ui.js ownerSaveCard). Also exports helpers used by
+// the wizard (preDraftGraph, draftSummary, opIcon).
 import { h, icon, bdi, toast, modal, confirmDialog, copyText, debounce } from '../dom.js';
 import { t, register, lang } from '../i18n.js';
 import { store } from '../store.js';
-import { personChip, ownerName, nameOf, lineageOf } from '../ui.js';
+import { personChip, ownerName, nameOf, lineageOf, ownerMode } from '../ui.js';
+import { ownerSaveCard } from '../owner-ui.js';
 import { personPicker } from '../forms/picker.js';
 import { buildSubmission, summarize, relayUrl, sendToRelay } from '../submit.js';
 import { formatIssue } from '../core/messages.js';
@@ -279,12 +281,12 @@ function writeAck(on) { try { if (on) localStorage.setItem(ACK_KEY, '1'); else l
 // Shared helpers (also used by the wizard)
 
 let preCache = { data: null, key: null, graph: null };
-/** Graph of canonical data + sent proposals: the data the draft applies to (describe / issue texts use it). */
+/** Graph of canonical data + owner saves in progress + sent proposals: what the draft applies to (describe / issues). */
 export function preDraftGraph() {
-  const key = store.sent.map((s) => s.id).join(',');
+  const key = [...store.saving.map((s) => s.id), '|', ...store.sent.map((s) => s.id)].join(',');
   if (preCache.data === store.data && preCache.key === key && preCache.graph) return preCache.graph;
   let graph = store.base;
-  if (store.sent.length) {
+  if (store.sent.length || store.saving.length) {
     try {
       const { data } = store.overlay(null);
       graph = data === store.data ? store.base : buildGraph(data);
@@ -563,7 +565,7 @@ function rerender() {
 function pageHead() {
   return h('header', { class: 'page-head draft-head' },
     h('h1', null, t('draft.title')),
-    h('p', { class: 'lead' }, t('draft.lead', { owner: ownerName() })));
+    h('p', { class: 'lead' }, ownerMode() ? t('owner.draftLead') : t('draft.lead', { owner: ownerName() })));
 }
 
 function thankYou() {
@@ -952,9 +954,11 @@ function render(root) {
     if (!justSent) parts.push(emptyView());
   } else {
     const summary = draftSummary();
-    const side = store.draft.source
-      ? h('div', { class: 'draft-side stack' }, aboutCard())
-      : h('div', { class: 'draft-side stack' }, aboutCard(), sendCard());
+    const side = ownerMode()
+      ? h('div', { class: 'draft-side stack' }, ownerSaveCard({ rerender }))
+      : store.draft.source
+        ? h('div', { class: 'draft-side stack' }, aboutCard())
+        : h('div', { class: 'draft-side stack' }, aboutCard(), sendCard());
     parts.push(
       store.draft.source ? correctionBanner() : null,
       h('div', { class: 'draft-layout' },

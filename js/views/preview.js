@@ -4,7 +4,8 @@
 // and for the owner "Create request and approve" (pasted code) or the exact /approve command (request). With the e-mail
 // relay configured (config.relayUrl), a pasted code is sent through the relay instead (the owner then approves by
 // replying to the e-mail); the GitHub link stays as a secondary option for a computer browser (the GitHub mobile app
-// opens github.com/…/issues/new links with the form emptied).
+// opens github.com/…/issues/new links with the form emptied). In owner mode (js/owner.js) the keeper can also
+// «تطبيق مباشرة» / "Apply now": the proposal is committed to the tree at once (owner-ui.js applyNowBox).
 // The analysis + report renderer are exported for the owner tools (#/admin).
 import { h, icon, bdi, toast, copyText, confirmDialog } from '../dom.js';
 import { t, register, lang } from '../i18n.js';
@@ -16,6 +17,7 @@ import { describeProposal, refNames } from '../core/describe.js';
 import { formatIssue } from '../core/messages.js';
 import { formatDate } from '../core/dates.js';
 import { buildSubmission, relayUrl, sendToRelay } from '../submit.js';
+import { applyNowBox } from '../owner-ui.js';
 
 register({
   en: {
@@ -347,10 +349,12 @@ export function proposalReport(a, { compact = false } = {}) {
     compact ? null : h('div', null, h('dt', null, t('pv.revision')), h('dd', null, t('pv.revisionText', { n: Number(p.baseRevision) || 0, m: store.data?.meta?.revision ?? 0 }))),
     a.issue ? h('div', null, h('dt', null, 'GitHub'), h('dd', null, h('a', { href: a.issue.url, target: '_blank', rel: 'noopener' }, t('pv.fromIssue', { n: a.issue.number })))) : null);
 
-  const errors = res.errors?.length ? h('section', { class: 'preview-block preview-errors' },
+  // Just applied from here (owner mode): the dry run now runs on the data that already contains it — not shown.
+  const justApplied = a.direct?.status === 'done';
+  const errors = res.errors?.length && !justApplied ? h('section', { class: 'preview-block preview-errors' },
     h('h3', null, icon('warning', { size: 18 }), t('pv.errors')),
     issueList(res.errors.map((e) => formatIssue(e, L, ctx)), 'preview-issues-danger')) : null;
-  const warnings = res.warnings?.length ? h('section', { class: 'preview-block preview-warnings' },
+  const warnings = res.warnings?.length && !justApplied ? h('section', { class: 'preview-block preview-warnings' },
     h('h3', null, icon('info', { size: 18 }), t('pv.warnings')),
     issueList(res.warnings.map((w) => formatIssue(w, L, ctx)), 'preview-issues-warning', compact ? 3 : 8)) : null;
 
@@ -414,7 +418,7 @@ export function proposalReport(a, { compact = false } = {}) {
     h('header', { class: 'preview-report-head' },
       h('h2', { class: 'preview-report-title' }, bdi(summary.title)),
       h('span', { class: 'preview-source small muted' }, a.issue ? t('pv.fromIssue', { n: a.issue.number }) : t('pv.fromCode'))),
-    status,
+    justApplied ? null : status,
     applied ? h('div', { class: 'notice notice-success' }, icon('check'), h('p', null, applied.issue ? t('pv.applied', { n: applied.issue }) : t('pv.appliedNoIssue'))) : null,
     destructive ? h('div', { class: 'notice notice-warning' }, icon('warning'), h('p', null, t('pv.destructive'))) : null,
     (p.dependsOn || []).length ? h('p', { class: 'small muted' }, icon('link', { size: 16 }), ' ', t('pv.depends', { n: p.dependsOn.length })) : null,
@@ -428,6 +432,7 @@ export function proposalReport(a, { compact = false } = {}) {
       h('div', { class: 'row' },
         h('button', { type: 'button', class: 'btn', on: { click: () => loadIntoDraft(a) } }, icon('download', { size: 18 }), t('pv.load')),
         h('button', { type: 'button', class: 'btn', on: { click: () => loadIntoDraft(a, { correct: true }) } }, icon('edit', { size: 18 }), t('pv.correct'))),
+      applyNowBox(a, { ok: !!res.ok, destructive, alreadyApplied: !!applied }),
       ownerBox));
 }
 

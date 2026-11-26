@@ -20,6 +20,7 @@ register({
     'changes.undoTitle': 'Update #{n} was undone',
     'changes.undoText': 'The records changed by that update were restored to how they were before.',
     'changes.approvedBy': 'Approved by {name}',
+    'changes.editedBy': 'Edited directly by {name}',
     'changes.proposedBy': 'Proposed by {name}',
     'changes.issue': 'Request #{n}',
     'changes.removal': 'Includes a removal',
@@ -38,6 +39,7 @@ register({
     'changes.undoTitle': 'أُلغي التحديث رقم {n}',
     'changes.undoText': 'أُعيدت السجلات التي غيّرها ذلك التحديث إلى ما كانت عليه.',
     'changes.approvedBy': 'وافق عليه {name}',
+    'changes.editedBy': 'عدّله مباشرةً {name}',
     'changes.proposedBy': 'اقترحه {name}',
     'changes.issue': 'الطلب رقم {n}',
     'changes.removal': 'يتضمّن حذفاً',
@@ -169,7 +171,7 @@ export function changeEntry(entry, { compact = false } = {}) {
       compact ? null : h('p', { class: 'changes-meta muted small' },
         submitter ? h('span', null, t('changes.proposedBy', { name: '' }), bdi(submitter)) : null,
         submitter && approver ? h('span', { attrs: { 'aria-hidden': 'true' } }, ' · ') : null,
-        approver ? h('span', null, t('changes.approvedBy', { name: '' }), bdi(approver)) : null,
+        approver ? h('span', null, t(entry.action === 'owner-edit' ? 'changes.editedBy' : 'changes.approvedBy', { name: '' }), bdi(approver)) : null,
         (submitter || approver) && Number.isFinite(issue) && issue > 0 ? h('span', { attrs: { 'aria-hidden': 'true' } }, ' · ') : null,
         Number.isFinite(issue) && issue > 0 && store.config?.repo
           ? h('a', { href: store.repoUrl(`/issues/${issue}`), target: '_blank', rel: 'noopener' }, t('changes.issue', { n: issue }))

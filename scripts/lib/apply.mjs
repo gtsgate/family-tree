@@ -288,9 +288,13 @@ async function dropApproval(ctx, n, labels) {
   for (const l of labels) await ctx.gh.removeLabel(n, l);
 }
 
-/** "Already applied in #m": labels applied (+ duplicate when m is another issue), close. */
+/**
+ * "Already applied in #m": labels applied (+ duplicate when m is another issue), close. m null/0 = applied directly by
+ * the keeper in owner mode (applied.json entry without an issue).
+ */
 async function reportAlreadyApplied(ctx, n, m) {
-  await post(ctx, n, simpleComment('alreadyApplied', { ref: `#${Number(m)}` }, 'duplicate'));
+  const direct = !(Number(m) > 0);
+  await post(ctx, n, direct ? simpleComment('alreadyAppliedDirect', {}, 'duplicate') : simpleComment('alreadyApplied', { ref: `#${Number(m)}` }, 'duplicate'));
   await ctx.gh.addLabels(n, Number(m) === Number(n) ? [LABELS.APPLIED] : [LABELS.APPLIED, LABELS.DUPLICATE]);
   await ctx.gh.closeIssue(n, 'completed');
 }
@@ -361,14 +365,16 @@ export function backfillCommits(ctx, changelog, applied) {
   let map;
   try { map = ctx.git.commitTrailers(ctx.files.paths.rel.dataDir); } catch { return 0; }
   let filled = 0;
+  // Owner-mode commits (js/owner.js) carry "Gft-Owner-Edit: <proposalId>" (their entries may have no issue).
+  const owned = (e) => (e.proposalId ? map.get(`owner:${e.proposalId}`) : null);
   for (const e of changelog.entries || []) {
     if (!e || e.commit) continue;
-    const sha = map.get(`${e.action === 'undo' ? 'undo' : 'apply'}:${e.issue}:${e.rev}`);
+    const sha = map.get(`${e.action === 'undo' ? 'undo' : 'apply'}:${e.issue}:${e.rev}`) || (e.action !== 'undo' ? owned(e) : null);
     if (sha) { e.commit = sha; filled++; }
   }
   for (const e of Object.values(applied || {})) {
     if (!e || e.commit || e.rev === undefined) continue;
-    const sha = map.get(`apply:${e.issue}:${e.rev}`);
+    const sha = map.get(`apply:${e.issue}:${e.rev}`) || owned(e);
     if (sha) { e.commit = sha; filled++; }
   }
   return filled;

@@ -189,7 +189,7 @@ export async function checkIssue(ctx, number, opts = {}) {
     warnings: issueLines(result.warnings, names),
     ok: result.ok, destructive,
     previewUrl: await previewUrl(ctx.siteUrl, eff.proposal, eff.code, number),
-    appliedIn: done ? done.issue : null,
+    appliedIn: done ? (Number(done.issue) > 0 ? done.issue : 'direct') : null,
     identicalTo,
     dependsOnIssues,
     failingOps: allOpErrors ? failingOps : [],
