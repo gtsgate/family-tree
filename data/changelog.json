@@ -2,6 +2,45 @@
   "entries": [
     {
       "issue": null,
+      "proposalId": "gp79gk2afj",
+      "hash": "",
+      "commit": "",
+      "rev": 20,
+      "at": "2026-11-26T16:44:10.286Z",
+      "title": "Add “Nouf Al-Rayess” as sister of Ali Essam Alam (same mother; b. 2000)",
+      "summary": {
+        "en": [
+          "Add “Nouf Al-Rayess” as sister of Ali Essam Alam (same mother; b. 2000)"
+        ],
+        "ar": [
+          "إضافة «نوف الريس» أختاً لـ علي عصام عالم من الأم (م 2000)"
+        ]
+      },
+      "submitter": {
+        "name": "",
+        "relation": ""
+      },
+      "approvedBy": "gtsgate",
+      "people": [
+        "ptiafno2"
+      ],
+      "touched": {
+        "people": [
+          "ptiafno2"
+        ],
+        "unions": [
+          "ujwhkxjd"
+        ]
+      },
+      "destructive": false,
+      "action": "owner-edit",
+      "idMap": {
+        "new53": "ptiafno2",
+        "newu54": "ujwhkxjd"
+      }
+    },
+    {
+      "issue": null,
       "proposalId": "mlu6n8fmf0",
       "hash": "",
       "commit": "",

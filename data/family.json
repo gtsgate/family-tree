@@ -6,8 +6,8 @@
       "en": "The Grand Family Tree"
     },
     "rootPersonId": "pg8caja6",
-    "revision": 19,
-    "updatedAt": "2026-11-26T16:43:11.519Z"
+    "revision": 20,
+    "updatedAt": "2026-11-26T16:44:10.286Z"
   },
   "people": {
     "pg8caja6": {
@@ -3433,6 +3433,29 @@
           "action": "add-person"
         }
       ]
+    },
+    "ptiafno2": {
+      "id": "ptiafno2",
+      "name": {
+        "ar": "نوف"
+      },
+      "surname": {
+        "ar": "الريس",
+        "en": "Al-Rayess"
+      },
+      "gender": "f",
+      "birth": {
+        "date": "2000"
+      },
+      "privacy": "year",
+      "history": [
+        {
+          "issue": null,
+          "rev": 20,
+          "at": "2026-11-26T16:44:10.286Z",
+          "action": "add-person"
+        }
+      ]
     }
   },
   "unions": {
@@ -4182,6 +4205,15 @@
       ],
       "children": [
         "p4ir3fj1"
+      ]
+    },
+    "ujwhkxjd": {
+      "id": "ujwhkxjd",
+      "partners": [
+        "petlxraf"
+      ],
+      "children": [
+        "ptiafno2"
       ]
     }
   }
