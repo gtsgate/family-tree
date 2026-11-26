@@ -2,6 +2,40 @@
   "entries": [
     {
       "issue": null,
+      "proposalId": "bnuuuok1qb",
+      "hash": "",
+      "commit": "",
+      "rev": 3,
+      "at": "2026-11-26T12:41:48.018Z",
+      "title": "2 status updates — family of Salem Alam",
+      "summary": {
+        "en": [
+          "Mark the information about Salem Alam as complete",
+          "Mark the information about Hassan Salem Alam as complete"
+        ],
+        "ar": [
+          "تسجيل اكتمال معلومات سالم عالم",
+          "تسجيل اكتمال معلومات حسن سالم عالم"
+        ]
+      },
+      "submitter": "gtsgate",
+      "approvedBy": "gtsgate",
+      "people": [
+        "pg8caja6",
+        "pqhtdyl7"
+      ],
+      "touched": {
+        "people": [
+          "pg8caja6",
+          "pqhtdyl7"
+        ],
+        "unions": []
+      },
+      "destructive": false,
+      "action": "owner-edit"
+    },
+    {
+      "issue": null,
       "proposalId": "rsgh6r036y",
       "hash": "",
       "commit": "",

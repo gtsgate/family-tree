@@ -6,8 +6,8 @@
       "en": "The Grand Family Tree"
     },
     "rootPersonId": "pg8caja6",
-    "revision": 2,
-    "updatedAt": "2026-11-26T01:49:48.119Z"
+    "revision": 3,
+    "updatedAt": "2026-11-26T12:41:48.018Z"
   },
   "people": {
     "pg8caja6": {
@@ -20,15 +20,17 @@
       },
       "gender": "m",
       "privacy": "year",
-      "tags": [
-        "needs-info"
-      ],
-      "needsInfo": "أُضيف من الاسم الكامل «محمد حسن سالم عالم» — يُرجى التأكيد وإضافة التفاصيل. Added from the full name; please confirm.",
       "history": [
         {
           "issue": null,
           "at": "2026-11-25T00:00:00Z",
           "action": "import"
+        },
+        {
+          "issue": null,
+          "rev": 3,
+          "at": "2026-11-26T12:41:48.018Z",
+          "action": "mark"
         }
       ]
     },
@@ -39,15 +41,17 @@
       },
       "gender": "m",
       "privacy": "year",
-      "tags": [
-        "needs-info"
-      ],
-      "needsInfo": "أُضيف من الاسم الكامل «محمد حسن سالم عالم» — يُرجى التأكيد وإضافة التفاصيل. Added from the full name; please confirm.",
       "history": [
         {
           "issue": null,
           "at": "2026-11-25T00:00:00Z",
           "action": "import"
+        },
+        {
+          "issue": null,
+          "rev": 3,
+          "at": "2026-11-26T12:41:48.018Z",
+          "action": "mark"
         }
       ]
     },
