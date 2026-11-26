@@ -10,7 +10,7 @@
 // * Checks the string registry: every key in both languages; no Arabic string starts with a masculine imperative.
 // * Runs the main flows end to end: wizard → draft → WhatsApp code that applies in FINAL mode; person-page dialogs;
 //   send via "copy code" → #/me → simulated approval (new family.json + changelog + applied ledger) → toast;
-//   admin paste → preview → approve-issue URL.
+//   admin paste → preview → approve-issue URL; home family trees (options, popover, keyboard, viewer, no overlaps).
 // Needs Playwright with Chromium (`require('playwright')` must resolve, e.g. via NODE_PATH or a global install).
 import { createRequire } from 'node:module';
 import http from 'node:http';
@@ -767,6 +767,120 @@ flow('e-mail relay: failed send shows the other ways; "Send to {owner}" → sent
 });
 
 // ---------------------------------------------------------------------------------------------------------------
+/** In-page check: rendered leaves/tags of every home tree never overlap (separating-axis test on their boxes). */
+const OVERLAPS = () => {
+  const out = [];
+  for (const svg of document.querySelectorAll('.ht-tree .ht-svg')) {
+    const boxes = [...svg.querySelectorAll('.ht-leaf, .ht-tag')].map((g) => {
+      const shape = g.querySelector('.ht-leaf-shape, .ht-tag-bg');
+      const b = shape.getBBox();
+      const leaf = g.classList.contains('ht-leaf');
+      const sx = leaf ? 0.06 : 0;
+      const sy = leaf ? 0.1 : 0; // a leaf's pointed ends do not fill its box
+      const m = svg.getCTM().inverse().multiply(g.getCTM());
+      return [[sx, sy], [1 - sx, sy], [1 - sx, 1 - sy], [sx, 1 - sy]].map(([u, v]) => {
+        const q = new DOMPoint(b.x + b.width * u, b.y + b.height * v).matrixTransform(m);
+        return [q.x, q.y];
+      });
+    });
+    const axes = (P) => [0, 1].map((i) => { const dx = P[i + 1][0] - P[i][0]; const dy = P[i + 1][1] - P[i][1]; const l = Math.hypot(dx, dy) || 1; return [-dy / l, dx / l]; });
+    const apart = (A, B) => [...axes(A), ...axes(B)].some((ax) => {
+      const a = A.map((q) => q[0] * ax[0] + q[1] * ax[1]);
+      const c = B.map((q) => q[0] * ax[0] + q[1] * ax[1]);
+      return Math.max(...a) <= Math.min(...c) + 0.01 || Math.max(...c) <= Math.min(...a) + 0.01;
+    });
+    let n = 0;
+    for (let i = 0; i < boxes.length; i++) for (let j = i + 1; j < boxes.length; j++) if (!apart(boxes[i], boxes[j])) n++;
+    out.push(n);
+  }
+  return out;
+};
+
+flow('home family trees: options, popover, keyboard, viewer (ar 1280px + 360px)', async (browser) => {
+  const W = 'home-trees';
+  const branches = G.branches();
+  // --- desktop ---
+  let context = await newContext(browser, { lang: 'ar', width: 1280, height: 800 });
+  let page = await context.newPage();
+  let problems = watch(page);
+  await load(page, '#/');
+  check(await page.locator('#app .home-help').count() === 0, W, 'the home page still shows "help complete the tree"');
+  check(await page.locator('.ht-tree').count() === branches.length, W, `${await page.locator('.ht-tree').count()} trees for ${branches.length} families`);
+  const titles = await page.locator('.ht-name').allInnerTexts();
+  check(branches.every((b) => titles.some((x) => x.includes(`شجرة ${b.family.ar}`))), W, `tree titles: ${titles.join(' | ')}`);
+  check(await page.locator('.ht-leaf').count() > 0 && await page.locator('.ht-leaf:not(.ht-c-man)').count() === 0, W, 'by default the trees should show the men only');
+  check(await page.locator('.ht-trunk-name').count() >= branches.length, W, 'no names on the trunks');
+  // Options: daughters on → rose leaves, remembered across a reload; off again.
+  await page.locator('.ht-chip[data-cat="daughters"]').click();
+  await page.waitForTimeout(150);
+  check(await page.locator('.ht-leaf.ht-c-daughter').count() > 0, W, 'the daughters option adds no leaves');
+  check(await page.evaluate(() => localStorage.getItem('gft.hometree.daughters')) === '1', W, 'the daughters option is not remembered');
+  await load(page, '#/');
+  check(await page.locator('.ht-chip[data-cat="daughters"]').getAttribute('aria-pressed') === 'true', W, 'daughters option lost after reload');
+  check(await page.locator('.ht-leaf.ht-c-daughter').count() > 0, W, 'daughter leaves lost after reload');
+  for (const c of ['mothers', 'wives', 'others']) await page.locator(`.ht-chip[data-cat="${c}"]`).click();
+  await page.waitForTimeout(150);
+  check(await page.locator('.ht-leaf.ht-c-mother').count() > 0 && await page.locator('.ht-leaf.ht-c-wife').count() > 0, W, 'mothers / wives leaves missing');
+  const overlaps = await page.evaluate(OVERLAPS);
+  check(overlaps.every((n) => n === 0), W, `overlapping leaves/tags with every option on: ${overlaps.join(', ')}`);
+  await shot(page, 'home-trees-1-all-options');
+  for (const c of ['daughters', 'mothers', 'wives', 'others']) await page.locator(`.ht-chip[data-cat="${c}"]`).click();
+  check(await page.locator('.ht-leaf:not(.ht-c-man)').count() === 0, W, 'options do not switch off');
+  // Popover by pointer.
+  const tag = page.locator('.ht-tree').first().locator('.ht-tag').first();
+  await tag.click();
+  await page.waitForSelector('.ht-pop', { timeout: 3000 });
+  const links = await page.locator('.ht-pop a').evaluateAll((as) => as.map((a) => a.getAttribute('href')));
+  check(links.some((x) => /^#\/p\//.test(x)) && links.some((x) => new RegExp(`^#/tree/${branches[0].person.id}\\?focus=`).test(x)), W, `popover links: ${links.join(' ')}`);
+  await shot(page, 'home-trees-2-popover');
+  await page.keyboard.press('Escape');
+  check(await page.locator('.ht-pop').count() === 0, W, 'Esc does not close the popover');
+  // Keyboard: Enter on a focused tag opens the popover with focus inside; Esc returns focus to the tag.
+  await tag.focus();
+  await page.keyboard.press('Enter');
+  await page.waitForSelector('.ht-pop', { timeout: 3000 });
+  check(await page.evaluate(() => !!document.activeElement?.closest('.ht-pop')), W, 'keyboard: focus is not in the popover');
+  await page.keyboard.press('Escape');
+  check(await page.evaluate(() => document.activeElement?.classList.contains('ht-tag')), W, 'keyboard: Esc does not return focus to the tag');
+  // Viewer.
+  await page.locator('.ht-enlarge').first().click();
+  await page.waitForSelector('dialog.ht-viewer[open]', { timeout: 3000 });
+  check(await page.locator('dialog.ht-viewer .ht-leaf').count() > 0, W, 'the viewer shows no tree');
+  await page.locator('dialog.ht-viewer button[aria-label="تكبير"]').click();
+  await page.keyboard.press('Escape');
+  check(await page.locator('dialog.ht-viewer').count() === 0, W, 'Esc does not close the viewer');
+  problemsOf(W, problems);
+  await context.close();
+  // --- phone ---
+  context = await newContext(browser, { lang: 'ar', width: 360, height: 740 });
+  page = await context.newPage();
+  problems = watch(page);
+  await load(page, '#/');
+  const visible = () => page.locator('.ht-tree').evaluateAll((els) => els.filter((e) => e.offsetParent !== null).map((e) => e.dataset.head));
+  check((await visible()).length === 1, W, 'phone: more than one tree visible');
+  if (branches.length > 1) {
+    await page.locator(`.ht-switch button[data-head="${branches[1].person.id}"]`).click();
+    check((await visible())[0] === branches[1].person.id, W, 'phone: the family switch does not change the tree');
+    await page.locator(`.ht-switch button[data-head="${branches[0].person.id}"]`).click();
+  }
+  const svg = page.locator('.ht-tree.is-selected .ht-svg');
+  await svg.scrollIntoViewIfNeeded();
+  await svg.click();
+  await page.waitForSelector('dialog.ht-viewer[open]', { timeout: 3000 });
+  await page.waitForTimeout(200);
+  await page.locator('dialog.ht-viewer .ht-tag').first().click();
+  await page.waitForSelector('dialog.ht-viewer .ht-pop', { timeout: 3000 });
+  await shot(page, 'home-trees-3-phone-viewer');
+  await page.keyboard.press('Escape');
+  check(await page.locator('dialog.ht-viewer[open]').count() === 1 && await page.locator('.ht-pop').count() === 0, W, 'phone: first Esc should close only the popover');
+  await page.keyboard.press('Escape');
+  check(await page.locator('dialog.ht-viewer').count() === 0, W, 'phone: second Esc does not close the viewer');
+  const over = await overflowAt(page);
+  check(!over, W, `phone: horizontal overflow after the viewer — ${over}`);
+  problemsOf(W, problems);
+  await context.close();
+});
+
 async function main() {
   await new Promise((resolve, reject) => { httpServer.once('error', reject); httpServer.listen(PORT, '127.0.0.1', resolve); });
   const browser = await chromium.launch();

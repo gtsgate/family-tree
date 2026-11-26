@@ -1,38 +1,27 @@
 // Home page (#/): the owner's welcome, a big search, the two primary actions (explore the tree / add my family),
-// "Who are you?" (or a personal greeting with relation hints), "Help complete the tree", recent updates from the
-// changelog, family branches, statistics and the date of the last update. See docs/SPEC.md §7.2.
-// Also exports the "help complete the tree" helpers used by #/me.
+// "Who are you?" (or a personal greeting with relation hints), then an illustrated tree for each family
+// (home-tree.js). See docs/SPEC.md §7.2.
+// Also exports the "help complete the tree" helpers used by #/me (the home page no longer lists suggestions:
+// they could be irrelevant to whole branches of the family).
 import { h, icon, bdi, toast } from '../dom.js';
-import { t, register, lang, bi, fmtNumber } from '../i18n.js';
+import { t, register, lang, bi } from '../i18n.js';
 import { store } from '../store.js';
-import { nameOf, lineageOf, avatar, nameLabel, whatsappUrl, ownerName, sectionTitle, badges } from '../ui.js';
+import { nameOf, lineageOf, avatar, nameLabel, whatsappUrl, ownerName, badges } from '../ui.js';
 import { personPicker } from '../forms/picker.js';
-import { yearOf, formatDate } from '../core/dates.js';
-import { recentEntries, changeEntry } from './changes.js';
+import { yearOf } from '../core/dates.js';
 import { relationSentence } from './relationship.js';
+import { abstractTree } from './home-tree.js';
 
 /** Element.append without the "null" text nodes it would create for skipped (null/false) children. */
 const add = (el, ...kids) => el.append(...kids.flat().filter((k) => k !== null && k !== undefined && k !== false));
 
-// Plural-aware strings: keys `<base>.<category>` for every Intl.PluralRules category, in both languages.
-const CATS = ['zero', 'one', 'two', 'few', 'many', 'other'];
-function pluralBundle(base, en, ar) {
-  const out = { en: {}, ar: {} };
-  for (const c of CATS) {
-    out.en[`${base}.${c}`] = c === 'one' ? en[0] : en[1];
-    out.ar[`${base}.${c}`] = ar[c] ?? ar.other;
-  }
-  return out;
-}
+// Plural-aware strings (used by #/me and #/search): keys `<base>.<Intl.PluralRules category>`, both languages.
 const pluralRules = {};
 export function plural(base, n) {
   const l = lang();
   let cat = 'other';
   try { cat = (pluralRules[l] ||= new Intl.PluralRules(l === 'ar' ? 'ar' : 'en')).select(n); } catch { cat = 'other'; }
   return t(`${base}.${cat}`, { n });
-}
-function registerPlurals(...bundles) {
-  for (const b of bundles) register(b);
 }
 
 register({
@@ -58,9 +47,6 @@ register({
     'home.change': 'Change',
     'home.myPage': 'My page',
     'home.howRelated': 'How are we related?',
-    'home.helpTitle': 'Help complete the tree',
-    'home.helpLeadMe': 'A few relatives close to you whose details are still missing. Anything you know helps.',
-    'home.helpLead': 'Some details are still missing. Anything you know helps.',
     'home.helpEmpty': 'Nothing missing nearby — thank you!',
     'home.iKnow': 'I know this',
     'home.ask': 'Ask on WhatsApp',
@@ -71,19 +57,6 @@ register({
     'home.gap.name': 'Name unknown',
     'home.askText': 'Hello! We are completing our family tree. Do you know anything about {name}? Missing: {missing}.\n{link}',
     'home.dialogsSoon': 'Editing opens on the person’s page.',
-    'home.recentTitle': 'Recently added',
-    'home.recentEmpty': 'No updates in the last 30 days.',
-    'home.recentAll': 'All updates',
-    'home.branchesTitle': 'Family branches',
-    'home.branchOpen': 'Open this branch',
-    'home.statsTitle': 'The family in numbers',
-    'home.stat.people': 'People',
-    'home.stat.generations': 'Generations',
-    'home.stat.families': 'Families',
-    'home.stat.branches': 'Branches',
-    'home.updated': 'Last updated {date}',
-    'home.revision': 'Version {n}',
-    'home.pending': 'Your pending changes appear on the tree with a badge until they are approved.',
   },
   ar: {
     'home.title': 'الرئيسية',
@@ -107,9 +80,6 @@ register({
     'home.change': 'تغيير',
     'home.myPage': 'صفحتي',
     'home.howRelated': 'ما صلة القرابة؟',
-    'home.helpTitle': 'المساعدة في إكمال الشجرة',
-    'home.helpLeadMe': 'أقارب قريبون منك ما زالت بعض معلوماتهم ناقصة. كل معلومة لديك تساعد.',
-    'home.helpLead': 'ما زالت بعض المعلومات ناقصة، وكل معلومة لديك تساعد.',
     'home.helpEmpty': 'لا توجد معلومات ناقصة بالقرب منك — شكراً لك!',
     'home.iKnow': 'لديّ المعلومة',
     'home.ask': 'السؤال عبر واتساب',
@@ -120,26 +90,9 @@ register({
     'home.gap.name': 'الاسم غير معروف',
     'home.askText': 'السلام عليكم، نعمل على إكمال شجرة العائلة. هل لديك معلومات عن {name}؟ ينقصنا: {missing}.\n{link}',
     'home.dialogsSoon': 'يتمّ التعديل من صفحة الشخص.',
-    'home.recentTitle': 'أُضيف مؤخراً',
-    'home.recentEmpty': 'لا توجد تحديثات خلال الثلاثين يوماً الماضية.',
-    'home.recentAll': 'كل التحديثات',
-    'home.branchesTitle': 'فروع العائلة',
-    'home.branchOpen': 'فتح هذا الفرع',
-    'home.statsTitle': 'العائلة بالأرقام',
-    'home.stat.people': 'الأفراد',
-    'home.stat.generations': 'الأجيال',
-    'home.stat.families': 'الأسر',
-    'home.stat.branches': 'الفروع',
-    'home.updated': 'آخر تحديث: {date}',
-    'home.revision': 'الإصدار {n}',
-    'home.pending': 'تظهر تعديلاتك المعلّقة في الشجرة مع علامة مميِّزة حتى تتمّ الموافقة عليها.',
   },
 });
 
-registerPlurals(
-  pluralBundle('home.n.members', ['{n} person', '{n} people'],
-    { zero: 'لا أحد', one: 'فرد واحد', two: 'فردان', few: '{n} أفراد', many: '{n} فرداً', other: '{n} فرد' }),
-);
 
 // ---------------------------------------------------------------------------------------------------------
 // Dialogs (owned by the forms builder) — loaded on demand, with a friendly fallback while they are missing.
@@ -350,81 +303,16 @@ function whoCard() {
       h('button', { type: 'button', class: 'btn btn-sm btn-ghost', on: { click: () => store.setMe(null) } }, t('home.notMe'))));
 }
 
-function helpCard() {
-  const graph = store.working;
-  const near = store.me && graph.person(store.me) ? store.me : null;
-  return h('section', { class: 'card home-help', attrs: { 'aria-labelledby': 'home-help-title' } },
-    h('div', { class: 'card-header' }, h('h2', { id: 'home-help-title' }, t('home.helpTitle'))),
-    h('p', { class: 'muted small home-help-lead' }, near ? t('home.helpLeadMe') : t('home.helpLead')),
-    helpList(graph, near));
-}
-
-function statsCard() {
-  const graph = store.working;
-  let s = {};
-  try { s = graph.stats(); } catch { s = {}; }
-  const meta = store.data?.meta || {};
-  let updated = '';
-  if (meta.updatedAt) {
-    try { updated = formatDate(String(meta.updatedAt).slice(0, 10), lang()); } catch { updated = ''; }
-  }
-  const tile = (n, key, ic) => h('div', { class: 'home-stat' },
-    h('span', { class: 'home-stat-icon', attrs: { 'aria-hidden': 'true' } }, icon(ic, { size: 18 })),
-    h('span', { class: 'home-stat-num' }, fmtNumber(Number(n) || 0)),
-    h('span', { class: 'home-stat-label' }, t(key)));
-  return h('section', { class: 'card home-stats', attrs: { 'aria-labelledby': 'home-stats-title' } },
-    h('div', { class: 'card-header' }, h('h2', { id: 'home-stats-title' }, t('home.statsTitle'))),
-    h('div', { class: 'home-stat-grid' },
-      tile(s.people, 'home.stat.people', 'users'),
-      tile(s.generations, 'home.stat.generations', 'tree'),
-      tile(s.unions, 'home.stat.families', 'heart'),
-      tile(s.branches, 'home.stat.branches', 'chart')),
-    updated ? h('p', { class: 'home-updated muted small' }, icon('calendar', { size: 16 }), h('span', null, t('home.updated', { date: updated }))) : null,
-    store.sent.length || store.draft.ops.length ? h('p', { class: 'home-pending-note small muted' }, t('home.pending')) : null);
-}
-
-function branchesSection() {
-  let list = [];
-  try { list = store.working.branches() || []; } catch { list = []; }
-  if (!list.length) return null;
-  return h('section', { class: 'home-branches', attrs: { 'aria-labelledby': 'home-branches-title' } },
-    h('div', { class: 'section-title' }, h('h2', { id: 'home-branches-title' }, t('home.branchesTitle'))),
-    h('div', { class: 'home-branch-grid' }, list.map((b) => h('a', { class: 'card home-branch', href: `#/tree/${encodeURIComponent(b.person.id)}` },
-      h('span', { class: 'home-branch-avatars', attrs: { 'aria-hidden': 'true' } },
-        avatar(b.person), b.partner ? avatar(b.partner) : null),
-      h('span', { class: 'home-branch-text' },
-        bdi(bi(b.label) || nameOf(b.person), { class: 'home-branch-name' }),
-        h('span', { class: 'home-branch-count muted small' }, plural('home.n.members', Number(b.count) || 0))),
-      h('span', { class: 'home-branch-go', attrs: { 'aria-hidden': 'true' } }, icon('chevronEnd', { size: 20, className: 'flip-rtl' })),
-      h('span', { class: 'sr-only' }, t('home.branchOpen'))))));
-}
-
-function recentSection() {
-  const entries = store.changelog ? recentEntries(30).slice(0, 5) : [];
-  return h('section', { class: 'home-recent', attrs: { 'aria-labelledby': 'home-recent-title' } },
-    sectionTitle(t('home.recentTitle'), h('a', { class: 'btn btn-sm btn-ghost', href: '#/changes' }, t('home.recentAll'), icon('chevronEnd', { size: 16, className: 'flip-rtl' }))),
-    entries.length
-      ? h('div', { class: 'card home-recent-list changes-list' }, entries.map((e) => changeEntry(e, { compact: true })))
-      : h('div', { class: 'card home-recent-empty' }, h('p', { class: 'muted' }, icon('calendar', { size: 18 }), h('span', null, t('home.recentEmpty')))));
-}
-
 function render(root) {
-  const recent = recentSection();
-  recent.querySelector('.section-title h2')?.setAttribute('id', 'home-recent-title');
-  add(root, 
-    hero(),
-    whoCard(),
-    h('div', { class: 'home-grid' },
-      helpCard(),
-      statsCard()),
-    branchesSection(),
-    recent);
+  const trees = abstractTree(store.working, { lang: lang() });
+  add(root, hero(), whoCard(), trees);
+  return () => trees.dispose?.();
 }
 
 export default {
   title: () => '',
   render(root) {
-    render(root);
+    return render(root);
   },
 };
 

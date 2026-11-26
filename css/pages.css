@@ -285,10 +285,7 @@
 @media (hover: hover) { .home-hints a:hover { color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); } }
 .home-me-actions { gap: var(--s2); padding-block-start: var(--s3); border-block-start: 1px solid var(--line); }
 
-/* ---- Help + stats ---- */
-.home-grid { display: grid; gap: var(--s5); align-items: start; }
-@media (min-width: 900px) { .home-grid { grid-template-columns: minmax(0, 1.65fr) minmax(0, 1fr); } }
-
+/* ---- Help complete the tree (the list is shown on #/me) ---- */
 .home-help { container-type: inline-size; }
 .home-help .card-header { margin-block-end: var(--s1); }
 .home-help-lead { margin: 0 0 var(--s4); }
@@ -357,73 +354,6 @@
   color: var(--success-ink);
   font-weight: 500;
 }
-
-.home-stats .card-header { margin-block-end: var(--s3); }
-.home-stat-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s3); }
-.home-stat {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 2px;
-  padding: var(--s3) var(--s4);
-  border-radius: var(--radius);
-  background: var(--surface-2);
-  border: 1px solid var(--line);
-  overflow: hidden;
-}
-.home-stat::after {
-  content: "";
-  position: absolute;
-  inset-block-start: 0;
-  inset-inline: var(--s4);
-  block-size: 2px;
-  background: linear-gradient(90deg, var(--gold), transparent);
-  opacity: .7;
-}
-:root[dir="rtl"] .home-stat::after { background: linear-gradient(270deg, var(--gold), transparent); }
-.home-stat-icon { color: var(--gold-ink); }
-.home-stat-num {
-  font-family: var(--font-display);
-  font-size: 1.9rem;
-  font-weight: 700;
-  line-height: 1.2;
-  color: var(--accent);
-  font-variant-numeric: tabular-nums;
-}
-.home-stat-label { color: var(--ink-2); font-size: var(--fs-sm); font-weight: 500; }
-.home-updated {
-  display: flex;
-  align-items: center;
-  gap: var(--s2);
-  margin: var(--s4) 0 0;
-  padding-block-start: var(--s3);
-  border-block-start: 1px dashed var(--line-strong);
-}
-.home-pending-note { margin: var(--s2) 0 0; }
-
-/* ---- Branches ---- */
-.home-branch-grid { display: grid; gap: var(--s3); grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr)); }
-.home-branch {
-  display: flex !important;
-  align-items: center;
-  gap: var(--s3);
-  padding: var(--s4);
-  border-radius: var(--radius);
-}
-.home-branch:first-child { border-color: var(--gold-line); background: linear-gradient(135deg, var(--gold-soft), var(--surface) 60%); }
-.home-branch-avatars { display: flex; flex: none; }
-.home-branch-avatars .avatar { box-shadow: 0 0 0 2px var(--surface); }
-.home-branch-avatars .avatar + .avatar { margin-inline-start: -14px; }
-.home-branch-text { display: flex; flex-direction: column; flex: 1; min-inline-size: 0; line-height: 1.45; }
-.home-branch-name { font-family: var(--font-names); font-weight: 700; font-size: 1.05rem; color: var(--ink); }
-.home-branch-go { color: var(--ink-3); transition: transform .2s var(--ease), color .2s; }
-@media (hover: hover) { .home-branch:hover .home-branch-go { color: var(--accent); transform: translateX(3px); } :root[dir="rtl"] .home-branch:hover .home-branch-go { transform: translateX(-3px); } }
-
-/* ---- Recently added ---- */
-.home-recent-list { padding-block: var(--s2); }
-.home-recent-empty { padding-block: var(--s4); }
-.home-recent-empty p { display: flex; align-items: center; gap: var(--s2); margin: 0; }
 
 /* ==========================================================================
    SEARCH
@@ -585,10 +515,6 @@
 .changes-more-row { display: flex; justify-content: center; margin-block-start: var(--s4); }
 .changes-empty { padding: 0; }
 
-/* compact entries inside the home card */
-.home-recent-list .changes-entry { padding-inline: var(--s1); }
-.home-recent-list .changes-entry:first-child::before { inset-block-start: calc(var(--s3) + 14px); }
-.home-recent-list .changes-entry:last-child::before { block-size: calc(var(--s3) + 18px); }
 
 /* ==========================================================================
    RELATIONSHIP ("How are we related?")

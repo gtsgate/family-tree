@@ -38,12 +38,12 @@ family-tree/
     changelog.json             # applied proposals, newest first (§6.6)
     applied.json               # permanent ledger of applied proposal hashes (§6.6) — never truncated
     photos/                    # optional person photos  <personId>.jpg|webp
-  css/  base.css tree.css person.css forms.css pages.css flows.css
+  css/  base.css tree.css person.css forms.css pages.css home-tree.css flows.css
   js/
     core/                      # PURE logic (no DOM/fetch). Browser AND Node ES modules.
       schema.js dates.js names.js graph.js ops.js codec.js describe.js kinship.js messages.js
     i18n.js dom.js store.js app.js ui.js submit.js
-    views/   home.js tree.js person.js search.js wizard.js draft.js me.js relationship.js changes.js about.js admin.js preview.js
+    views/   home.js home-tree.js tree.js person.js search.js wizard.js draft.js me.js relationship.js changes.js about.js admin.js preview.js
     forms/   person-form.js dialogs.js picker.js
   scripts/
     apply-proposal.mjs  check-proposal.mjs  validate-data.mjs  import-initial.mjs  backup.mjs(optional)
@@ -540,7 +540,7 @@ trigger and sends a test e-mail; `stopRelay()` removes the trigger; `doGet` → 
 ### 7.2 Routes
 | hash | module | purpose |
 |---|---|---|
-| `#/` | home | owner welcome (config.owner) + "get to know me" link; search; primary actions (Explore tree, Add my family); "Who are you?" (set me); "Help complete the tree" (≤5 people near me/root with needs-info, missing birth year, no parents, no children; buttons "I know this" / "Ask on WhatsApp"); "Recently added" (changelog, last 30 days); family branches; stats; last updated. No birthdays. |
+| `#/` | home | owner welcome (config.owner) + "get to know me" link; search; primary actions (Explore tree, Add my family); "Who are you?" (set me); then one illustrated tree per family branch (`home-tree.js`, titled «شجرة آل عالم» / "The Alam family tree" from `branches()[i].family`): trunk = founder + the single line of sons above him (names written on it), male line as branches, sons who have families as name tags, everyone else as a leaf with their first name («؟» when unknown); option chips (remembered, `gft.hometree.*`) add mothers / wives without children / daughters / others (unknown-gender children, daughters' husbands) as leaves in their own colour + outline/pattern; leaves never overlap; pending people dashed; tap → popover (profile, "show in the detailed tree" `#/tree/<head>?focus=<id>`); phones: family switch + full-screen pan/zoom viewer. No suggestions list (it lives on `#/me`), no birthdays. |
 | `#/tree/:id?` `?view=chart\|list&dir=down\|up` | tree | descendants chart, ancestors (`dir=up`), outline list (default when width < 700px) |
 | `#/p/:id` | person | family card (§7.5) |
 | `#/search?q=` | search | results with lineage & years |
