@@ -2,6 +2,39 @@
   "entries": [
     {
       "issue": null,
+      "proposalId": "o9gc81m7l3",
+      "hash": "",
+      "commit": "",
+      "rev": 12,
+      "at": "2026-11-26T16:35:55.712Z",
+      "title": "Mark Adnan Al-Fawaz as deceased (died 19 Feb 2022)",
+      "summary": {
+        "en": [
+          "Mark Adnan Al-Fawaz as deceased (died 19 Feb 2022)"
+        ],
+        "ar": [
+          "تسجيل وفاة عدنان الفواز (تاريخ الوفاة: 19 فبراير 2022)"
+        ]
+      },
+      "submitter": {
+        "name": "",
+        "relation": ""
+      },
+      "approvedBy": "gtsgate",
+      "people": [
+        "ps6tfskb"
+      ],
+      "touched": {
+        "people": [
+          "ps6tfskb"
+        ],
+        "unions": []
+      },
+      "destructive": false,
+      "action": "owner-edit"
+    },
+    {
+      "issue": null,
       "proposalId": "oovrjfvt78",
       "hash": "",
       "commit": "",
