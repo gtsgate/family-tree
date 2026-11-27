@@ -6,8 +6,8 @@
       "en": "The Grand Family Tree"
     },
     "rootPersonId": "pg8caja6",
-    "revision": 31,
-    "updatedAt": "2026-11-27T13:58:45.555Z"
+    "revision": 32,
+    "updatedAt": "2026-11-27T14:01:25.676Z"
   },
   "people": {
     "pg8caja6": {
@@ -1152,7 +1152,7 @@
         "ar": "سوسن"
       },
       "surname": {
-        "ar": "محمد عيد"
+        "ar": "عيد"
       },
       "gender": "f",
       "privacy": "year",
@@ -1161,6 +1161,12 @@
           "issue": null,
           "at": "2026-11-25T00:00:00Z",
           "action": "import"
+        },
+        {
+          "issue": null,
+          "rev": 32,
+          "at": "2026-11-27T14:01:25.676Z",
+          "action": "edit-person"
         }
       ]
     },
