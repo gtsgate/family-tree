@@ -6,8 +6,8 @@
       "en": "The Grand Family Tree"
     },
     "rootPersonId": "pg8caja6",
-    "revision": 34,
-    "updatedAt": "2026-11-27T14:02:59.707Z"
+    "revision": 35,
+    "updatedAt": "2026-11-27T14:03:39.432Z"
   },
   "people": {
     "pg8caja6": {
@@ -3549,6 +3549,9 @@
       "name": {
         "ar": "محمد"
       },
+      "surname": {
+        "ar": "عيد"
+      },
       "gender": "m",
       "deceased": true,
       "history": [
@@ -3557,6 +3560,12 @@
           "rev": 33,
           "at": "2026-11-27T14:01:59.160Z",
           "action": "add-person"
+        },
+        {
+          "issue": null,
+          "rev": 35,
+          "at": "2026-11-27T14:03:39.432Z",
+          "action": "edit-person"
         }
       ]
     }

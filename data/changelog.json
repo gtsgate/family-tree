@@ -2,6 +2,39 @@
   "entries": [
     {
       "issue": null,
+      "proposalId": "lunky7nl8q",
+      "hash": "",
+      "commit": "",
+      "rev": 35,
+      "at": "2026-11-27T14:03:39.432Z",
+      "title": "Edit Muhammad: Arabic family name: “عيد”",
+      "summary": {
+        "en": [
+          "Edit Muhammad: Arabic family name: “عيد”"
+        ],
+        "ar": [
+          "تعديل بيانات محمد: اسم العائلة بالعربية: «عيد»"
+        ]
+      },
+      "submitter": {
+        "name": "",
+        "relation": ""
+      },
+      "approvedBy": "gtsgate",
+      "people": [
+        "p8g4n5jf"
+      ],
+      "touched": {
+        "people": [
+          "p8g4n5jf"
+        ],
+        "unions": []
+      },
+      "destructive": false,
+      "action": "owner-edit"
+    },
+    {
+      "issue": null,
       "proposalId": "94nrv1lwiv",
       "hash": "",
       "commit": "",
