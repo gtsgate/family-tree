@@ -2,6 +2,37 @@
   "entries": [
     {
       "issue": null,
+      "proposalId": "06gdkwbqsm",
+      "hash": "",
+      "commit": "",
+      "rev": 30,
+      "at": "2026-11-27T13:53:45.344Z",
+      "title": "Edit the marriage of Essam Ali Alam and Zulfa Al-Rayyis: approximate date of divorce: approximate",
+      "summary": {
+        "en": [
+          "Edit the marriage of Essam Ali Alam and Zulfa Al-Rayyis: approximate date of divorce: approximate"
+        ],
+        "ar": [
+          "تعديل بيانات زواج عصام علي عالم وزلفى الريس: تقريب تاريخ الطلاق: تقريبي"
+        ]
+      },
+      "submitter": {
+        "name": "",
+        "relation": ""
+      },
+      "approvedBy": "gtsgate",
+      "people": [],
+      "touched": {
+        "people": [],
+        "unions": [
+          "u65hmgln"
+        ]
+      },
+      "destructive": false,
+      "action": "owner-edit"
+    },
+    {
+      "issue": null,
       "proposalId": "368gmz9glt",
       "hash": "",
       "commit": "",
