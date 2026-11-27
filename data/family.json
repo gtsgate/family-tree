@@ -6,8 +6,8 @@
       "en": "The Grand Family Tree"
     },
     "rootPersonId": "pg8caja6",
-    "revision": 30,
-    "updatedAt": "2026-11-27T13:53:45.344Z"
+    "revision": 31,
+    "updatedAt": "2026-11-27T13:58:45.555Z"
   },
   "people": {
     "pg8caja6": {
@@ -3758,7 +3758,12 @@
         "pxf7g9es"
       ],
       "status": "divorced",
+      "marriage": {
+        "date": "1985",
+        "approx": true
+      },
       "divorce": {
+        "date": "1994",
         "approx": true
       }
     },
