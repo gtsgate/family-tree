@@ -2,6 +2,45 @@
   "entries": [
     {
       "issue": null,
+      "proposalId": "nvd50d446b",
+      "hash": "",
+      "commit": "",
+      "rev": 33,
+      "at": "2026-11-27T14:01:59.160Z",
+      "title": "Add “Muhammad” as father of Sawsan Eid (deceased)",
+      "summary": {
+        "en": [
+          "Add “Muhammad” as father of Sawsan Eid (deceased)"
+        ],
+        "ar": [
+          "إضافة «محمد» والداً لـ سوسن عيد (متوفى)"
+        ]
+      },
+      "submitter": {
+        "name": "",
+        "relation": ""
+      },
+      "approvedBy": "gtsgate",
+      "people": [
+        "p8g4n5jf"
+      ],
+      "touched": {
+        "people": [
+          "p8g4n5jf"
+        ],
+        "unions": [
+          "usyw0jc7"
+        ]
+      },
+      "destructive": false,
+      "action": "owner-edit",
+      "idMap": {
+        "new59": "p8g4n5jf",
+        "newu60": "usyw0jc7"
+      }
+    },
+    {
+      "issue": null,
       "proposalId": "bkkrldlnzn",
       "hash": "",
       "commit": "",

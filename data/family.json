@@ -6,8 +6,8 @@
       "en": "The Grand Family Tree"
     },
     "rootPersonId": "pg8caja6",
-    "revision": 32,
-    "updatedAt": "2026-11-27T14:01:25.676Z"
+    "revision": 33,
+    "updatedAt": "2026-11-27T14:01:59.160Z"
   },
   "people": {
     "pg8caja6": {
@@ -3537,6 +3537,22 @@
           "action": "edit-person"
         }
       ]
+    },
+    "p8g4n5jf": {
+      "id": "p8g4n5jf",
+      "name": {
+        "ar": "محمد"
+      },
+      "gender": "m",
+      "deceased": true,
+      "history": [
+        {
+          "issue": null,
+          "rev": 33,
+          "at": "2026-11-27T14:01:59.160Z",
+          "action": "add-person"
+        }
+      ]
     }
   },
   "unions": {
@@ -4314,6 +4330,15 @@
         "p9c6efj9"
       ],
       "status": "divorced"
+    },
+    "usyw0jc7": {
+      "id": "usyw0jc7",
+      "partners": [
+        "p8g4n5jf"
+      ],
+      "children": [
+        "po3n142y"
+      ]
     }
   }
 }
