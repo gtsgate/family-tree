@@ -6,8 +6,8 @@
       "en": "The Grand Family Tree"
     },
     "rootPersonId": "pg8caja6",
-    "revision": 28,
-    "updatedAt": "2026-11-26T17:04:25.778Z"
+    "revision": 29,
+    "updatedAt": "2026-11-27T13:50:35.524Z"
   },
   "people": {
     "pg8caja6": {
@@ -3477,8 +3477,7 @@
       },
       "gender": "m",
       "birth": {
-        "date": "1960",
-        "approx": true
+        "date": "1959-12-31"
       },
       "deceased": true,
       "death": {
@@ -3495,6 +3494,12 @@
           "issue": null,
           "rev": 22,
           "at": "2026-11-26T16:55:29.086Z",
+          "action": "edit-person"
+        },
+        {
+          "issue": null,
+          "rev": 29,
+          "at": "2026-11-27T13:50:35.524Z",
           "action": "edit-person"
         }
       ]

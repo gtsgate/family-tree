@@ -2,6 +2,39 @@
   "entries": [
     {
       "issue": null,
+      "proposalId": "368gmz9glt",
+      "hash": "",
+      "commit": "",
+      "rev": 29,
+      "at": "2026-11-27T13:50:35.524Z",
+      "title": "Edit Abdulrahman Al-Rayess: date of birth: 31 Dec 1959; approximate date of birth: exact",
+      "summary": {
+        "en": [
+          "Edit Abdulrahman Al-Rayess: date of birth: 31 Dec 1959; approximate date of birth: exact"
+        ],
+        "ar": [
+          "تعديل بيانات عبدالرحمن الريس: تاريخ الميلاد: 31 ديسمبر 1959؛ تقريب تاريخ الميلاد: دقيق"
+        ]
+      },
+      "submitter": {
+        "name": "",
+        "relation": ""
+      },
+      "approvedBy": "gtsgate",
+      "people": [
+        "pfi4d2li"
+      ],
+      "touched": {
+        "people": [
+          "pfi4d2li"
+        ],
+        "unions": []
+      },
+      "destructive": false,
+      "action": "owner-edit"
+    },
+    {
+      "issue": null,
       "proposalId": "q2s2bambip",
       "hash": "",
       "commit": "",
