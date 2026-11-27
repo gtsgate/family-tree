@@ -6,8 +6,8 @@
       "en": "The Grand Family Tree"
     },
     "rootPersonId": "pg8caja6",
-    "revision": 35,
-    "updatedAt": "2026-11-27T14:03:39.432Z"
+    "revision": 36,
+    "updatedAt": "2026-11-27T14:04:22.486Z"
   },
   "people": {
     "pg8caja6": {
@@ -2553,6 +2553,12 @@
           "rev": 34,
           "at": "2026-11-27T14:02:59.707Z",
           "action": "edit-person"
+        },
+        {
+          "issue": null,
+          "rev": 36,
+          "at": "2026-11-27T14:04:22.486Z",
+          "action": "move-person"
         }
       ]
     },
@@ -4352,7 +4358,8 @@
         "p8g4n5jf"
       ],
       "children": [
-        "po3n142y"
+        "po3n142y",
+        "polekh5u"
       ]
     }
   }

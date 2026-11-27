@@ -2,6 +2,44 @@
   "entries": [
     {
       "issue": null,
+      "proposalId": "kzaqlap1kp",
+      "hash": "",
+      "commit": "",
+      "rev": 36,
+      "at": "2026-11-27T14:04:22.486Z",
+      "title": "Change the parents of Nawal Eid to Muhammad Eid",
+      "summary": {
+        "en": [
+          "Change the parents of Nawal Eid to Muhammad Eid"
+        ],
+        "ar": [
+          "تغيير والدَي نوال عيد إلى محمد عيد"
+        ]
+      },
+      "submitter": {
+        "name": "",
+        "relation": ""
+      },
+      "approvedBy": "gtsgate",
+      "people": [
+        "polekh5u"
+      ],
+      "touched": {
+        "people": [
+          "polekh5u"
+        ],
+        "unions": [
+          "usyw0jc7"
+        ]
+      },
+      "destructive": false,
+      "action": "owner-edit",
+      "idMap": {
+        "newu61": "usyw0jc7"
+      }
+    },
+    {
+      "issue": null,
       "proposalId": "lunky7nl8q",
       "hash": "",
       "commit": "",
