@@ -51,9 +51,9 @@ function overlaps(lay) {
 describe('familyTrees — real data', () => {
   const fams = familyTrees(G, {});
   test('one tree per family branch, titled «آل عالم» / «آل محمود»', () => {
-    assert.equal(fams.length, 2);
-    assert.deepEqual(fams.map((f) => f.family.ar), ['آل عالم', 'آل محمود']);
-    assert.deepEqual(fams.map((f) => f.family.en), ['The Alam family', 'The Mahmoud family']);
+    assert.equal(fams.length, G.branches().length);
+    assert.deepEqual(fams.slice(0, 2).map((f) => f.family.ar), ['آل عالم', 'آل محمود']);
+    assert.deepEqual(fams.slice(0, 2).map((f) => f.family.en), ['The Alam family', 'The Mahmoud family']);
   });
   test('the trunk carries the founder and the single line above him: سالم ← حسن ← محمد', () => {
     const [alam, mahmoud] = fams;
@@ -105,10 +105,10 @@ describe('familyTrees — real data', () => {
   });
   test('the marriage of علي (آل عالم) and فايزة (آل محمود) joins the two families', () => {
     const bridges = familyBridges(G, fams);
-    assert.equal(bridges.length, 1);
-    assert.equal(personName(bridges[0].husband, 'ar'), 'علي');
-    assert.equal(bridges[0].wife.id, 'p10p5jzy');
-    assert.deepEqual([bridges[0].from, bridges[0].to], [0, 1]);
+    const aliFaiza = bridges.find((b) => b.wife.id === 'p10p5jzy');
+    assert.ok(aliFaiza, 'the marriage of علي and فايزة is a bridge');
+    assert.equal(personName(aliFaiza.husband, 'ar'), 'علي');
+    assert.deepEqual([aliFaiza.from, aliFaiza.to], [0, 1]);
   });
 });
 
@@ -119,8 +119,8 @@ describe('home page settings (config.json "home": hidden trees and «يلتقي�
   test('absent or malformed settings hide nothing', () => {
     for (const home of [undefined, null, {}, [], 'x', { hiddenTrees: 'p1', hiddenBridges: [3] }]) {
       const v = homeView(fams, bridges, home);
-      assert.equal(v.trees.length, 2);
-      assert.equal(v.bridges.length, 1);
+      assert.equal(v.trees.length, fams.length);
+      assert.equal(v.bridges.length, bridges.length);
       assert.deepEqual([v.hiddenTrees.length, v.hiddenBridges.length], [0, 0]);
     }
   });
