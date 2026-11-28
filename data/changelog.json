@@ -2,6 +2,45 @@
   "entries": [
     {
       "issue": null,
+      "proposalId": "bi5dpelfab",
+      "hash": "",
+      "commit": "",
+      "rev": 41,
+      "at": "2026-11-28T12:44:27.722Z",
+      "title": "Add “Dawood” as father of Muhammad (deceased)",
+      "summary": {
+        "en": [
+          "Add “Dawood” as father of Muhammad (deceased)"
+        ],
+        "ar": [
+          "إضافة «داود» والداً لـ محمد (متوفى)"
+        ]
+      },
+      "submitter": {
+        "name": "",
+        "relation": ""
+      },
+      "approvedBy": "gtsgate",
+      "people": [
+        "poeh9c3d"
+      ],
+      "touched": {
+        "people": [
+          "poeh9c3d"
+        ],
+        "unions": [
+          "uar6cg9r"
+        ]
+      },
+      "destructive": false,
+      "action": "owner-edit",
+      "idMap": {
+        "new13": "poeh9c3d",
+        "newu14": "uar6cg9r"
+      }
+    },
+    {
+      "issue": null,
       "proposalId": "kaz8ao87fe",
       "hash": "",
       "commit": "",
