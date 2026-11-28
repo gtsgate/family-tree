@@ -579,6 +579,33 @@ a.btn[aria-disabled="true"] { opacity: .55; }
 .admin-removed-main p { margin: 0 0 2px; }
 .admin-removed-name { font-weight: 600; }
 .admin-removed-icon { display: grid; place-items: center; inline-size: 36px; block-size: 36px; border-radius: 50%; background: var(--surface-3); color: var(--ink-2); }
+/* Home page card (owner mode): show / hide family trees and «يلتقي» lines — a closed disclosure by default */
+.admin-home > summary { display: flex; align-items: center; gap: var(--s2) var(--s3); min-block-size: var(--tap); cursor: pointer; list-style: none; }
+.admin-home > summary::-webkit-details-marker { display: none; }
+.admin-home > summary::after {
+  content: ""; flex: none; inline-size: 8px; block-size: 8px; margin-inline-start: auto;
+  /* physical sides: a down chevron (closed) / up (open) in both directions */
+  border-right: 2px solid var(--ink-2); border-bottom: 2px solid var(--ink-2); transform: rotate(45deg); transition: transform .2s;
+}
+.admin-home[open] > summary::after { transform: rotate(-135deg); }
+.admin-home-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px var(--s3); min-inline-size: 0; }
+.admin-home-head h2 { margin: 0; }
+.admin-home-body { margin-block-start: var(--s3); }
+.admin-home-row { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: var(--s2) var(--s3); }
+@media (max-width: 560px) {
+  .admin-home-row { grid-template-columns: auto minmax(0, 1fr); padding-inline: var(--s3); }
+  .admin-home-toggle { grid-column: 2; }
+}
+@media (prefers-reduced-motion: reduce) { .admin-home > summary::after { transition: none; } }
+.admin-home-main { min-inline-size: 0; }
+.admin-home-main p { margin: 0 0 2px; }
+.admin-home-name { font-weight: 600; }
+.admin-home-name.small { font-weight: 500; color: var(--ink); }
+.admin-home-name a { font-weight: 600; }
+.admin-home-icon { display: grid; place-items: center; flex: none; inline-size: 36px; block-size: 36px; border-radius: 50%; background: var(--gold-soft); color: var(--gold-ink); }
+.admin-home-row.is-hidden .admin-home-icon { background: var(--surface-3); color: var(--ink-2); }
+.admin-home-row.is-hidden .admin-home-name { color: var(--ink-2); }
+.admin-home-toggle { flex: none; font-size: var(--fs-sm); }
 .admin-issue-list { display: flex; flex-direction: column; gap: 4px; }
 .admin-issue-list > li { display: flex; align-items: flex-start; gap: 8px; padding: 8px 12px; border-radius: 10px; background: var(--warning-soft); line-height: 1.5; }
 .admin-issue-list .icon { margin-block-start: .25em; color: var(--warning-ink); }

@@ -232,7 +232,7 @@ function pathType(path) {
   if (path === 'gender') return { kind: 'enum', allowed: GENDERS };
   if (path === 'privacy') return { kind: 'enum', allowed: PRIVACY };
   if (path === 'status') return { kind: 'enum', allowed: UNION_STATUSES };
-  if (path === 'deceased' || path.endsWith('.approx')) return { kind: 'bool' };
+  if (path === 'deceased' || path === 'hideKunya' || path.endsWith('.approx')) return { kind: 'bool' };
   if (path.endsWith('.date')) return { kind: 'date' };
   if (path.endsWith('.hijri')) return { kind: 'hijri' };
   if (path === 'photo') return { kind: 'photo' };
@@ -579,6 +579,7 @@ function checkOp(op, i, E) {
           enumOf('person.nameStatus', person.nameStatus, NAME_STATUSES);
           bilingual('person.surname', person.surname, LIMITS.surname);
           bilingual('person.nickname', person.nickname, LIMITS.nickname);
+          bool('person.hideKunya', person.hideKunya);
           enumOf('person.gender', person.gender, GENDERS);
           dateObj('person.birth', person.birth, true);
           bool('person.deceased', person.deceased);
@@ -1995,6 +1996,8 @@ function mergeFields(K, R) {
     fillText(`${f}.en`);
   }
   if (!next.gender && R.gender) next.gender = R.gender;
+  // a kunya hidden on either record stays hidden (the family asked for it on one of them)
+  if (R.hideKunya && !next.hideKunya) next.hideKunya = true;
   fillText('photo');
   if (!next.needsInfo && R.needsInfo) next.needsInfo = R.needsInfo;
   if (R.deceased && !next.deceased) next.deceased = true;

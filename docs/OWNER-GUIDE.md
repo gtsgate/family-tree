@@ -35,6 +35,14 @@
 - **إذا تعذّر الحفظ** (انقطاع الاتصال مثلاً) لا يضيع شيء: يبقى التعديل على الجهاز في **«مقترحي»**، وفيها زر **«حفظ الكل في الشجرة»**.
 - **تسجيل الخروج:** أدوات المشرف ← وضع المشرف ← **تسجيل الخروج** (يُمحى المفتاح من هذا الجهاز فقط). بعدها يعمل الموقع بالمقترحات كما يراه الأقارب.
 
+**ما يظهر في الصفحة الرئيسية، والكنى (في وضع المشرف)**
+
+- **إخفاء شجرة عائلة:** تحت كل شجرة في الصفحة الرئيسية زر صغير **«إخفاء من الصفحة الرئيسية»**. تختفي الشجرة فوراً عند الجميع (خلال دقيقة تقريباً)، ولا يُحذف أحد من الشجرة.
+- **إخفاء سطر «يلتقي…»:** بجانب كل سطر «يلتقي آل … وآل … بزواج …» زر صغير **«إخفاء»**.
+- **الإظهار من جديد:** يظهر للمشرف وحده سطر **«مخفيّ من الصفحة الرئيسية: …»** وفيه زر **«إظهار»** لكل ما أُخفي. وفي **أدوات المشرف** بطاقة مطويّة **«الصفحة الرئيسية»** (يظهر عليها عدد المخفيّ)، وعند فتحها تعرض كل الأشجار وكل سطور «يلتقي» مع مربع اختيار للإظهار أو الإخفاء.
+- يُحفظ هذا الاختيار في `config.json` (المفتاح `home`) بإيداع عنوانه `family-tree: owner home settings`، وتظهر رسالة **«تم الحفظ — يصل التغيير إلى الجميع خلال دقيقة»**.
+- **إخفاء الكنية:** يعرض الموقع بجانب الاسم الكنية المكتوبة، أو كنية تلقائية من الابن الأكبر (أو البنت). لإخفائها عند شخص: صفحته ← **تصحيح المعلومات** ← تحت حقل «الكنية أو اللقب» مربع **«إخفاء الكنية»** ← **حفظ في الشجرة**. لا تظهر بعدها أي كنية بجانب اسمه، ويبقى البحث بالكنية المكتوبة ممكناً. وإلغاء المربع يعيدها.
+
 **مفتاح واحد للأمرين:** هذا المفتاح يصلح أيضاً لوسيط البريد (القسم التالي): يكفي وضعه في خاصية `GITHUB_TOKEN` في إعدادات السكربت (الخطوة (ب) 4 هناك)، فيُجدَّد مفتاح واحد فقط كل سنة.
 
 **عند انتهاء المفتاح أو تجديده:** تظهر في الموقع رسالة «توقّف وضع المشرف»، ويبقى ما لم يُحفظ في «مقترحي». يُنشأ مفتاح جديد (أو **Regenerate token**) ويُلصق في أدوات المشرف على كل جهاز، وفي `GITHUB_TOKEN` إن كان الوسيط يستخدمه.
@@ -77,6 +85,14 @@ In owner mode there are no proposals and no approval step: every addition or cor
 - Every save is listed on **Updates** and recorded on GitHub as a commit `family-tree: owner edit (rev N, K changes)`.
 - **If a save fails** (no connection, for example) nothing is lost: the change stays on the device in **“My proposal”**, which offers **“Save all to the tree”**.
 - **Sign out:** Owner tools → Owner mode → **Sign out** (forgets the key on this device only). The site then works with proposals, as relatives see it.
+
+**What the home page shows, and kunyas (owner mode)**
+
+- **Hide a family tree:** under each tree on the home page there is a small **“Hide from the home page”** button. The tree disappears for everyone (within about a minute); nobody is removed from the tree.
+- **Hide a “… meet through the marriage of …” line:** each such line has a small **“Hide”** button.
+- **Show again:** only the keeper sees a row **“Hidden from the home page: …”** with a **“Show”** button for each hidden item. **Owner tools** also has a folded **“Home page”** card (it shows how many items are hidden); opened, it lists every tree and every such line with a show/hide checkbox.
+- The choice is saved in `config.json` (the `home` key) as a commit `family-tree: owner home settings`; the message **“Saved — the change reaches everyone in about a minute”** confirms it.
+- **Hide a kunya:** next to a name the site shows the recorded kunya, or an automatic one from the eldest son (or daughter). To hide it for someone: their page → **Correct info** → under “Nickname or kunya”, tick **“Don’t show a kunya”** → **Save to the tree**. No kunya then appears beside the name; search still finds a kunya written there. Unticking brings it back.
 
 **One key for both:** the same key also serves the e-mail relay (next section): put it in the relay’s `GITHUB_TOKEN` script property (step (b) 4 there), so only one key needs renewing each year.
 

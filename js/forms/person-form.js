@@ -65,6 +65,8 @@ register({
     'pf.nicknamePh': 'Abu Khalid',
     'pf.nicknameHint': 'Optional — how the family knows them.',
     'pf.nicknameAuto': 'Shown automatically as “{k}” (from the eldest son, or daughter) unless something else is written here.',
+    'pf.hideKunya': 'Don’t show a kunya',
+    'pf.hideKunyaHint': 'No kunya appears beside the name — neither the one written here nor the automatic one. Search still finds a kunya written here.',
     'pf.life': 'Living or passed away?',
     'pf.living': 'Living',
     'pf.deceased': 'Passed away',
@@ -144,6 +146,8 @@ register({
     'pf.nicknamePh': 'أبو خالد، أم خالد، الحاج',
     'pf.nicknameHint': 'اختياري — الاسم الذي تعرفه به العائلة.',
     'pf.nicknameAuto': 'تظهر تلقائياً «{k}» (من الابن الأكبر، أو البنت) ما لم يُكتب هنا غيرها.',
+    'pf.hideKunya': 'إخفاء الكنية',
+    'pf.hideKunyaHint': 'لا تظهر بجانب الاسم أيّ كنية، لا المكتوبة هنا ولا التلقائية. ويبقى البحث بالكنية المكتوبة هنا ممكناً.',
     'pf.life': 'على قيد الحياة أم في ذمّة الله؟',
     'pf.living': 'على قيد الحياة',
     'pf.deceased': 'في ذمّة الله',
@@ -549,6 +553,16 @@ export function personForm({ mode = 'add', person = null, context = {} } = {}) {
   const autoK = mode === 'edit' && p.id ? { ar: autoKunya(p, 'ar', store.working), en: autoKunya(p, 'en', store.working) } : { ar: '', en: '' };
   const nickBi = bilingualInputs({ id: nickId, value: p.nickname, kind: 'given', maxLength: LIMITS.nickname, placeholderAr: autoK.ar || 'أبو خالد', placeholderEn: autoK.en || 'Abu Khalid' });
   const nickField = field({ label: t('pf.nickname'), control: nickBi.el, id: nickId, hint: autoK.ar ? t('pf.nicknameAuto', { k: lang() === 'ar' ? autoK.ar : autoK.en }) : t('pf.nicknameHint') });
+  // «إخفاء الكنية»: no kunya beside the name at all (recorded or automatic) — §2.1 hideKunya.
+  const hideKunyaId = uid('hidek');
+  const hideKunya = h('input', { type: 'checkbox', id: hideKunyaId, class: 'form-hide-kunya-input', checked: !!p.hideKunya, attrs: { 'aria-describedby': `${hideKunyaId}-hint` } });
+  const hideKunyaHint = h('p', { class: 'field-hint form-hide-kunya-hint', id: `${hideKunyaId}-hint` }, t('pf.hideKunyaHint'));
+  const syncHideKunya = () => { nickField.el.classList.toggle('is-kunya-hidden', hideKunya.checked); if (nickField.hintEl) nickField.hintEl.hidden = hideKunya.checked; };
+  hideKunya.addEventListener('change', syncHideKunya);
+  nickField.el.append(h('div', { class: 'form-hide-kunya' },
+    h('label', { class: 'check', for: hideKunyaId }, hideKunya, h('span', null, t('pf.hideKunya'))),
+    hideKunyaHint));
+  syncHideKunya();
 
   // --- life status ---------------------------------------------------------------------------------------
   const lifeId = uid('life');
@@ -720,6 +734,7 @@ export function personForm({ mode = 'add', person = null, context = {} } = {}) {
       if (r.ns !== 'known') value.nameStatus = r.ns;
       if (bi(r.sur)) value.surname = bi(r.sur);
       if (bi(r.nick)) value.nickname = bi(r.nick);
+      if (hideKunya.checked) value.hideKunya = true;
       value.gender = state.gender;
       const birth = {};
       if (!r.b.empty) {
@@ -770,6 +785,7 @@ export function personForm({ mode = 'add', person = null, context = {} } = {}) {
       if (set[`${k}.en`] === '' && cur[`${k}.ar`] === next[`${k}.ar`] && cur[`${k}.en`] === transliterate(cur[`${k}.ar`], { kind: k === 'surname' ? 'surname' : 'given' })) delete set[`${k}.en`];
     }
     if (set.nameStatus && r.ns !== 'known') { set['name.ar'] = ''; set['name.en'] = ''; if (!cur['name.ar']) delete set['name.ar']; if (!cur['name.en']) delete set['name.en']; }
+    if (hideKunya.checked !== !!p.hideKunya) set.hideKunya = hideKunya.checked; // only when it changed
 
     dateDiff('birth', r.b, p.birth, set);
     // Privacy the visitor did not touch: a living person's changed birth date is published as the year only (the
@@ -837,6 +853,7 @@ function flatten(p) {
   for (const path of ['nameStatus', 'name.ar', 'name.en', 'surname.ar', 'surname.en', 'nickname.ar', 'nickname.en', 'gender', 'privacy']) {
     out[path] = getPath(p, path);
   }
+  out.hideKunya = !!p.hideKunya;
   out.deceased = !!p.deceased;
   return out;
 }

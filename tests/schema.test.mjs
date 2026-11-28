@@ -113,8 +113,10 @@ test('constants match the spec', () => {
     assert.ok(MARKS.includes(m), m);
   }
   assert.equal(OP_TYPES.length, 16);
-  assert.equal(PERSON_INPUT_FIELDS.length, 13);
-  assert.equal(PERSON_EDIT_PATHS.length, 25);
+  assert.equal(PERSON_INPUT_FIELDS.length, 14);
+  assert.ok(PERSON_INPUT_FIELDS.includes('hideKunya'));
+  assert.equal(PERSON_EDIT_PATHS.length, 26);
+  assert.ok(PERSON_EDIT_PATHS.includes('hideKunya'));
   assert.ok(PERSON_EDIT_PATHS.includes('birth.place.ar') && PERSON_EDIT_PATHS.includes('privacy'));
   assert.equal(UNION_EDIT_PATHS.length, 11);
   assert.ok(!UNION_EDIT_PATHS.includes('divorce.place.ar'), 'divorce has no place');

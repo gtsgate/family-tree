@@ -337,6 +337,7 @@ async function boot() {
   store.on('data', render);
   store.on('me', render);
   store.on('sent', render);
+  store.on('config', render); // owner mode: home-page settings changed (hidden trees / «يلتقي» lines)
   // Owner mode: the save status only changes the header (re-rendering the page would disturb typing).
   initOwnerUi();
   store.on('owner', () => {

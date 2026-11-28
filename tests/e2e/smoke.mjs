@@ -12,7 +12,9 @@
 //   send via "copy code" → #/me → simulated approval (new family.json + changelog + applied ledger) → toast;
 //   admin paste → preview → approve-issue URL; home family trees (options, popover, keyboard, viewer, no overlaps);
 //   owner mode (api.github.com routed to tests/fake-github-api.mjs): sign in, a child added from the person page is
-//   committed at once and shown without a proposal, "Apply now" on a preview; signed out → the proposal flow again.
+//   committed at once and shown without a proposal, "Apply now" on a preview; signed out → the proposal flow again;
+//   home-page settings (hide a family tree and a «يلتقي» line → one commit of config.json only; a visitor loading that
+//   config does not see them; the #/admin "Home page" card) and «إخفاء الكنية» from the edit form.
 // Needs Playwright with Chromium (`require('playwright')` must resolve, e.g. via NODE_PATH or a global install).
 // --flow=<text> runs only the flows whose name contains <text> (with the i18n check and route sweep unless --flows-only).
 import { createRequire } from 'node:module';
@@ -27,7 +29,7 @@ import { applyProposal, newProposal, proposalHash } from '../../js/core/ops.js';
 import { normalizeData, serializeData, validateData } from '../../js/core/schema.js';
 import { buildGraph } from '../../js/core/graph.js';
 import { describeProposal } from '../../js/core/describe.js';
-import { lineageName, displayName } from '../../js/core/names.js';
+import { lineageName, displayName, autoKunya, personName } from '../../js/core/names.js';
 import { createFakeGitHub, FAKE_TOKEN } from '../fake-github-api.mjs';
 
 const require = createRequire(import.meta.url);
@@ -890,6 +892,7 @@ flow('owner mode: sign in → a child added on the person page is committed at o
   const W = 'owner';
   const CONFIG = JSON.parse(fs.readFileSync(path.join(SITE, 'config.json'), 'utf8'));
   const files = Object.fromEntries(['family.json', 'changelog.json', 'applied.json'].map((f) => [`data/${f}`, fs.readFileSync(path.join(SITE, 'data', f), 'utf8')]));
+  files['config.json'] = fs.readFileSync(path.join(SITE, 'config.json'), 'utf8');
   const gh = createFakeGitHub({ files, owner: CONFIG.repo.owner, repo: CONFIG.repo.name, branch: CONFIG.repo.branch || 'main', login: CONFIG.approvers[0] });
   const context = await newContext(browser, { lang: 'en', width: 360, height: 740 });
   // Registered after newContext's stub, so it answers first: a fake GitHub with a real in-memory repository.
@@ -1044,6 +1047,167 @@ flow('owner mode: sign in → a child added on the person page is committed at o
   check(await page.locator('.draft-bar:not([hidden])').count() === 1, W, 'signed out, no "unsent changes" bar');
   check(gh.commitsOf().length === before, W, 'signed out, something was committed');
   await shot(page, 'owner-5-signed-out');
+  problemsOf(W, problems);
+  await context.close();
+});
+
+// A man shown with an automatic kunya (known name, no recorded nickname, a named son) — for «إخفاء الكنية».
+const KUNYA_MAN = people.find((p) => p.gender === 'm' && p.nameStatus === 'known' && personName(p, 'ar') && !p.nickname?.ar && !p.nickname?.en
+  && !p.hideKunya && autoKunya(p, 'ar', G) && G.father(p.id) && p.id !== DLG_PERSON && p.id !== WIZ_FATHER)?.id;
+
+/** A fake GitHub (tests/fake-github-api.mjs) holding this site's files, answering api.github.com for `context`. */
+async function fakeGitHubFor(context) {
+  const CONFIG = JSON.parse(fs.readFileSync(path.join(SITE, 'config.json'), 'utf8'));
+  const files = Object.fromEntries(['family.json', 'changelog.json', 'applied.json'].map((f) => [`data/${f}`, fs.readFileSync(path.join(SITE, 'data', f), 'utf8')]));
+  files['config.json'] = fs.readFileSync(path.join(SITE, 'config.json'), 'utf8');
+  const gh = createFakeGitHub({ files, owner: CONFIG.repo.owner, repo: CONFIG.repo.name, branch: CONFIG.repo.branch || 'main', login: CONFIG.approvers[0] });
+  await context.route((url) => url.hostname === 'api.github.com', async (route) => {
+    const req = route.request();
+    const r = gh.handle({ method: req.method(), url: req.url(), headers: await req.allHeaders(), body: req.postData() });
+    if (r.network) { await route.abort('failed'); return; }
+    await route.fulfill({ status: r.status, headers: r.headers, body: r.body });
+  });
+  return gh;
+}
+
+flow('owner home settings: hide a tree and a «يلتقي» line (config.json only); a visitor does not see them; admin card; hide a kunya (ar, 390px)', async (browser) => {
+  const W = 'owner-home';
+  const owner = JSON.stringify({ v: 1, token: FAKE_TOKEN, login: 'gtsgate', at: new Date().toISOString() });
+  const context = await newContext(browser, { lang: 'ar', width: 390, height: 844, storage: { 'gft.owner.v1': owner } });
+  const gh = await fakeGitHubFor(context);
+  const page = await context.newPage();
+  const problems = watch(page);
+  const remoteConfig = () => JSON.parse(gh.file('config.json'));
+  const mahmoud = G.branches().find((b) => b.family?.ar === 'آل محمود')?.person.id;
+  const alam = G.branches().find((b) => b.family?.ar === 'آل عالم')?.person.id;
+  if (!check(mahmoud && alam, W, 'the real data has no «آل عالم» / «آل محمود» trees')) { await context.close(); return; }
+  /** Wait until the fake repository has `n` commits after the initial one and the save is over → exactly n? */
+  const waitCommits = async (n) => {
+    for (let i = 0; i < 150 && gh.commitsOf().length - 1 < n; i++) await page.waitForTimeout(100);
+    await page.waitForFunction(() => !document.querySelector('.owner-pill.is-saving'), null, { timeout: 15000 }).catch(() => {});
+    await settle(page);
+    return gh.commitsOf().length - 1 === n;
+  };
+
+  // (1) The keeper sees the low-key owner controls on the home page.
+  await load(page, '#/');
+  await page.waitForSelector('.ht-tree');
+  check(await page.locator('.owner-pill').count() === 1, W, 'not in owner mode');
+  check(await page.locator('.ht-tree .ht-own-hide').count() === 2, W, 'no «إخفاء من الصفحة الرئيسية» button on each tree');
+  check(await page.locator('.ht-bridge .ht-bridge-hide').count() === 1, W, 'no «إخفاء» button on the «يلتقي» line');
+  check(await page.locator('.ht-own-row').count() === 0, W, 'the hidden row is shown while nothing is hidden');
+  check(/إخفاء من الصفحة الرئيسية/.test(await page.locator('.ht-own-hide').first().innerText()), W, 'hide button label');
+  await page.locator(`.ht-tree[data-head="${mahmoud}"] .ht-tree-foot`).scrollIntoViewIfNeeded().catch(() => {});
+  await shot(page, 'owner-home-0-controls');
+
+  // (2) Hide «شجرة آل محمود» → gone at once; one commit changing config.json only.
+  await page.evaluate((id) => document.querySelector(`.ht-tree[data-head="${id}"] .ht-own-hide`).click(), mahmoud);
+  await page.waitForFunction((id) => !document.querySelector(`.ht-tree[data-head="${id}"]`), mahmoud, { timeout: 3000 });
+  check(await waitCommits(1), W, `${gh.commitsOf().length - 1} commits after hiding a tree`);
+  let c = gh.commitsOf()[0];
+  check(JSON.stringify(c.files) === JSON.stringify(['config.json']), W, `the commit changed ${c.files}`);
+  check(c.message === 'family-tree: owner home settings\n', W, `commit message ${JSON.stringify(c.message)}`);
+  check(JSON.stringify(remoteConfig().home) === JSON.stringify({ hiddenTrees: [mahmoud] }), W, `config.home ${JSON.stringify(remoteConfig().home)}`);
+  const toastText = await page.locator('.toast-success').last().innerText().catch(() => '');
+  check(/تم الحفظ — يصل التغيير إلى الجميع خلال دقيقة/.test(toastText), W, `toast says "${toastText}"`);
+  check(await page.locator('.ht-switch').count() === 0, W, 'the phone family switch still lists the hidden tree');
+  check(await page.locator('.ht-tree').count() === 1, W, 'more than one tree left');
+  check(/شجرة آل محمود/.test(await page.locator('.ht-own-row').innerText().catch(() => '')), W, 'the hidden row does not list «شجرة آل محمود»');
+
+  // (3) Hide the «يلتقي» line.
+  const key = await page.locator('.ht-bridge').first().getAttribute('data-key');
+  await page.locator('.ht-bridge .ht-bridge-hide').click();
+  await page.waitForFunction(() => !document.querySelector('.ht-bridge'), null, { timeout: 3000 });
+  check(await waitCommits(2), W, `${gh.commitsOf().length - 1} commits after hiding the line`);
+  c = gh.commitsOf()[0];
+  check(JSON.stringify(c.files) === JSON.stringify(['config.json']), W, `the second commit changed ${c.files}`);
+  check(JSON.stringify(remoteConfig().home) === JSON.stringify({ hiddenTrees: [mahmoud], hiddenBridges: [key] }), W, `config.home ${JSON.stringify(remoteConfig().home)}`);
+  check(await page.locator('.ht-own-row .ht-own-item').count() === 2, W, 'the hidden row does not list the tree and the line');
+  check(!/\bnull\b/.test(await page.locator('.home-trees').innerText()), W, 'a stray "null" in the trees section');
+  const { home: _h, ...rest } = remoteConfig();
+  check(JSON.stringify(rest) === JSON.stringify(JSON.parse(fs.readFileSync(path.join(SITE, 'config.json'), 'utf8'))), W, 'other settings of config.json changed');
+  await page.locator('.ht-own-row').scrollIntoViewIfNeeded();
+  await shot(page, 'owner-home-1-hidden');
+  problemsOf(W, problems);
+
+  // (4) A visitor (no owner key) loading the committed config.json does not see them, nor any owner control.
+  const visitor = await newContext(browser, { lang: 'ar', width: 390, height: 844 });
+  await visitor.route((url) => url.hostname === 'localhost' && url.pathname.endsWith('/config.json'),
+    (route) => route.fulfill({ status: 200, contentType: 'application/json; charset=utf-8', body: gh.file('config.json') }));
+  const vpage = await visitor.newPage();
+  const vproblems = watch(vpage);
+  await load(vpage, '#/');
+  await vpage.waitForSelector('.ht-tree');
+  check(await vpage.locator(`.ht-tree[data-head="${mahmoud}"]`).count() === 0, W, 'visitor: «شجرة آل محمود» is shown');
+  check(await vpage.locator(`.ht-tree[data-head="${alam}"]`).count() === 1, W, 'visitor: «شجرة آل عالم» is missing');
+  check(await vpage.locator('.ht-bridge').count() === 0, W, 'visitor: the «يلتقي» line is shown');
+  check(await vpage.locator('.ht-own-hide, .ht-own-row, .ht-switch').count() === 0, W, 'visitor: owner controls or the family switch are shown');
+  await shot(vpage, 'owner-home-2-visitor');
+  problemsOf(`${W} (visitor)`, vproblems);
+  await visitor.close();
+
+  // (5) «إظهار» from the hidden row brings the tree back.
+  await page.locator('.ht-own-row .ht-own-show').first().click();
+  await page.waitForSelector(`.ht-tree[data-head="${mahmoud}"]`, { state: 'attached', timeout: 3000 });
+  check(await page.locator('.ht-switch button').count() === 2, W, 'the family switch does not list the tree shown again');
+  check(await waitCommits(3), W, `${gh.commitsOf().length - 1} commits after showing the tree`);
+  check(JSON.stringify(remoteConfig().home) === JSON.stringify({ hiddenBridges: [key] }), W, `config.home after «إظهار» ${JSON.stringify(remoteConfig().home)}`);
+
+  // (6) #/admin «الصفحة الرئيسية» card: every tree and line with a toggle.
+  await load(page, '#/admin');
+  await page.waitForSelector('.admin-home');
+  // low-key: a closed disclosure with a one-line status; opened, it lists everything
+  check(await page.evaluate(() => !document.querySelector('.admin-home').open), W, 'admin: the home card is open by default');
+  const homeStatus = await page.locator('.admin-home-status').innerText().catch(() => '');
+  check(/المخفيّ: (1|١)/.test(homeStatus), W, `admin: home card status «${homeStatus}»`);
+  await page.locator('.admin-home > summary').click();
+  check(await page.locator('.admin-home .admin-home-row').count() === 3, W, `admin card rows: ${await page.locator('.admin-home .admin-home-row').count()}`);
+  const lineBox = page.locator(`.admin-home .admin-home-row[data-key="${key}"] input[type=checkbox]`);
+  check(await lineBox.count() === 1 && !(await lineBox.isChecked()), W, 'admin: the hidden line is not unchecked');
+  check(await page.locator(`.admin-home .admin-home-row[data-head="${mahmoud}"] input[type=checkbox]`).isChecked(), W, 'admin: the shown tree is not checked');
+  await page.locator('.admin-home').scrollIntoViewIfNeeded();
+  await shot(page, 'owner-home-3-admin');
+  await lineBox.check();
+  check(await waitCommits(4), W, `${gh.commitsOf().length - 1} commits after the admin toggle`);
+  check(!('home' in remoteConfig()), W, `config.home left after showing everything: ${JSON.stringify(remoteConfig().home)}`);
+  check(await page.locator(`.admin-home .admin-home-row[data-key="${key}"] input[type=checkbox]`).isChecked(), W, 'admin: the line toggle did not follow');
+  check(await page.evaluate(() => document.querySelector('.admin-home')?.open === true), W, 'admin: the home card closed after a toggle');
+  check(await page.evaluate((id) => document.activeElement?.id === id, `admin-home-b-${key.replace('|', '-')}`), W, 'admin: the focus left the toggle');
+
+  // (7) «إخفاء الكنية» from the edit form: no kunya on the person's page nor on their card.
+  if (check(!!KUNYA_MAN, W, 'no person with an automatic kunya in the data')) {
+    const kid = G.children(KUNYA_MAN).find((x) => x.nameStatus === 'known');
+    const kunya = autoKunya(G.person(KUNYA_MAN), 'ar', G);
+    await load(page, `#/p/${KUNYA_MAN}`);
+    check((await page.locator('.person-nick').innerText().catch(() => '')).includes(kunya), W, `the person page does not show the kunya «${kunya}» first`);
+    await page.click('.person-btn-edit');
+    await modalOpen(page);
+    const box = page.locator('dialog.modal[open] .form-hide-kunya-input');
+    check(await box.count() === 1, W, 'no «إخفاء الكنية» checkbox in the edit form');
+    check(/إخفاء الكنية/.test(await page.locator('dialog.modal[open] .form-hide-kunya').innerText()), W, 'checkbox label');
+    await box.check();
+    await page.locator('dialog.modal[open] .form-hide-kunya').scrollIntoViewIfNeeded();
+    await shot(page, 'owner-home-4-hide-kunya-form');
+    await primaryAction(page).click();
+    await modalClosed(page);
+    await page.waitForFunction(() => globalThis.__gft.saving.length === 0, null, { timeout: 15000 });
+    check(await waitCommits(5), W, `${gh.commitsOf().length - 1} commits after hiding the kunya`);
+    const committed = normalizeData(JSON.parse(gh.file('data/family.json'))).people[KUNYA_MAN];
+    check(committed?.hideKunya === true, W, 'hideKunya not committed');
+    const entry = JSON.parse(gh.file('data/changelog.json')).entries[0];
+    check(entry.summary.ar.some((x) => x.startsWith('إخفاء كنية')), W, `changelog line ${JSON.stringify(entry.summary.ar)}`);
+    await settle(page);
+    check(await page.locator('.person-nick').count() === 0, W, 'the person page still shows a kunya');
+    check(!(await page.locator('.person-hero').innerText()).includes(kunya), W, 'the kunya is still in the header');
+    await shot(page, 'owner-home-5-kunya-hidden');
+    if (kid) {
+      await load(page, `#/p/${kid.id}`);
+      const card = page.locator(`#app a[href="#/p/${KUNYA_MAN}"]`).first();
+      check(await card.count() === 1, W, 'the father card is missing on the child page');
+      check(await card.locator('.pname-kunya').count() === 0, W, 'the father card still shows a kunya');
+      check(!(await card.innerText()).includes(kunya), W, 'the father card text still has the kunya');
+    }
+  }
   problemsOf(W, problems);
   await context.close();
 });

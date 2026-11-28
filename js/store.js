@@ -21,7 +21,7 @@ const UNCERTAIN_KEY = 'gft.uncertain.v1';
 const ALIASES_KEY = 'gft.aliases.v1';
 const ALIASES_MAX = 400;
 
-const listeners = { draft: new Set(), sent: new Set(), data: new Set(), me: new Set(), owner: new Set() };
+const listeners = { draft: new Set(), sent: new Set(), data: new Set(), me: new Set(), owner: new Set(), config: new Set() };
 
 function loadJSON(key) {
   try { const s = localStorage.getItem(key); return s ? JSON.parse(s) : null; } catch { return null; }
@@ -230,6 +230,21 @@ export const store = {
         .then(() => { this.reconcileSent(); this.remapTempIds(); this.recompute(); this.emit('data'); })
         .catch(() => { this.recompute(); this.emit('data'); });
     }
+  },
+
+  /**
+   * Home-page settings (config.json "home": {hiddenTrees, hiddenBridges}) — changed by the keeper in owner mode
+   * (js/owner.js saveHome: at once, before the commit lands). Emits "config" when they differ. → changed?
+   */
+  setHome(home) {
+    const next = home && typeof home === 'object' && !Array.isArray(home) && Object.keys(home).length ? home : undefined;
+    if (!this.config || JSON.stringify(next ?? null) === JSON.stringify(this.config.home ?? null)) return false;
+    const cfg = { ...this.config };
+    if (next) cfg.home = next;
+    else delete cfg.home;
+    this.config = cfg;
+    this.emit('config');
+    return true;
   },
 
   /** Re-read the published data; only a NEWER revision is adopted (an owner save may be ahead of GitHub Pages). */

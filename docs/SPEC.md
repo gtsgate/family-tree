@@ -84,6 +84,7 @@ All site paths are relative. GitHub automation & the issue form only work once m
   "nameStatus": "known",                       // "known" | "unknown" | "withheld"  (see below)
   "surname":    {"ar": "", "en": ""},          // family/tribe name or rest of a married-in spouse's full name, rendered VERBATIM
   "nickname":   {"ar": "", "en": ""},          // kunya/laqab/other name: "أبو خالد", "بيبي"
+  "hideKunya":  false,                         // true: no kunya shown beside the name at all (recorded or automatic)
   "gender":     "m",                           // "m" | "f" | ""   (UI requires it for new people; data may be "")
   "birth":  {"date": "1950", "hijri": "", "approx": false, "place": {"ar":"","en":""}},
   "deceased":   false,
@@ -108,12 +109,18 @@ All site paths are relative. GitHub automation & the issue form only work once m
   field live as Arabic is typed until the user edits it; on save the English value is sent only if it differs from the automatic one.
   The person page marks automatic spellings subtly ("automatic spelling — correct it") so each person can choose their own.
 * **Compact stored form** (`compactPerson`): drops `""`, empty bilingual objects, `approx:false`, empty arrays, `null`, `deceased:false`,
-  `nameStatus:"known"`, `privacy:"full"`; empty `birth`/`death` objects. Always keeps `id`. Key order on write = order above.
+  `hideKunya:false`, `nameStatus:"known"`, `privacy:"full"`; empty `birth`/`death` objects. Always keeps `id`. Key order on write = order above.
   `normalizePerson` restores the full shape. Note: compact drops `privacy:"full"`, so a missing `privacy` means `"full"`.
 * **nameStatus**: `known` → `name.ar` or `name.en` or `nickname.*` non-empty (kunya-only men allowed).
   `unknown` / `withheld` → `name.ar` and `name.en` MUST be empty (`NAME_SHOULD_BE_EMPTY`) so a withheld name never reaches the repo.
   Display for unknown/withheld: nickname if any (e.g. "أم خالد"), else a polite relational label computed by names.js
   (§4 names). Surname may still be shown.
+* **Kunya** (`names.js`): beside a known name the site shows the recorded `nickname`, else an AUTOMATIC kunya «أبو/أم + eldest son
+  (else eldest daughter)» (`autoKunya`), low-key. **`hideKunya`** (boolean, default `false`; `normalizePerson` keeps a real boolean only,
+  `validateData` type-checks it) hides both: `nickOf()` → `""` and `displayName()` shows no kunya; someone who would be shown BY their
+  kunya (kunya-only, or an unknown/withheld name) gets the polite relational label instead; a relative whose kunya is hidden is not named
+  by it in others' labels. The recorded nickname stays in the data and search still finds it. The form offers «إخفاء الكنية» /
+  "Don't show a kunya" under the kunya field (§7.4); a merge keeps it hidden when either record hides it.
 * **Privacy is enforced in storage**: `normalizePerson` truncates `birth.date`/`birth.hijri` to the year when `privacy:"year"` and clears
   them when `"hidden"`. So private detail never reaches the public repo, whatever path the data came from.
   Forms default to `year` for every living person; `full` is the default only for deceased people (or after an explicit warning).
@@ -198,13 +205,13 @@ encoded code ≤ 60,000 chars; decoded JSON ≤ 1 MB; destructive ≤3 + merges 
   Without it, a created union gets preview id `tmpu<n>` (not referenceable).
 
 ### 3.3 Operations
-`PersonInput` = any of `name, nameStatus, surname, nickname, gender, birth, deceased, death, occupation, bio, photo, privacy, needsInfo`.
+`PersonInput` = any of `name, nameStatus, surname, nickname, hideKunya, gender, birth, deceased, death, occupation, bio, photo, privacy, needsInfo`.
 Unknown keys → `UNKNOWN_FIELD`.
 
 | op | fields | semantics |
 |---|---|---|
 | `add-person` | `ref`, `person`, `link`?, `unionRef`?, `index`? | Create person (nameStatus rules apply). Warning `POSSIBLE_DUPLICATE {id}` when an active person has the same normalized given name AND (same target birth union \| same father \| same normalized surname & birth year ±2 \| link is spouse/parent and same nickname or surname). Warning `MINOR_DETAIL` if a person under 18 has photo/bio/occupation/birth place or a full birth date. Warning `NAME_LOOKS_FULL` (name contains بن/بنت/ابن/bin/bint/ibn or > 2 tokens after joining compounds). Warning `GENDER_MISSING`. |
-| `edit-person` | `id`, `set` {path:value}, `before`? | Paths: `name.ar name.en nameStatus surname.ar surname.en nickname.ar nickname.en gender birth.date birth.hijri birth.approx birth.place.ar birth.place.en deceased death.date death.hijri death.approx death.place.ar death.place.en occupation.ar occupation.en bio.ar bio.en photo privacy`. Result must satisfy nameStatus rules (`NAME_REQUIRED`). `before[path]` ≠ current → `STALE_EDIT`: **error in final mode** unless `opts.force`, warning in preview. Changing gender of a parent → warning `GENDER_FLIPS_PARENT`. |
+| `edit-person` | `id`, `set` {path:value}, `before`? | Paths: `name.ar name.en nameStatus surname.ar surname.en nickname.ar nickname.en hideKunya gender birth.date birth.hijri birth.approx birth.place.ar birth.place.en deceased death.date death.hijri death.approx death.place.ar death.place.en occupation.ar occupation.en bio.ar bio.en photo privacy`. Result must satisfy nameStatus rules (`NAME_REQUIRED`). `hideKunya` (and `deceased`, `*.approx`) take a boolean (`BAD_TYPE` otherwise); describe reads `{hideKunya}` alone as «إخفاء كنية X» / "Hide the kunya of X" («إظهار كنية X» / "Show the kunya of X"). `before[path]` ≠ current → `STALE_EDIT`: **error in final mode** unless `opts.force`, warning in preview. Changing gender of a parent → warning `GENDER_FLIPS_PARENT`. |
 | `mark` | `id`, `mark`, `date`?, `hijri`?, `of`?, `note`? | `deceased` (deceased=true; date/hijri → death) · `living` (deceased=false, death cleared) · `verified`/`unverified` · `needs-info` (tag + needsInfo=note) / `info-complete` · `duplicate` (duplicateOf=`of`, active other person) / `not-duplicate` · `private` (privacy→year with truncation, clears places, occupation, bio, photo, sets nameStatus `withheld` and clears name — for people who ask to be hidden; links kept). |
 | `link-spouse` | `a`, `b`, `status`?, `marriage`?, `unionRef`? | New union [a,b]. Errors `SAME_PERSON`, `DUPLICATE_UNION`, `ANCESTOR_LINK`. |
 | `move-person` | `id`, `to`: `{union}` \| `{of, with}`, `unionRef`?, `index`? | Change parents (remove from current birth union, add to target resolved as in §3.4). Errors `INVALID_RELATION` (target has id as partner), `CYCLE`, `ANCESTOR_LINK`. If a known parent (an active partner of the old birth union not in the target) is dropped → warning `REPARENT {from, droppedParents, descendants}` and the proposal becomes destructive (needs approve-deletion; does not count toward the cap). History `{action, from, index}`. |
@@ -218,7 +225,7 @@ Unknown keys → `UNKNOWN_FIELD`.
 | **`unlink-spouse`** ⚠ | `union`, `reasonCode` | Soft-remove a 2-partner union; `HAS_CHILDREN` if it has active children. |
 | **`detach-person`** ⚠ | `id`, `reasonCode` | Remove id from its birth union's children (UI label: "linked to the wrong parents"). Union kept (soft-removed with `auto` if emptied). History `{from, index}` so `move-person {union: from}` undoes it. |
 | **`remove-tie`** ⚠ | `id`, `type`, `person`, `reasonCode` | Remove a tie. |
-| **`merge-person`** ⚠ | `keep`, `remove`, `reasonCode`, `parents`? (`"keep"\|"remove"`) | `remove` is the same human as `keep`. Errors: `SAME_PERSON`, `TARGET_REMOVED`, `MERGE_SPOUSES` (they are partners in one union), `GENDER_CONFLICT`, `ANCESTOR_LINK`, `CYCLE` (checked on result), `CONFLICTING_PARENTS` (different birth unions and no `parents` choice). Unions where `remove` is partner → `keep` replaces it; if that yields two active unions with the same partner set, the later one's children are appended to the earlier, empty marriage/status fields filled, and the later is soft-removed with `mergedInto`. Birth union: `parents` decides; same union → drop remove; only remove has one → keep takes its slot. Empty fields of keep filled from remove; differing non-empty fields → warning `MERGE_FIELD_CONFLICT {path, keep, remove}` (keep wins). Tags/ties merged; others' `duplicateOf===remove` → keep (cleared if self); `rootPersonId===remove` → keep; remove's unions appended to keep.spouseOrder. `remove.removed = {…, mergedInto: keep}`. Undo is via `/undo` (§6.5). |
+| **`merge-person`** ⚠ | `keep`, `remove`, `reasonCode`, `parents`? (`"keep"\|"remove"`) | `remove` is the same human as `keep`. Errors: `SAME_PERSON`, `TARGET_REMOVED`, `MERGE_SPOUSES` (they are partners in one union), `GENDER_CONFLICT`, `ANCESTOR_LINK`, `CYCLE` (checked on result), `CONFLICTING_PARENTS` (different birth unions and no `parents` choice). Unions where `remove` is partner → `keep` replaces it; if that yields two active unions with the same partner set, the later one's children are appended to the earlier, empty marriage/status fields filled, and the later is soft-removed with `mergedInto`. Birth union: `parents` decides; same union → drop remove; only remove has one → keep takes its slot. Empty fields of keep filled from remove; differing non-empty fields → warning `MERGE_FIELD_CONFLICT {path, keep, remove}` (keep wins). Tags/ties merged; `hideKunya` kept when either record has it; others' `duplicateOf===remove` → keep (cleared if self); `rootPersonId===remove` → keep; remove's unions appended to keep.spouseOrder. `remove.removed = {…, mergedInto: keep}`. Undo is via `/undo` (§6.5). |
 
 ⚠ destructive. `DESTRUCTIVE_OPS = remove-person, unlink-spouse, detach-person, remove-tie, merge-person`; plus move-person with REPARENT.
 Max 3 non-merge destructive (`TOO_MANY_DESTRUCTIVE`) and 30 merges (`TOO_MANY_MERGES`). Destructive ops need existing ids (`TEMP_NOT_ALLOWED`).
@@ -278,7 +285,8 @@ normalizeUnion normalizeData compactPerson compactUnion compactData validateData
 `autoEnglish(person)`, `normalizeForTranslit`.
 
 **names.js** — `personName(p, lang)` (given name; for `en` uses `englishOf(name)` so Arabic-only names get auto English; for `ar` falls
-back to the English text) · `displayName(p, lang, graph?)`: known → name (+ " (nickname)");
+back to the English text) · `autoKunya(p, lang, graph)` (raw automatic kunya) · `nickOf(p, lang, graph)` (the kunya shown beside a known
+name; `""` when `hideKunya`) · `displayName(p, lang, graph?)`: known → name (+ " (nickname or automatic kunya)", none when `hideKunya`);
 unknown/withheld → nickname, else a polite relational label using graph: wife "زوجة X"/"Wife of X" (withheld wife: "حرم X"), daughter
 "ابنة X" (withheld: "كريمة X"), son "ابن X", unknown gender "أحد أبناء X"/"Child of X", else "غير معروف"/"Unknown"; plus surname
 when present · `fullName(p, lang, graph?)` (displayName + surname verbatim, never adds آل/Al-) · `lineageName(graph, id, lang,
@@ -420,6 +428,21 @@ The one exception to "the site never holds a GitHub credential": the keeper's ow
   proposalId, commit: "", idMap, at, rev}}`, so the bot treats the same proposal arriving later as already applied; with a request
   number: a bilingual note (no "/"), label `applied`, close (best effort). Hash already applied → "already in the tree"; an id
   already used under another hash → refused. A relative's temp refs never become aliases (other devices' counters).
+* **Home-page settings** (keeper only; `config.json` `"home"`, §6.1): in owner mode each family tree on the home page carries a small
+  low-key «إخفاء من الصفحة الرئيسية» / "Hide from the home page" button (eye-off icon) and each «يلتقي» caption a small «إخفاء» /
+  "Hide"; a compact row «مخفيّ من الصفحة الرئيسية: …» lists what is hidden with «إظهار» / "Show"; `#/admin` has a «الصفحة الرئيسية» /
+  "Home page" disclosure listing every tree and «يلتقي» line with show/hide toggles (§7.8). After a hide / show the keyboard focus moves
+  to the counterpart button (the page re-renders). People not saved yet (temporary ids) get no hide control (an id that is not `p…`
+  would hide nothing). `owner.saveHome(patch)` (`patch` =
+  `{hideTrees|showTrees|hideBridges|showBridges: [...]}`) changes `store.config.home` at once (`store.setHome` → event `config`, the
+  page re-renders), then queues ONE save job: `GET git/ref` → `GET contents/<portalPath>config.json?ref=<head>` → `planHomeConfig`
+  applies the patch to the LATEST `"home"` only (other keys and their order untouched; empty lists and an empty `"home"` dropped;
+  malformed ids never written) → a commit changing only `config.json`, message `family-tree: owner home settings` (no personal text);
+  nothing to change → no commit; 409/422 → re-read and re-patch (≤ 4 tries). Toast «تم الحفظ — يصل التغيير إلى الجميع خلال دقيقة» / "Saved —
+  the change reaches everyone in about a minute". Failures drop the patch again (the page goes back): 401 → signed out + the dialog; 403 → the
+  "GitHub refused to save" dialog (both say «لم تتغيّر الصفحة الرئيسية» / "The home page was not changed" when only a home setting
+  failed — nothing joined «مقترحي»); network / rate limit / http → «لم يُحفظ: …» toast; one toast at a time. A signed-in device re-reads `config.json` from the
+  repository on load (`refresh`), so a reload before GitHub Pages republishes keeps the new settings. Visitors never see these controls.
 * **Bot side**: `commitTrailers` maps `Gft-Owner-Edit: <id>` → `owner:<id>`, so `backfillCommits` fills the `commit` of owner
   entries; an applied.json entry without issue → "already applied directly by the keeper" (check comment, queue).
 
@@ -434,8 +457,13 @@ The one exception to "the site never holds a GitHub credential": the keeper's ow
   "owner": {"personId":"", "name":{"ar":"…","en":"…"}, "welcome":{"ar":"","en":""}, "whatsapp":"", "email":""},
   "defaultLanguage":"ar", "arabicDigits":false, "arabicMonthNames":"standard", "primaryCalendar":"gregorian",
   "lineageStyle":"plain", "showDivorce":false, "treeDefaultDepth":3,
-  "privacyDefaults": {"femaleNameStatus":"known", "photos":"all"} }
+  "privacyDefaults": {"femaleNameStatus":"known", "photos":"all"},
+  "home": {"hiddenTrees": ["<head personId>"], "hiddenBridges": ["<husbandId>|<wifeId>"]} }   // optional; absent = nothing hidden
 ```
+`home` is written by owner mode (§5.1). A tree is hidden when `hiddenTrees` holds its founder (head) or a man of its trunk (so adding an
+older ancestor later keeps it hidden). A caption is hidden by `"<husbandId>|<wifeId>"` or the same couple the other way round (a hand
+edit); «إظهار» removes either. `validate-data` warns on entries naming unknown/removed people, non-founders, non-couples or
+wrong shapes (they hide nothing).
 Label names are constants in `scripts/lib/labels.mjs` (not config): `family-tree, approve, approve-deletion, needs-changes, applied,
 deletion-request, duplicate, undone`.
 
@@ -594,7 +622,7 @@ trigger and sends a test e-mail; `stopRelay()` removes the trigger; `doGet` → 
 ### 7.2 Routes
 | hash | module | purpose |
 |---|---|---|
-| `#/` | home | owner welcome (config.owner) + "get to know me" link; search; primary actions (Explore tree, Add my family); "Who are you?" (set me); then one illustrated tree per family branch (`home-tree.js`, titled «شجرة آل عالم» / "The Alam family tree" from `branches()[i].family`): trunk = founder + the single line of sons above him (names written on it), male line as branches, sons who have families as name tags, everyone else as a leaf with their first name («؟» when unknown); option chips (remembered, `gft.hometree.*`) add mothers / wives without children / daughters / others (unknown-gender children, daughters' husbands) as leaves in their own colour + outline/pattern; leaves never overlap; pending people dashed; tap → popover (profile, "show in the detailed tree" `#/tree/<head>?focus=<id>`); phones: family switch + full-screen pan/zoom viewer. No suggestions list (it lives on `#/me`), no birthdays. |
+| `#/` | home | owner welcome (config.owner) + "get to know me" link; search; primary actions (Explore tree, Add my family); "Who are you?" (set me); then one illustrated tree per family branch (`home-tree.js`, titled «شجرة آل عالم» / "The Alam family tree" from `branches()[i].family`): trunk = founder + the single line of sons above him (names written on it), male line as branches, sons who have families as name tags, everyone else as a leaf with their first name («؟» when unknown); option chips (remembered, `gft.hometree.*`) add mothers / wives without children / daughters / others (unknown-gender children, daughters' husbands) as leaves in their own colour + outline/pattern; leaves never overlap; pending people dashed; tap → popover (profile, "show in the detailed tree" `#/tree/<head>?focus=<id>`); phones: family switch (visible trees only) + full-screen pan/zoom viewer. Under the trees, up to three «يلتقي آل X وآل Y بزواج …» captions (marriages joining two families). Trees and captions listed in `config.home` (§6.1) are shown to nobody; when every tree is hidden the section shows nothing — except, in owner mode, the «مخفيّ من الصفحة الرئيسية» row; the keeper's hide/show controls are §5.1. No suggestions list (it lives on `#/me`), no birthdays. |
 | `#/tree/:id?` `?view=chart\|list&dir=down\|up` | tree | descendants chart, ancestors (`dir=up`), outline list (default when width < 700px) |
 | `#/p/:id` | person | family card (§7.5) |
 | `#/search?q=` | search | results with lineage & years |
@@ -631,7 +659,9 @@ Any route with `?rev=N` where N > loaded `meta.revision` shows "Publishing your 
   Given-name field labelled "الاسم الأول فقط (مثال: محمد، عبد الله، نور الدين)" with `NAME_LOOKS_FULL` hint offering
   to split into given/father/family; Arabic `dir=rtl` and English `dir=ltr` side by side (English optional; a "suggest" transliteration
   button is NOT required); "Name not known" and "Prefer not to publish the name" options (nameStatus) — prefilled from
-  `privacyDefaults.femaleNameStatus` for women; surname; nickname (placeholder "أبو خالد، أم خالد، الحاج"); gender as
+  `privacyDefaults.femaleNameStatus` for women; surname; nickname (placeholder "أبو خالد، أم خالد، الحاج"; the automatic kunya as
+  placeholder/hint when none is recorded) with the checkbox «إخفاء الكنية» / "Don't show a kunya" + a short hint (`hideKunya`; the edit
+  diff includes it only when it changed); gender as
   ابن/ابنة (son/daughter) or زوج/زوجة wording by context, required for new people; birth date = year text input
   (`inputmode=numeric`, `toAsciiDigits`) + optional month/day + approximate + calendar switch م/هـ (stores `hijri` when هـ); living/deceased +
   death date/place; birth-date privacy (living → year by default; minors cannot choose full); occupation, bio, photo hidden for minors;
@@ -682,7 +712,10 @@ Acceptance: self + spouse + 5 children in ≤3 screens and ≤25 taps at 360px. 
 click-by-click key steps (Settings → Developer settings → Personal access tokens → Fine-grained tokens → Generate new token;
 name "family-tree keeper", 1 year, only this repository, Contents + Issues: Read and write; the same key serves the relay) and
 a link to the owner guide; signed in → "Signed in as {login} on this device" + "Sign out". With owner mode on, every preview
-offers "Apply now" and restores/photo paths save directly.
+offers "Apply now" and restores/photo paths save directly, and a **«الصفحة الرئيسية» / "Home page" disclosure** follows the owner card,
+closed by default with a one-line status («المخفيّ: n» / "Hidden: n", or «كلّ الأشجار والسطور ظاهرة» / "Every family tree and line is
+shown"); opened (it stays open across the re-render after a toggle), it lists every family tree (with its counts) and every «يلتقي» line,
+each with a checkbox «تظهر/يظهر في الصفحة الرئيسية» / "Shown on the home page" (saved as in §5.1).
 Paste code(s) → preview → **"Create issue and approve"** (issue-form URL with `&labels=family-tree,approve` or `approve-deletion` — GitHub
 honours labels only for users with triage rights; noted "needs a computer browser", as the GitHub app empties the form). With
 `config.relayUrl` set, the primary action is **"Send for approval by e-mail"** instead (same payload as the draft send, §5.0; "Sent ✓ —
@@ -716,9 +749,14 @@ links) and "weekly family news" generator from the changelog · photo tool: pick
   ONE commit (family.json + changelog.json, parent = head, message without names), several ops → one commit and a dependent edit
   waiting for real ids, conflict → re-applied on fresh data, 401 → signed out with ops in the draft, network → draft then "Save
   all", refused on fresh data → draft + problems, resume after a reload without applying twice, removal applies directly,
-  "Apply now" (applied.json entry, already applied, request closed with Gft-Apply trailer, refused proposals). Bot side
+  "Apply now" (applied.json entry, already applied, request closed with Gft-Apply trailer, refused proposals), home-page settings
+  (one commit changing only config.json, other keys kept, show again drops "home", conflict → re-patched on top, 401 → signed out and
+  the page goes back, 403 / network, a signed-in device adopts the repository's settings). `tests/hide-kunya.test.mjs`: hideKunya
+  in the schema, edit-person (STALE_EDIT), merge, display (incl. the relational-label fallback), describe lines, search. Bot side
   (`tests/scripts-apply.test.mjs`): owner trailers backfill commits; a directly applied proposal arriving as a request.
 * E2E (local): `tests/e2e/smoke.mjs` — serve folder, visit every route in both languages at 360px and 1280px, add a family through the
   wizard, check the draft, the WhatsApp/GitHub URLs, the relay send (a routed fake relayUrl: failure → other ways, success → sent with
   the request number), owner mode (api.github.com routed to the fake: sign in, a child added from the person dialog is committed at
-  once and shown without a proposal, "Apply now", sign out → proposals again), and that there are no console errors.
+  once and shown without a proposal, "Apply now", sign out → proposals again; hiding «شجرة آل محمود» and the «يلتقي» line commits
+  config.json only and a visitor loading that config does not see them; the #/admin "Home page" card; «إخفاء الكنية» from the edit form
+  removes the kunya from the person's page and card), and that there are no console errors.

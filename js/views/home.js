@@ -6,11 +6,12 @@
 import { h, icon, bdi, toast } from '../dom.js';
 import { t, register, lang, bi } from '../i18n.js';
 import { store } from '../store.js';
-import { nameOf, lineageOf, avatar, nameLabel, whatsappUrl, ownerName, badges } from '../ui.js';
+import { nameOf, lineageOf, avatar, nameLabel, whatsappUrl, ownerName, badges, ownerMode } from '../ui.js';
 import { personPicker } from '../forms/picker.js';
 import { yearOf } from '../core/dates.js';
 import { relationSentence } from './relationship.js';
 import { abstractTree } from './home-tree.js';
+import { saveHomeSetting } from '../owner-ui.js';
 
 /** Element.append without the "null" text nodes it would create for skipped (null/false) children. */
 const add = (el, ...kids) => el.append(...kids.flat().filter((k) => k !== null && k !== undefined && k !== false));
@@ -292,7 +293,9 @@ function whoCard() {
 }
 
 function render(root) {
-  const trees = abstractTree(store.working, { lang: lang() });
+  // Owner mode: hide / show family trees and «يلتقي» captions for everyone (config.json "home", SPEC §5.1).
+  const owner = ownerMode() ? { save: (patch) => saveHomeSetting(patch) } : null;
+  const trees = abstractTree(store.working, { lang: lang(), home: store.config?.home, owner });
   add(root, hero(), whoCard(), trees);
   return () => trees.dispose?.();
 }

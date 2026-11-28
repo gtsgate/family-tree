@@ -1,6 +1,7 @@
 // Owner tools (#/admin) — docs/SPEC.md §7.8. Helpers for the tree keeper; the page is public, the real power is GitHub
 // permissions. On top: «وضع المشرف» / Owner mode (js/owner-ui.js) — the keeper signs in on this device with a GitHub
-// key and then edits the tree directly. Tabs:
+// key and then edits the tree directly; with owner mode on, a «الصفحة الرئيسية» / "Home page" card lists every
+// family tree and «يلتقي» line with show/hide toggles (config.json "home"). Tabs:
 //   Requests  — paste one or more codes (or a whole WhatsApp message) → inline preview → "Create request and approve";
 //               open requests from the public REST API (on demand; rate-limit friendly) → GitHub / #/preview/<n>.
 //   Restore   — removed people & unions with "Restore" (adds restore-person / restore-union to the draft).
@@ -10,10 +11,11 @@
 //   Photos    — pick a person, choose an image → 400×400 JPEG (q 0.85) → download <pid>.jpg → GitHub upload page.
 //   Data      — download family.json; links to settings, config.json and the owner guide.
 import { h, icon, bdi, toast, copyText } from '../dom.js';
-import { t, register, lang, fmtNumber } from '../i18n.js';
+import { t, register, lang, fmtNumber, bi } from '../i18n.js';
 import { store } from '../store.js';
-import { personChip, ownerName, spinner, nameOf, avatar, whatsappUrl, notifyAdded, ownerMode } from '../ui.js';
-import { ownerCard } from '../owner-ui.js';
+import { personChip, ownerName, spinner, nameOf, avatar, whatsappUrl, notifyAdded, ownerMode, lineageOf } from '../ui.js';
+import { ownerCard, saveHomeSetting } from '../owner-ui.js';
+import { familyTrees, familyBridges, homeView, bridgeParts, bridgeKey, bridgeHiddenBy, treeHiddenBy, homeHidden, canHideTree, canHideBridge } from './home-tree.js';
 import { personPicker } from '../forms/picker.js';
 import { buildGraph } from '../core/graph.js';
 import { validateData, serializeData } from '../core/schema.js';
@@ -111,6 +113,18 @@ register({
     'admin.photo.added': 'Photo path added to your draft.',
     'admin.photo.bad': 'This image could not be read. Please choose a JPEG or PNG photo.',
     'admin.data.title': 'Data and settings',
+    'admin.home.title': 'Home page',
+    'admin.home.lead': 'Which family trees and “meet through marriage” lines appear on the home page. A hidden one disappears for everyone; nothing is removed from the tree.',
+    'admin.home.trees': 'Family trees',
+    'admin.home.bridges': '“Meet through marriage” lines',
+    'admin.home.showTree': 'Shown on the home page',
+    'admin.home.showLine': 'Shown on the home page',
+    'admin.home.noTrees': 'No family trees yet.',
+    'admin.home.noBridges': 'No marriage joins two families yet.',
+    'admin.home.limit': 'The home page shows at most three of these lines.',
+    'admin.home.counts': '{men} men · {women} women',
+    'admin.home.statusAll': 'Every family tree and line is shown',
+    'admin.home.statusHidden': 'Hidden: {n}',
     'admin.data.download': 'Download family.json',
     'admin.data.downloadHint': 'The published data (revision {rev}, {n} people) as a file — handy as a personal backup.',
     'admin.data.links': 'Useful links',
@@ -209,6 +223,18 @@ register({
     'admin.photo.added': 'أُضيف مسار الصورة إلى مسودتك.',
     'admin.photo.bad': 'تعذّرت قراءة هذه الصورة. يُرجى اختيار صورة JPEG أو PNG.',
     'admin.data.title': 'البيانات والإعدادات',
+    'admin.home.title': 'الصفحة الرئيسية',
+    'admin.home.lead': 'أشجار العائلات وسطور «يلتقي» التي تظهر في الصفحة الرئيسية. ما يُخفى لا يظهر لأحد، ولا يُحذف شيء من الشجرة.',
+    'admin.home.trees': 'أشجار العائلات',
+    'admin.home.bridges': 'سطور «يلتقي»',
+    'admin.home.showTree': 'تظهر في الصفحة الرئيسية',
+    'admin.home.showLine': 'يظهر في الصفحة الرئيسية',
+    'admin.home.noTrees': 'لا توجد أشجار عائلات بعد.',
+    'admin.home.noBridges': 'لا يوجد زواج يجمع عائلتين بعد.',
+    'admin.home.limit': 'تعرض الصفحة الرئيسية ثلاثة من هذه السطور على الأكثر.',
+    'admin.home.counts': 'الرجال: {men} · النساء: {women}',
+    'admin.home.statusAll': 'كلّ الأشجار والسطور ظاهرة',
+    'admin.home.statusHidden': 'المخفيّ: {n}',
     'admin.data.download': 'تنزيل family.json',
     'admin.data.downloadHint': 'البيانات المنشورة (النسخة {rev}، عدد الأفراد {n}) في ملف، وهو نسخة احتياطية شخصية مفيدة.',
     'admin.data.links': 'روابط مفيدة',
@@ -718,6 +744,84 @@ function photosCard() {
 }
 
 // ---------------------------------------------------------------------------------------------------------------
+// Home page (owner mode): show / hide family trees and «يلتقي» lines for everyone (config.json "home")
+
+let homeOpen = false; // the «الصفحة الرئيسية» disclosure (this visit)
+
+function homeCard() {
+  const graph = store.working;
+  let all = [];
+  try { all = familyTrees(graph, {}); } catch { all = []; }
+  const bridges = all.length ? familyBridges(graph, all) : [];
+  const home = store.config?.home;
+  const hidden = homeHidden(home);
+  const view = homeView(all, bridges, home);
+  const hiddenTrees = new Set(view.hiddenTrees.map((f) => f.head.id));
+  const hiddenLines = new Set(view.hiddenBridges.map(bridgeKey));
+  // The page re-renders when the setting changes: keep the keyboard focus on the same toggle.
+  const toggle = (id, label, checked, patch, disabled = false) => {
+    const box = h('input', {
+      type: 'checkbox', id, checked, disabled,
+      on: {
+        change: () => {
+          saveHomeSetting(patch(box.checked));
+          // The app re-renders asynchronously: wait (a few frames at most) for the new toggle, then focus it.
+          let frames = 0;
+          const step = () => {
+            const el = document.getElementById(id);
+            if (!el || el === box) { if (++frames < 30) requestAnimationFrame(step); return; }
+            el.focus({ preventScroll: true });
+          };
+          requestAnimationFrame(step);
+        },
+      },
+    });
+    return h('label', { class: 'check admin-home-toggle', for: id }, box, h('span', null, label));
+  };
+  const treeRow = (f) => {
+    const shown = !hiddenTrees.has(f.head.id);
+    const title = t('ht.treeOf', { family: bi(f.family) });
+    return h('li', { class: ['list-item', 'admin-home-row', shown ? '' : 'is-hidden'], dataset: { head: f.head.id } },
+      h('span', { class: 'admin-home-icon', attrs: { 'aria-hidden': 'true' } }, icon(shown ? 'tree' : 'eyeOff', { size: 18 })),
+      h('div', { class: 'admin-home-main' },
+        h('p', { class: 'admin-home-name' }, title),
+        h('p', { class: 'small muted' }, t('admin.home.counts', { men: fmtNumber(f.stats.men), women: fmtNumber(f.stats.women) }))),
+      toggle(`admin-home-t-${f.head.id}`, t('admin.home.showTree'), shown,
+        (on) => (on ? { showTrees: treeHiddenBy(f, hidden) } : { hideTrees: [f.head.id] }), shown && !canHideTree(f)));
+  };
+  const lineRow = (b) => {
+    const key = bridgeKey(b);
+    const shown = !hiddenLines.has(key);
+    const parts = bridgeParts(b, all, lang(), (p) => bdi(lineageOf(p, { depth: 2 })));
+    return h('li', { class: ['list-item', 'admin-home-row', shown ? '' : 'is-hidden'], dataset: { key } },
+      h('span', { class: 'admin-home-icon', attrs: { 'aria-hidden': 'true' } }, icon(shown ? 'heart' : 'eyeOff', { size: 18 })),
+      h('div', { class: 'admin-home-main' }, h('p', { class: 'admin-home-name small' }, ...parts)),
+      toggle(`admin-home-b-${key.replace('|', '-')}`, t('admin.home.showLine'), shown,
+        (on) => (on ? { showBridges: bridgeHiddenBy(b, hidden) } : { hideBridges: [key] }), shown && !canHideBridge(b)));
+  };
+  // Low-key: a closed disclosure with a one-line status (the everyday controls are on the home page itself); it
+  // stays open across the re-renders that follow a toggle.
+  const nHidden = hiddenTrees.size + hiddenLines.size;
+  const status = nHidden ? t('admin.home.statusHidden', { n: fmtNumber(nHidden) }) : t('admin.home.statusAll');
+  return h('details', {
+    class: 'card admin-section admin-home', open: homeOpen,
+    on: { toggle: (e) => { homeOpen = e.currentTarget.open; } },
+  },
+  h('summary', { class: 'admin-home-summary' },
+    h('span', { class: 'owner-card-mark', attrs: { 'aria-hidden': 'true' } }, icon('home', { size: 20 })),
+    h('span', { class: 'admin-home-head' },
+      h('h2', { id: 'admin-home-title' }, t('admin.home.title')),
+      h('span', { class: 'small muted admin-home-status' }, status))),
+  h('div', { class: 'stack admin-home-body' },
+    h('p', { class: 'small muted' }, t('admin.home.lead')),
+    h('h3', { class: 'admin-sub' }, t('admin.home.trees')),
+    all.length ? h('ul', { class: 'list admin-home-list' }, all.map(treeRow)) : h('p', { class: 'small muted' }, t('admin.home.noTrees')),
+    h('h3', { class: 'admin-sub' }, t('admin.home.bridges')),
+    bridges.length ? h('ul', { class: 'list admin-home-list' }, bridges.map(lineRow)) : h('p', { class: 'small muted' }, t('admin.home.noBridges')),
+    bridges.length > 3 ? h('p', { class: 'small muted' }, t('admin.home.limit')) : null));
+}
+
+// ---------------------------------------------------------------------------------------------------------------
 // Data & links
 
 function downloadData() {
@@ -775,12 +879,14 @@ function render(root) {
   else if (tab === 'messages') panel = messagesCard();
   else if (tab === 'photos') panel = photosCard();
   else panel = dataCard();
-  root.append(
+  root.append(...[
     h('header', { class: 'page-head' }, h('h1', null, t('admin.title')), h('p', { class: 'lead' }, t('admin.lead'))),
     ownerCard({ rerender }),
+    ownerMode() ? homeCard() : null,
     h('div', { class: 'notice notice-info admin-public' }, icon('info'), h('p', null, ownerMode() ? t('owner.publicOn') : t('admin.public'))),
     tabs,
-    h('div', { id: 'admin-panel', class: 'admin-panel', attrs: { role: 'tabpanel', 'aria-labelledby': `admin-tab-${tab}` } }, panel));
+    h('div', { id: 'admin-panel', class: 'admin-panel', attrs: { role: 'tabpanel', 'aria-labelledby': `admin-tab-${tab}` } }, panel),
+  ].filter(Boolean));
 }
 
 export default {

@@ -65,6 +65,35 @@ describe('validate-data', () => {
   });
 });
 
+describe('validate-data: config.json "home" (home-page settings)', () => {
+  test('unknown people, non-founders, wrong shapes and non-couples are warnings (never errors)', () => {
+    const p = makePortal();
+    try {
+      const f = join(p.portalDir, 'config.json');
+      const cfg = JSON.parse(readFileSync(f, 'utf8'));
+      assert.equal(validateAll({ portalDir: p.portalDir }).warnings.filter((w) => w.includes('"home')).length, 0);
+      cfg.home = { hiddenTrees: ['pgrand01', 'pmona001', 'pnobody1', 'x'], hiddenBridges: ['pahmed01|pwife001', 'pahmed01|pmona001', 'bad'], extra: 1 };
+      writeFileSync(f, `${JSON.stringify(cfg, null, 2)}\n`);
+      const res = validateAll({ portalDir: p.portalDir });
+      assert.equal(res.ok, true, res.errors.join('\n'));
+      const home = res.warnings.filter((w) => w.startsWith('config.json: "home'));
+      assert.deepEqual(home.map((w) => w.replace(/^config\.json: /, '')), [
+        '"home.extra" is not a known setting (ignored)',
+        '"home.hiddenTrees": pmona001 is not the founder of a family tree (hides nothing)',
+        '"home.hiddenTrees": unknown person pnobody1 (hides nothing)',
+        '"home.hiddenTrees": "x" is not a person id',
+        '"home.hiddenBridges": pahmed01|pmona001 are not a married couple (hides nothing)',
+        '"home.hiddenBridges": "bad" is not "<husbandId>|<wifeId>"',
+      ]);
+      cfg.home = [];
+      writeFileSync(f, `${JSON.stringify(cfg, null, 2)}\n`);
+      assert.ok(validateAll({ portalDir: p.portalDir }).warnings.some((w) => w.includes('"home" must be an object')));
+    } finally {
+      p.cleanup();
+    }
+  });
+});
+
 describe('context: portability', () => {
   test('repository from GITHUB_REPOSITORY first, then config; site URL; event names; branch', async () => {
     const cfg = { repo: { owner: 'a', name: 'b' }, portalPath: 'family-tree' };

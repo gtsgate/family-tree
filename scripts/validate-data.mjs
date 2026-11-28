@@ -5,7 +5,7 @@
 //
 // Errors (exit code 1): family.json invariants (schema.js validateData), unreadable JSON, wrong ledger shapes,
 // config.json without approvers. Warnings are printed but do not fail (with --strict, a non-canonical family.json
-// formatting fails too).
+// formatting fails too). config.json "home" (home-page settings) naming unknown people or non-trees → warnings.
 
 import { readFileSync, existsSync } from 'node:fs';
 import { resolve } from 'node:path';
@@ -26,6 +26,54 @@ function readJson(file, problems, label) {
   }
 }
 
+/**
+ * config.json "home" (home-page settings, SPEC §5.1/§6.1): {hiddenTrees: [person ids], hiddenBridges: ["<husbandId>|<wifeId>"]}.
+ * Unknown or removed people (a stale entry hides nothing) and wrong shapes → warnings. `data` = raw family.json or undefined.
+ */
+export function homeConfigWarnings(home, data, graph = null) {
+  const out = [];
+  if (home === undefined) return out;
+  if (!home || typeof home !== 'object' || Array.isArray(home)) return ['"home" must be an object {hiddenTrees, hiddenBridges}'];
+  const people = data && typeof data.people === 'object' && data.people ? data.people : null;
+  const active = (id) => !people || (Object.prototype.hasOwnProperty.call(people, id) && people[id] && !people[id].removed);
+  const unions = data && typeof data.unions === 'object' && data.unions ? Object.values(data.unions) : null;
+  const married = (a, b) => !unions || unions.some((u) => u && !u.removed && Array.isArray(u.partners) && u.partners.includes(a) && u.partners.includes(b));
+  for (const k of Object.keys(home)) if (!['hiddenTrees', 'hiddenBridges'].includes(k)) out.push(`"home.${k}" is not a known setting (ignored)`);
+  const list = (k) => {
+    const v = home[k];
+    if (v === undefined) return [];
+    if (!Array.isArray(v)) { out.push(`"home.${k}" must be a list`); return []; }
+    return v.filter((x, i) => { if (typeof x === 'string' && x) return true; out.push(`"home.${k}" entry ${i} is not a string`); return false; });
+  };
+  // A tree is hidden by its head (founder) or a man of its trunk (the single line of sons above him) — home-tree.js.
+  let trunks = null;
+  try {
+    if (graph) {
+      trunks = new Set();
+      for (const b of graph.branches() || []) {
+        let cur = b?.person;
+        for (let guard = 0; cur && guard < 200 && !trunks.has(cur.id); guard++) {
+          trunks.add(cur.id);
+          const sons = (graph.children(cur.id) || []).filter((c) => c && c.gender === 'm');
+          cur = sons.length === 1 ? sons[0] : null;
+        }
+      }
+    }
+  } catch { trunks = null; }
+  for (const id of list('hiddenTrees')) {
+    if (!/^p[a-z0-9]{3,24}$/.test(id)) out.push(`"home.hiddenTrees": ${JSON.stringify(id)} is not a person id`);
+    else if (!active(id)) out.push(`"home.hiddenTrees": unknown person ${id} (hides nothing)`);
+    else if (trunks && !trunks.has(id)) out.push(`"home.hiddenTrees": ${id} is not the founder of a family tree (hides nothing)`);
+  }
+  for (const key of list('hiddenBridges')) {
+    const [a, b, ...rest] = key.split('|');
+    if (rest.length || !/^p[a-z0-9]{3,24}$/.test(a || '') || !/^p[a-z0-9]{3,24}$/.test(b || '')) out.push(`"home.hiddenBridges": ${JSON.stringify(key)} is not "<husbandId>|<wifeId>"`);
+    else if (!active(a) || !active(b)) out.push(`"home.hiddenBridges": unknown person in ${key} (hides nothing)`);
+    else if (!married(a, b)) out.push(`"home.hiddenBridges": ${key} are not a married couple (hides nothing)`);
+  }
+  return out;
+}
+
 /** → {ok, errors: string[], warnings: string[], stats} */
 export function validateAll({ portalDir = PORTAL_DIR, file = null, strict = false } = {}) {
   const p = portalPaths(portalDir);
@@ -35,9 +83,9 @@ export function validateAll({ portalDir = PORTAL_DIR, file = null, strict = fals
 
   const dataFile = file ? resolve(file) : p.data;
   const { value: raw, text } = readJson(dataFile, errors, 'family.json');
+  let graph = null;
   if (raw !== undefined) {
     const v = validateData(raw);
-    let graph = null;
     try { graph = buildGraph(normalizeData(raw)); } catch { graph = null; }
     const ctx = { graph, withOp: false };
     for (const e of v.errors) errors.push(`family.json: [${e.code}] ${formatIssue(e, 'en', ctx)}${e.path ? ` (${e.path})` : ''}`);
@@ -83,6 +131,7 @@ export function validateAll({ portalDir = PORTAL_DIR, file = null, strict = fals
       if (config.relayUrl && !/^https:\/\/[^\s"'<>]+$/.test(String(config.relayUrl).trim())) {
         warnings.push('config.json: "relayUrl" must be the https Web app URL of the e-mail relay (the site ignores it otherwise)');
       }
+      for (const w of homeConfigWarnings(config.home, raw, graph)) warnings.push(`config.json: ${w}`);
     }
   }
   return { ok: errors.length === 0, errors, warnings, stats };

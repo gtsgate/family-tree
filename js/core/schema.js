@@ -35,11 +35,11 @@ export const SIBLING_SHARES = Object.freeze(['both', 'father', 'mother']);
 
 /** Keys allowed in a PersonInput (add-person `person`). */
 export const PERSON_INPUT_FIELDS = Object.freeze([
-  'name', 'nameStatus', 'surname', 'nickname', 'gender', 'birth', 'deceased', 'death', 'occupation', 'bio', 'photo',
+  'name', 'nameStatus', 'surname', 'nickname', 'hideKunya', 'gender', 'birth', 'deceased', 'death', 'occupation', 'bio', 'photo',
   'privacy', 'needsInfo',
 ]);
 export const PERSON_EDIT_PATHS = Object.freeze([
-  'name.ar', 'name.en', 'nameStatus', 'surname.ar', 'surname.en', 'nickname.ar', 'nickname.en', 'gender',
+  'name.ar', 'name.en', 'nameStatus', 'surname.ar', 'surname.en', 'nickname.ar', 'nickname.en', 'hideKunya', 'gender',
   'birth.date', 'birth.hijri', 'birth.approx', 'birth.place.ar', 'birth.place.en',
   'deceased', 'death.date', 'death.hijri', 'death.approx', 'death.place.ar', 'death.place.en',
   'occupation.ar', 'occupation.en', 'bio.ar', 'bio.en', 'photo', 'privacy',
@@ -51,7 +51,7 @@ export const UNION_EDIT_PATHS = Object.freeze([
 
 /** Person keys in canonical (write) order — §2.1. */
 export const PERSON_FIELDS = Object.freeze([
-  'id', 'name', 'nameStatus', 'surname', 'nickname', 'gender', 'birth', 'deceased', 'death', 'occupation', 'bio', 'photo',
+  'id', 'name', 'nameStatus', 'surname', 'nickname', 'hideKunya', 'gender', 'birth', 'deceased', 'death', 'occupation', 'bio', 'photo',
   'privacy', 'tags', 'needsInfo', 'duplicateOf', 'spouseOrder', 'ties', 'removed', 'history',
 ]);
 /** Union keys in canonical (write) order — §2.2. */
@@ -286,6 +286,7 @@ export function emptyPerson(id = '') {
     nameStatus: 'known',
     surname: { ar: '', en: '' },
     nickname: { ar: '', en: '' },
+    hideKunya: false,
     gender: '',
     birth: emptyDateObj(true),
     deceased: false,
@@ -317,6 +318,7 @@ export function normalizePerson(raw) {
   p.nameStatus = str(src.nameStatus) || 'known';
   p.surname = bilingual(src.surname);
   p.nickname = bilingual(src.nickname);
+  p.hideKunya = src.hideKunya === true; // a real boolean only (anything else → false)
   p.gender = str(src.gender).toLowerCase();
   p.privacy = str(src.privacy) || 'full';
   p.birth = normalizeDateObj(src.birth, true, p.privacy);
@@ -368,7 +370,7 @@ function put(out, key, value) {
 
 /**
  * Stored (compact) form of a person: normalizes first, then drops "", empty bilingual objects/sides, approx:false,
- * empty arrays, null, deceased:false, nameStatus:"known", privacy:"full", empty birth/death. Always keeps id.
+ * empty arrays, null, deceased:false, hideKunya:false, nameStatus:"known", privacy:"full", empty birth/death. Always keeps id.
  * Key order = §2.1. History entries and removal records are kept verbatim (incl. issue:null).
  */
 export function compactPerson(person) {
@@ -378,6 +380,7 @@ export function compactPerson(person) {
   if (p.nameStatus !== 'known') out.nameStatus = p.nameStatus;
   put(out, 'surname', compactBi(p.surname));
   put(out, 'nickname', compactBi(p.nickname));
+  if (p.hideKunya) out.hideKunya = true;
   if (p.gender) out.gender = p.gender;
   put(out, 'birth', compactDateObj(p.birth));
   if (p.deceased) out.deceased = true;
@@ -793,6 +796,7 @@ export function validateData(data, { allowTempIds = false } = {}) {
     checkEnum(own, base, 'nameStatus', p.nameStatus, NAME_STATUSES);
     checkBilingual(own, base, 'surname', p.surname, LIMITS.surname);
     checkBilingual(own, base, 'nickname', p.nickname, LIMITS.nickname);
+    checkBool(own, base, 'hideKunya', p.hideKunya);
     checkEnum(own, base, 'gender', p.gender, GENDERS);
     checkDateObj(own, base, 'birth', p.birth, true);
     checkBool(own, base, 'deceased', p.deceased);

@@ -329,12 +329,12 @@ function header(P) {
   const main = given || nameOf(P);
   const otherGiven = known ? personName(P, otherLang()) : '';
   const other = otherGiven || displayName(P, otherLang(), store.working);
-  // Recorded kunya/nickname, else the automatic kunya (eldest son, else eldest daughter).
-  const nick = known && given ? (P.nickname?.[L] || P.nickname?.[otherLang()] || autoKunya(P, L, store.working) || '') : '';
+  // Recorded kunya/nickname, else the automatic kunya (eldest son, else eldest daughter) — none when hidden (hideKunya).
+  const nick = known && given && !P.hideKunya ? (P.nickname?.[L] || P.nickname?.[otherLang()] || autoKunya(P, L, store.working) || '') : '';
   const lineage = lineageOf(P, { depth: 4 });
   const years = yearsOf(P);
   const isMe = store.me === P.id;
-  const auto = L === 'en' && ((known && isAutoEnglish(P.name)) || isAutoEnglish(P.surname) || isAutoEnglish(P.nickname));
+  const auto = L === 'en' && ((known && isAutoEnglish(P.name)) || isAutoEnglish(P.surname) || (!P.hideKunya && isAutoEnglish(P.nickname)));
 
   const meBtn = h('button', {
     type: 'button', class: ['btn', 'btn-lg', 'person-btn-me', isMe ? 'is-me' : ''],

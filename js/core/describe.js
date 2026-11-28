@@ -216,7 +216,7 @@ function newPersonName(input, L) {
   const known = p.nameStatus !== 'unknown' && p.nameStatus !== 'withheld';
   // Unknown / withheld: only a nickname can name them. Without any name fullName() would fall back to a
   // relational label ("غير معروف"), which must not be quoted as if it were a name.
-  if (!(has(p.nickname) || (known && has(p.name)))) return '';
+  if (!((has(p.nickname) && p.hideKunya !== true) || (known && has(p.name)))) return '';
   const name = fullName(known ? p : { ...p, nameStatus: 'known', name: { ar: '', en: '' } }, L);
   return name ? quote(name, L) : '';
 }
@@ -389,9 +389,24 @@ const OPS = {
 
   'edit-person': (op, h) => {
     const { L } = h;
-    const changes = changesText(op.set, L, h.G(op.id));
-    if (L === 'en') return `Edit ${h.N(op.id)}${changes ? `: ${changes}` : ''}`;
-    return `تعديل بيانات ${h.N(op.id)}${changes ? `: ${changes}` : ''}`;
+    // hideKunya reads as its own sentence: «إخفاء كنية X» / "Hide the kunya of X" (and «إظهار …» / "Show …").
+    const set = isObj(op.set) ? { ...op.set } : op.set;
+    let kunya = '';
+    if (isObj(set) && Object.prototype.hasOwnProperty.call(set, 'hideKunya')) {
+      kunya = set.hideKunya === true ? 'hide' : 'show';
+      delete set.hideKunya;
+    }
+    const changes = changesText(set, L, h.G(op.id));
+    const n = h.N(op.id);
+    if (kunya && !changes) {
+      if (L === 'en') return kunya === 'hide' ? `Hide the kunya of ${n}` : `Show the kunya of ${n}`;
+      return kunya === 'hide' ? `إخفاء كنية ${n}` : `إظهار كنية ${n}`;
+    }
+    const extra = !kunya ? ''
+      : L === 'en' ? (kunya === 'hide' ? '; the kunya is hidden' : '; the kunya is shown again')
+        : (kunya === 'hide' ? '؛ مع إخفاء الكنية' : '؛ مع إظهار الكنية');
+    if (L === 'en') return `Edit ${n}${changes ? `: ${changes}${extra}` : ''}`;
+    return `تعديل بيانات ${n}${changes ? `: ${changes}${extra}` : ''}`;
   },
 
   mark: (op, h) => {

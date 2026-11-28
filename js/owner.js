@@ -7,8 +7,13 @@
 //   planSave(files, items, opts)               pure: apply items to the repository's files → new files + commit message
 //   saveItems(api, items, opts)                read the branch head → plan → ONE commit (blobs → tree → commit → ref),
 //                                              re-reading and re-applying on a non-fast-forward (≤ SAVE_TRIES tries)
+//   planHomeConfig(text, patch) / patchHome     pure: the home-page settings of config.json ("home": hidden trees and
+//                                              «يلتقي» lines) after a patch {hideTrees, showTrees, hideBridges, showBridges}
+//   saveHomeConfig(api, patch, opts)           read config.json at the head → patch "home" only → ONE commit (retry on
+//                                              a non-fast-forward, like the data saves)
 //   owner                                      the controller: credentials, the save queue (one save at a time),
-//                                              "Save all to the tree" (the draft), "Apply now" (a relative's proposal)
+//                                              "Save all to the tree" (the draft), "Apply now" (a relative's proposal),
+//                                              home-page settings (saveHome: the page changes at once, then one commit)
 //
 // No DOM here (the interface is js/owner-ui.js), so Node tests drive it with an injected fetch.
 // Security: the token stays in this device's localStorage (gft.owner.v1) and is sent nowhere but api.github.com, in the
@@ -62,6 +67,13 @@ export function dataPaths(config) {
   const p = raw.replace(/^[./]+|\/+$/g, '');
   const pre = p ? `${p}/` : '';
   return { data: `${pre}data/family.json`, changelog: `${pre}data/changelog.json`, applied: `${pre}data/applied.json` };
+}
+
+/** Repository path of config.json (next to data/). */
+export function configPath(config) {
+  const raw = config && 'portalPath' in config ? String(config.portalPath || '') : 'family-tree';
+  const p = raw.replace(/^[./]+|\/+$/g, '');
+  return `${p ? `${p}/` : ''}config.json`;
 }
 
 export function isApprover(login, config) {
@@ -441,6 +453,81 @@ export async function saveItems(api, items, { config, actor = '', now = () => ne
   throw last || new GitHubError('conflict');
 }
 
+// ---------------------------------------------------------------------------------------------------------------
+// Home-page settings (config.json "home": {hiddenTrees: [head person ids], hiddenBridges: ["<husbandId>|<wifeId>"]})
+
+export const HOME_COMMIT_MESSAGE = 'family-tree: owner home settings\n';
+const HOME_LISTS = { hiddenTrees: ['hideTrees', 'showTrees'], hiddenBridges: ['hideBridges', 'showBridges'] };
+const PID_RE = /^p[a-z0-9]{3,24}$/;
+const HOME_ITEM = {
+  hiddenTrees: (x) => PID_RE.test(x),
+  hiddenBridges: (x) => { const [a, b, ...rest] = x.split('|'); return !rest.length && PID_RE.test(a || '') && PID_RE.test(b || ''); },
+};
+
+/**
+ * The "home" settings after `patch` = {hideTrees?, showTrees?, hideBridges?, showBridges?} (lists of ids / keys).
+ * Applied to the LATEST settings, so changes made meanwhile on another device are kept. Other keys of "home" are kept;
+ * empty lists are dropped; → undefined when nothing is left (absent = nothing hidden). Malformed ids are never written.
+ */
+export function patchHome(home, patch = {}) {
+  const out = isObj(home) ? { ...home } : {};
+  const list = (v) => (Array.isArray(v) ? v.filter((x) => typeof x === 'string' && x) : []);
+  for (const [key, [hide, show]] of Object.entries(HOME_LISTS)) {
+    const cur = list(out[key]);
+    const drop = new Set(list(patch?.[show]));
+    const next = [...new Set([...cur, ...list(patch?.[hide]).filter(HOME_ITEM[key])])].filter((x) => !drop.has(x));
+    if (next.length) out[key] = next;
+    else delete out[key];
+  }
+  return Object.keys(out).length ? out : undefined;
+}
+
+/**
+ * Pure: config.json text + patch → {changed, text, home}. Only "home" changes; every other key (and the key order)
+ * stays as it is; the text is written as the repository keeps it (2-space JSON, trailing newline).
+ */
+export function planHomeConfig(text, patch) {
+  let cfg;
+  try { cfg = JSON.parse(String(text ?? '')); } catch { cfg = null; }
+  if (!isObj(cfg)) throw new GitHubError('http', 0, 'unreadable config.json');
+  const home = patchHome(cfg.home, patch);
+  const changed = JSON.stringify(cfg.home ?? null) !== JSON.stringify(home ?? null);
+  const next = {};
+  for (const [k, v] of Object.entries(cfg)) {
+    if (k !== 'home') next[k] = v;
+    else if (home) next.home = home;
+  }
+  if (home && !hasOwn(cfg, 'home')) next.home = home;
+  return { changed, text: `${JSON.stringify(next, null, 2)}\n`, home, config: next };
+}
+
+/**
+ * Read config.json at the branch head, patch its "home" and commit ONLY config.json (message without personal text).
+ * A non-fast-forward → wait, re-read, re-patch (≤ tries). Nothing to change → no commit.
+ * → {committed, sha?, head, attempt, home}. Throws GitHubError (network, auth, forbidden, conflict…).
+ */
+export async function saveHomeConfig(api, patch, { config, sleep = defaultSleep, tries = SAVE_TRIES } = {}) {
+  const { branch } = repoOf(config);
+  const path = configPath(config);
+  let last = null;
+  for (let attempt = 1; attempt <= tries; attempt++) {
+    const head = await api.head(branch);
+    const text = await api.readFile(path, head);
+    if (text === null) throw new GitHubError('http', 404, 'config.json not found');
+    const plan = planHomeConfig(text, patch);
+    if (!plan.changed) return { committed: false, head, attempt, home: plan.home };
+    try {
+      const sha = await api.commitFiles({ branch, head, files: { [path]: plan.text }, message: HOME_COMMIT_MESSAGE });
+      return { committed: true, sha, head, attempt, home: plan.home };
+    } catch (e) {
+      if (e?.kind !== 'conflict' || attempt >= tries) throw e;
+      last = e;
+      await sleep(backoffMs(attempt));
+    }
+  }
+  throw last || new GitHubError('conflict');
+}
+
 /** Bilingual note posted on a request applied directly (no "/" anywhere: it must never look like a command). */
 export function appliedRequestComment({ rev, sha }) {
   const short = String(sha || '').slice(0, 7);
@@ -462,7 +549,22 @@ const env = {
 };
 
 let creds = null; // {token, login}
-const jobs = []; // {kind:'edit', ids} | {kind:'draft'} | {kind:'apply', proposal, hash, issue, resolve}
+const jobs = []; // {kind:'edit', ids} | {kind:'draft'} | {kind:'apply', proposal, hash, issue, resolve} | {kind:'home', patch, resolve}
+// Home-page settings: `base` = the latest known "home" of config.json, `pending` = patches not committed yet. The page
+// shows base + pending at once (store.setHome); a failed save just drops its patch again.
+const homeState = { base: undefined, pending: [] };
+function showHome() {
+  let home = homeState.base;
+  for (const p of homeState.pending) home = patchHome(home, p);
+  store.setHome?.(home);
+}
+/** Home jobs that will not run (sign-out, a failure that stops the queue): their patches leave the page again. */
+function dropHomeJobs(list) {
+  const gone = new Set(list.filter((j) => j.kind === 'home').map((j) => j.patch));
+  if (!gone.size) return;
+  homeState.pending = homeState.pending.filter((p) => !gone.has(p));
+  showHome();
+}
 let running = null;
 let savedTimer = null;
 let started = false;
@@ -537,11 +639,34 @@ async function closeRequest(n, { rev, sha }) {
 
 async function runJob(job) {
   if (job.kind === 'refresh') {
-    try {
-      await catchUp();
-    } catch (e) {
-      if (e?.kind === 'auth') throw e; // the token no longer works: sign out (giveUp)
+    // Each read on its own: a failed data read must not leave the home-page settings stale (and the other way round).
+    for (const read of [catchUp, catchUpHome]) {
+      try {
+        await read();
+      } catch (e) {
+        if (e?.kind === 'auth') throw e; // the token no longer works: sign out (giveUp)
+      }
     }
+    return;
+  }
+  if (job.kind === 'home') {
+    let res;
+    try {
+      res = await saveHomeConfig(api(), job.patch, { config: store.config, sleep: env.sleep });
+    } catch (e) {
+      const kind = e instanceof GitHubError ? e.kind : 'http';
+      if (kind === 'auth' || kind === 'forbidden') throw e; // signed out / the key cannot write: giveUp explains
+      homeState.pending = homeState.pending.filter((p) => p !== job.patch);
+      showHome();
+      setStatus('error', { lastError: { kind } });
+      job.resolve?.({ ok: false, error: { kind } });
+      return;
+    }
+    homeState.pending = homeState.pending.filter((p) => p !== job.patch);
+    homeState.base = res.home;
+    showHome();
+    setStatus('saved', { lastError: null });
+    job.resolve?.({ ok: true, committed: res.committed, sha: res.sha || '' });
     return;
   }
   if (job.kind === 'edit') {
@@ -613,6 +738,19 @@ async function catchUp() {
   return files;
 }
 
+/** The home-page settings in the repository (a reload may get config.json from before a change GitHub Pages has not published yet). */
+async function catchUpHome() {
+  if (homeState.pending.length) return;
+  const { branch } = repoOf(store.config);
+  const text = await api().readFile(configPath(store.config), branch);
+  if (text === null) return;
+  let cfg = null;
+  try { cfg = JSON.parse(text); } catch { cfg = null; }
+  if (!isObj(cfg) || homeState.pending.length) return;
+  homeState.base = isObj(cfg.home) ? cfg.home : undefined;
+  showHome();
+}
+
 /** A save could not be made at all: nothing is lost (direct edits join the draft), the keeper is told why. */
 function giveUp(e) {
   const kind = e instanceof GitHubError ? e.kind : 'http';
@@ -622,13 +760,15 @@ function giveUp(e) {
   const uncertain = current?.started && current.kind === 'edit' && ['network', 'http'].includes(kind) ? current.ids : [];
   const pending = jobs.splice(0, jobs.length);
   for (const j of pending) j.resolve?.({ ok: false, error: { kind } });
+  dropHomeJobs(pending);
   const kept = store.moveSavingToDraft(null, { uncertain });
+  const home = current?.kind === 'home'; // a home-page setting: the page went back, nothing joined the draft
   if (kind === 'auth') {
     // The token was revoked or expired: sign out on this device.
     creds = null;
     writeCreds(null);
-    notice({ type: 'auth', kept });
-  } else if (kind === 'forbidden') notice({ type: 'forbidden', kept });
+    notice({ type: 'auth', kept, home });
+  } else if (kind === 'forbidden') notice({ type: 'forbidden', kept, home });
   else notice({ type: 'failed', kind, kept });
   setStatus('error', { lastError: { kind } });
 }
@@ -725,6 +865,7 @@ export const owner = {
     writeCreds(null);
     const pending = jobs.splice(running ? 1 : 0);
     for (const j of pending) j.resolve?.({ ok: false, error: { kind: 'signedOut' } });
+    dropHomeJobs(pending);
     const finish = () => {
       store.moveSavingToDraft();
       setStatus('idle', { lastError: null });
@@ -758,6 +899,20 @@ export const owner = {
     const h = hash || await proposalHash(proposal);
     const n = Number(issue) > 0 ? Number(issue) : null;
     return new Promise((resolve) => { jobs.push({ kind: 'apply', proposal, hash: h, issue: n, resolve }); pump(); });
+  },
+
+  /**
+   * Home-page settings (keeper only): hide / show family trees and «يلتقي» lines for everyone. The page changes at
+   * once (store.setHome), then ONE commit changes config.json ("home" only). patch = {hideTrees?, showTrees?,
+   * hideBridges?, showBridges?}. → Promise<{ok:true, committed, sha} | {ok:false, error:{kind}}>
+   */
+  saveHome(patch) {
+    if (!creds) return Promise.resolve({ ok: false, error: { kind: 'auth' } });
+    if (!homeState.pending.length) homeState.base = isObj(store.config?.home) ? store.config.home : undefined;
+    const p = isObj(patch) ? { ...patch } : {};
+    homeState.pending.push(p);
+    showHome();
+    return new Promise((resolve) => { jobs.push({ kind: 'home', patch: p, resolve }); pump(); });
   },
 
   /**

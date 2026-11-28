@@ -98,7 +98,7 @@ function refText(entry, lang) {
   }
   // A new person whose name is withheld / not known: say so instead of a misleading "Unknown".
   const status = input.nameStatus;
-  const nick = isObj(input.nickname) && String(input.nickname.ar || input.nickname.en || '').trim();
+  const nick = input.hideKunya !== true && isObj(input.nickname) && String(input.nickname.ar || input.nickname.en || '').trim();
   if ((status === 'withheld' || status === 'unknown') && !nick) {
     const sur = isObj(input.surname) ? String((lang === 'en' ? input.surname.en || input.surname.ar : input.surname.ar || input.surname.en) || '').trim() : '';
     const base = status === 'withheld'
@@ -171,6 +171,7 @@ const FIELD_LABELS = {
   nickname: { en: 'nickname', ar: 'الكنية أو اللقب' },
   'nickname.ar': { en: 'Arabic nickname', ar: 'الكنية أو اللقب بالعربية' },
   'nickname.en': { en: 'English nickname', ar: 'الكنية أو اللقب بالإنجليزية' },
+  hideKunya: { en: 'kunya hidden', ar: 'إخفاء الكنية' },
   gender: { en: 'gender', ar: 'الجنس' },
   birth: { en: 'birth', ar: 'الميلاد' },
   'birth.date': { en: 'date of birth', ar: 'تاريخ الميلاد' },
@@ -324,6 +325,7 @@ const VALUE_LABELS = {
     unknown: { en: 'unknown', ar: 'غير معروفة' },
   },
   deceased: { true: { en: 'deceased', ar: 'متوفى' }, false: { en: 'living', ar: 'على قيد الحياة' } },
+  hideKunya: { true: { en: 'yes', ar: 'نعم' }, false: { en: 'no', ar: 'لا' } },
   approx: { true: { en: 'approximate', ar: 'تقريبي' }, false: { en: 'exact', ar: 'دقيق' } },
 };
 

@@ -22,7 +22,7 @@ A bilingual (Arabic / English) family-tree portal: anyone can browse it without 
 |---|---|
 | Site (plain HTML/CSS/ES modules, no build step, no dependencies) | `index.html`, `css/`, `js/` |
 | Pure logic shared by the site and the automation | `js/core/` |
-| Owner mode: direct edits committed through the GitHub API (keeper's key on the keeper's devices) | `js/owner.js`, `js/owner-ui.js` |
+| Owner mode: direct edits committed through the GitHub API (keeper's key on the keeper's devices); home-page settings (hidden family trees / «يلتقي» lines, `config.json` `home`) | `js/owner.js`, `js/owner-ui.js` |
 | Data: people and families, changelog, ledger of applied proposals | `data/family.json`, `data/changelog.json`, `data/applied.json` |
 | Automation scripts (check, apply, validate, backup) | `scripts/` |
 | Workflows and the proposal issue form | `../.github/workflows/family-tree-*.yml`, `../.github/ISSUE_TEMPLATE/family-tree-proposal.yml` |

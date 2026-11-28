@@ -3,6 +3,7 @@
 //   ownerHeader()                header pill: «المشرف» / Saving… / Saved ✓ / Not saved
 //   ownerSaveCard({rerender})    #/draft: «حفظ الكل في الشجرة» (the draft straight into the tree)
 //   applyNowBox(analysis)        #/preview and #/admin: «تطبيق مباشرة» for a relative's proposal
+//   saveHomeSetting(patch)       home page / #/admin: hide or show a family tree or a «يلتقي» line (config.json)
 //   initOwnerUi()                shows the owner module's notices (toasts; a dialog when GitHub stops accepting the key)
 // Never builds HTML from data; the token is only ever read from the password field and handed to owner.signIn().
 import { h, icon, bdi, toast, modal, confirmDialog } from './dom.js';
@@ -87,6 +88,10 @@ register({
     'owner.applyConfirmText': 'This proposal removes, merges or moves records (see the changes). It is applied at once; removed records can be restored later from Owner tools.',
     'owner.idReused': 'This proposal’s id is already used by a different proposal in the tree. Please ask for it to be sent again from the site.',
     'owner.notApplicable': 'It cannot be applied as it is — see the problems above, or use “Correct this proposal”.',
+    'owner.homeSaved': 'Saved — the change reaches everyone in about a minute',
+    'owner.homeFailed': 'Not saved: {why}',
+    'owner.authHomeText': 'GitHub no longer accepts the key saved on this device — it may have expired or been deleted. The home page was not changed. A new key can be added on the Owner tools page.',
+    'owner.forbiddenHomeText': 'The key on this device is not allowed to save to the repository (“Contents” may be read-only, or the branch is protected), so the home page was not changed. Signing out and adding a key with “Contents: Read and write” fixes it.',
   },
   ar: {
     'owner.badge': 'المشرف',
@@ -159,6 +164,10 @@ register({
     'owner.applyConfirmText': 'يتضمّن هذا المقترح حذفاً أو دمجاً أو نقلاً لسجلات (كما في التعديلات)، وسيُطبَّق فوراً، ويمكن استعادة المحذوف لاحقاً من أدوات المشرف.',
     'owner.idReused': 'رقم هذا المقترح مستخدم لمقترح آخر موجود في الشجرة. يُرجى طلب إرساله مجدداً من الموقع.',
     'owner.notApplicable': 'لا يمكن تطبيقه كما هو؛ يُرجى مراجعة المشكلات أعلاه، أو استخدام «تصحيح هذا المقترح».',
+    'owner.homeSaved': 'تم الحفظ — يصل التغيير إلى الجميع خلال دقيقة',
+    'owner.homeFailed': 'لم يُحفظ: {why}',
+    'owner.authHomeText': 'لم يعد GitHub يقبل المفتاح المحفوظ على هذا الجهاز، فربما انتهت صلاحيته أو حُذف. لم تتغيّر الصفحة الرئيسية. ويمكن إضافة مفتاح جديد من صفحة أدوات المشرف.',
+    'owner.forbiddenHomeText': 'المفتاح الموجود على هذا الجهاز غير مسموح له بالحفظ في المستودع (ربما صلاحية «Contents» للقراءة فقط، أو أن الفرع محميّ)، فلم تتغيّر الصفحة الرئيسية. ويُحلّ ذلك بتسجيل الخروج ثم إضافة مفتاح بصلاحية «Contents: Read and write».',
   },
 });
 
@@ -358,6 +367,29 @@ export function applyNowBox(a, { ok = true, destructive = false, alreadyApplied 
 }
 
 // ---------------------------------------------------------------------------------------------------------------
+// Home-page settings
+
+/**
+ * Hide / show family trees and «يلتقي» lines on the home page for everyone (owner mode). The page changes at once;
+ * the toast follows the commit. A refused key (401 / 403) is explained by the owner dialog instead of a toast.
+ * → Promise<{ok, …}>
+ */
+let dismissHomeToast = null; // one toast at a time: several quick hide / show taps must not stack identical toasts
+export async function saveHomeSetting(patch) {
+  let res;
+  try { res = await owner.saveHome(patch); } catch { res = { ok: false, error: { kind: 'http' } }; }
+  const show = (text, opts) => {
+    try { dismissHomeToast?.(); } catch { /* already gone */ }
+    dismissHomeToast = toast(text, opts);
+  };
+  if (res.ok) show(t('owner.homeSaved'), { type: 'success', timeout: 7000 });
+  else if (!['auth', 'forbidden', 'signedOut'].includes(res.error?.kind)) {
+    show(t('owner.homeFailed', { why: failText(res.error?.kind) }), { type: 'error', timeout: 12000 });
+  }
+  return res;
+}
+
+// ---------------------------------------------------------------------------------------------------------------
 // Notices from the save queue
 
 function showNotice(n) {
@@ -382,7 +414,8 @@ function showNotice(n) {
       title: t(auth ? 'owner.authTitle' : 'owner.forbiddenTitle'),
       size: 'sm',
       className: 'owner-alert',
-      body: h('p', null, t(auth ? 'owner.authText' : 'owner.forbiddenText')),
+      // A home-page setting that failed alone: nothing went to «مقترحي» (the page simply went back).
+      body: h('p', null, t(n.home && !n.kept ? (auth ? 'owner.authHomeText' : 'owner.forbiddenHomeText') : (auth ? 'owner.authText' : 'owner.forbiddenText'))),
       actions: [
         { label: t('common.close'), variant: 'ghost', value: null },
         store.draft.ops.length ? { label: t('owner.toDraft'), value: '#/draft' } : null,

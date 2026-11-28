@@ -48,7 +48,7 @@ globalThis.fetch = async (url, init = {}) => {
 };
 
 const { store } = await import('../js/store.js');
-const { owner, verifyToken, planSave, ownerCommitMessage, OWNER_KEY, utf8ToBase64, base64ToUtf8, dataPaths } = await import('../js/owner.js');
+const { owner, verifyToken, planSave, ownerCommitMessage, OWNER_KEY, utf8ToBase64, base64ToUtf8, dataPaths, planHomeConfig, patchHome, configPath, HOME_COMMIT_MESSAGE } = await import('../js/owner.js');
 const { normalizeData, serializeData, validateData } = await import('../js/core/schema.js');
 const { buildGraph } = await import('../js/core/graph.js');
 const { newProposal, proposalHash } = await import('../js/core/ops.js');
@@ -285,7 +285,7 @@ describe('owner: direct edits', () => {
     assert.ok(store.working.person(op.ref), 'still visible (now as a draft change)');
     assert.equal(store.pendingKind(op.ref), 'draft');
     assert.equal(gh.commitsOf().length, 1);
-    assert.ok(owner.takeNotices().some((n) => n.type === 'auth'));
+    assert.ok(owner.takeNotices().some((n) => n.type === 'auth' && !n.home && n.kept === 1), 'a data edit: the usual text (kept in «مقترحي»)');
   });
 
   test('network failure → kept in the draft; "Save all to the tree" then commits it', async () => {
@@ -479,6 +479,146 @@ describe('owner: Apply now (a relative\'s proposal)', () => {
 });
 
 // ---------------------------------------------------------------------------------------------------------------
+describe('owner: home-page settings (config.json "home")', () => {
+  const CONFIG_TEXT = `${JSON.stringify(CONFIG, null, 2)}\n`;
+  const TREE = 'p1aaaaaa';
+  const LINE = 'p2bbbbbb|p3cccccc';
+  const remoteConfig = () => JSON.parse(gh.file('config.json'));
+  beforeEach(async () => { await session({ fake: { files: { ...FILES, 'config.json': CONFIG_TEXT } } }); });
+
+  test('hiding a tree: the page changes at once, then ONE commit that changes only config.json', async () => {
+    const events = [];
+    const off = store.on('config', () => events.push(JSON.stringify(store.config.home ?? null)));
+    const done = owner.saveHome({ hideTrees: [TREE] });
+    assert.deepEqual(store.config.home, { hiddenTrees: [TREE] }, 'optimistic: before the commit lands');
+    const r = await done;
+    off();
+    assert.equal(r.ok, true);
+    assert.equal(r.committed, true);
+    const commits = gh.commitsOf();
+    assert.equal(commits.length, 2);
+    assert.deepEqual(commits[0].files, ['config.json']);
+    assert.equal(commits[0].message, HOME_COMMIT_MESSAGE);
+    assert.equal(commits[0].message, 'family-tree: owner home settings\n');
+    const cfg = remoteConfig();
+    assert.deepEqual(cfg.home, { hiddenTrees: [TREE] });
+    // every other setting (and the key order) is kept as it was
+    const { home, ...rest } = cfg;
+    assert.deepEqual(rest, CONFIG);
+    assert.deepEqual(Object.keys(rest), Object.keys(CONFIG));
+    assert.ok(gh.file('config.json').endsWith('}\n'));
+    assert.deepEqual(events, [JSON.stringify({ hiddenTrees: [TREE] })], 'one change event; the commit confirms it');
+    assert.equal(owner.status, 'saved');
+  });
+
+  test('show again: the list empties and "home" is dropped; nothing to change → no commit', async () => {
+    await owner.saveHome({ hideTrees: [TREE], hideBridges: [LINE] });
+    let r = await owner.saveHome({ showTrees: [TREE] });
+    assert.equal(r.committed, true);
+    assert.deepEqual(remoteConfig().home, { hiddenBridges: [LINE] });
+    r = await owner.saveHome({ showBridges: [LINE] });
+    assert.equal('home' in remoteConfig(), false);
+    assert.equal(store.config.home, undefined);
+    assert.equal(gh.file('config.json'), CONFIG_TEXT, 'back to the original text');
+    const n = gh.commitsOf().length;
+    r = await owner.saveHome({ showTrees: [TREE] });
+    assert.deepEqual([r.ok, r.committed], [true, false]);
+    assert.equal(gh.commitsOf().length, n);
+  });
+
+  test('someone else changed config.json meanwhile → re-read and patched on top (both changes kept)', async () => {
+    gh.onPatchRef = (n) => {
+      if (n !== 1) return;
+      const other = JSON.parse(gh.file('config.json'));
+      other.home = { hiddenBridges: [LINE] };
+      other.showDivorce = true;
+      gh.commit({ 'config.json': `${JSON.stringify(other, null, 2)}\n` }, 'another device');
+    };
+    const r = await owner.saveHome({ hideTrees: [TREE] });
+    assert.equal(r.ok, true);
+    assert.equal(gh.patches, 2);
+    const cfg = remoteConfig();
+    assert.deepEqual(cfg.home, { hiddenBridges: [LINE], hiddenTrees: [TREE] });
+    assert.equal(cfg.showDivorce, true);
+    assert.deepEqual(store.config.home, { hiddenBridges: [LINE], hiddenTrees: [TREE] }, 'the page follows the repository');
+    const commits = gh.commitsOf();
+    assert.equal(commits[0].parents[0], commits[1].sha);
+    assert.deepEqual(commits[0].files, ['config.json']);
+  });
+
+  test('401 → signed out on this device, the page goes back, nothing committed', async () => {
+    gh.failNext(({ path }) => path.includes('/git/ref/heads/'), { status: 401, body: { message: 'Bad credentials' } });
+    const done = owner.saveHome({ hideTrees: [TREE] });
+    assert.deepEqual(store.config.home, { hiddenTrees: [TREE] });
+    const r = await done;
+    assert.deepEqual(r, { ok: false, error: { kind: 'auth' } });
+    assert.equal(owner.active(), false);
+    assert.equal(localStorage.getItem(OWNER_KEY), null);
+    assert.equal(store.config.home, undefined);
+    assert.equal(gh.commitsOf().length, 1);
+    // the dialog says the home page was not changed (nothing went to «مقترحي»)
+    assert.ok(owner.takeNotices().some((n) => n.type === 'auth' && n.home === true && !n.kept));
+  });
+
+  test('403 → the forbidden explanation; network → an error, still signed in; the page goes back each time', async () => {
+    gh.failNext(({ method }) => method === 'POST', { status: 403, body: { message: 'Resource not accessible by personal access token' } });
+    let r = await owner.saveHome({ hideTrees: [TREE] });
+    assert.equal(r.error.kind, 'forbidden');
+    assert.equal(store.config.home, undefined);
+    assert.ok(owner.takeNotices().some((n) => n.type === 'forbidden' && n.home === true && !n.kept));
+    assert.equal(owner.active(), true, '403 does not sign out');
+    gh.failNext(() => true, { network: true });
+    r = await owner.saveHome({ hideBridges: [LINE] });
+    assert.deepEqual(r, { ok: false, error: { kind: 'network' } });
+    assert.equal(store.config.home, undefined);
+    assert.equal(owner.active(), true);
+    assert.equal(owner.status, 'error');
+    assert.equal(gh.commitsOf().length, 1);
+    r = await owner.saveHome({ hideBridges: [LINE] });
+    assert.equal(r.ok, true, 'works again afterwards');
+  });
+
+  test('a signed-in device adopts the repository\'s settings on load (GitHub Pages may still serve the old config.json)', async () => {
+    const other = JSON.parse(gh.file('config.json'));
+    other.home = { hiddenTrees: [TREE] };
+    gh.commit({ 'config.json': `${JSON.stringify(other, null, 2)}\n` }, 'another device');
+    assert.equal(store.config.home, undefined);
+    await owner.refresh();
+    assert.deepEqual(store.config.home, { hiddenTrees: [TREE] });
+  });
+
+  test('…even when reading the data fails at that moment (each read on its own)', async () => {
+    const other = JSON.parse(gh.file('config.json'));
+    other.home = { hiddenBridges: [LINE] };
+    gh.commit({ 'config.json': `${JSON.stringify(other, null, 2)}\n` }, 'another device');
+    gh.failNext(({ path }) => path.includes('family.json'), { status: 500, body: { message: 'Server Error' } });
+    await owner.refresh();
+    assert.deepEqual(store.config.home, { hiddenBridges: [LINE] });
+    assert.equal(owner.active(), true);
+  });
+
+  test('pure: patchHome / planHomeConfig', () => {
+    assert.equal(patchHome(undefined, {}), undefined);
+    assert.deepEqual(patchHome({ hiddenTrees: [TREE], other: 1 }, { hideTrees: [TREE, 'bad id', 'new3'], hideBridges: [LINE, 'p1|p2', 'pa111|pb222|pc333'] }),
+      { hiddenTrees: [TREE], other: 1, hiddenBridges: [LINE] }, 'malformed ids are never written');
+    assert.equal(patchHome({ hiddenTrees: [TREE] }, { showTrees: [TREE] }), undefined);
+    const plan = planHomeConfig(CONFIG_TEXT, { hideTrees: [TREE] });
+    assert.equal(plan.changed, true);
+    assert.equal(plan.text, `${JSON.stringify({ ...CONFIG, home: { hiddenTrees: [TREE] } }, null, 2)}\n`);
+    assert.equal(planHomeConfig(plan.text, { hideTrees: [TREE] }).changed, false);
+    assert.throws(() => planHomeConfig('{oops', {}), /GitHub http/);
+    assert.equal(configPath({ portalPath: '' }), 'config.json');
+    assert.equal(configPath({ portalPath: 'family-tree' }), 'family-tree/config.json');
+  });
+
+  test('signed out: nothing is saved and the page does not change', async () => {
+    owner.signOut();
+    const r = await owner.saveHome({ hideTrees: [TREE] });
+    assert.deepEqual(r, { ok: false, error: { kind: 'auth' } });
+    assert.equal(store.config.home, undefined);
+  });
+});
+
 describe('owner: pure helpers', () => {
   test('base64 round-trip keeps Arabic text intact', () => {
     const s = 'شجرة العائلة — Family 🌳 '.repeat(5000);

@@ -56,6 +56,15 @@ function nameStatusOf(p) {
   return p?.nameStatus === 'unknown' || p?.nameStatus === 'withheld' ? p.nameStatus : 'known';
 }
 
+/**
+ * The recorded kunya / nickname a person may be SHOWN by: '' when the keeper chose to hide it (`hideKunya`, §2.1).
+ * (Search still indexes the recorded nickname — graph.js reads the field itself.)
+ */
+function shownNick(p, lang) {
+  if (!p || p.hideKunya === true) return '';
+  return biText(p.nickname, lang);
+}
+
 /** Accept a person object or an id (looked up in the graph). */
 function asPerson(p, graph) {
   if (p && typeof p === 'object') return p;
@@ -128,7 +137,7 @@ const LABELS = {
  */
 function referenceName(q, lang, graph) {
   if (!q) return '';
-  if (!personName(q, lang) && !(nameStatusOf(q) === 'known' && biText(q.nickname, lang))) return '';
+  if (!personName(q, lang) && !(nameStatusOf(q) === 'known' && shownNick(q, lang))) return '';
   const text = lineageName(graph, q, lang, { depth: 2, style: 'plain' });
   return genitive(text, lang);
 }
@@ -173,6 +182,8 @@ function relationalLabel(p, lang, graph, status) {
  *   known    → given name (+ " (nickname)"); a kunya-only person shows the kunya.
  *   unknown / withheld → nickname, else a polite relational label (needs `graph`);
  *              plus their own surname: "أم خالد الحربي", "زوجة محمد علي محمود (داغستاني)".
+ *   hideKunya → no kunya at all (recorded or automatic); someone who would be shown BY their kunya
+ *              (kunya-only, or an unknown/withheld name with a kunya) gets the polite relational label.
  */
 const kunyaMemo = new WeakMap(); // graph → Map("id|lang" → kunya)
 
@@ -180,6 +191,7 @@ const kunyaMemo = new WeakMap(); // graph → Map("id|lang" → kunya)
  * Automatic kunya when none is recorded: «أبو/أم <eldest son>», else «أبو/أم <eldest daughter>»
  * ("Abu …" / "Umm …"). Children in the graph's order (birth year when known). '' without a graph, without a
  * known gender, or without named children. A recorded nickname always takes precedence (see displayName).
+ * This is the raw computation: `hideKunya` is honoured by nickOf / displayName (the forms still show it as a hint).
  */
 export function autoKunya(p, lang = 'ar', graph = null) {
   p = asPerson(p, graph);
@@ -205,11 +217,12 @@ export function autoKunya(p, lang = 'ar', graph = null) {
 
 /**
  * The kunya / nickname shown next to a known name: the recorded nickname, else the automatic kunya.
- * '' for people shown by a relational label or kunya alone (their display name already carries it).
+ * '' for people shown by a relational label or kunya alone (their display name already carries it), and for
+ * people whose kunya the keeper hid (`hideKunya`: neither the recorded nor the automatic one is shown).
  */
 export function nickOf(p, lang = 'ar', graph = null) {
   p = asPerson(p, graph);
-  if (!p || nameStatusOf(p) !== 'known') return '';
+  if (!p || nameStatusOf(p) !== 'known' || p.hideKunya === true) return '';
   const L = langOf(lang);
   if (!personName(p, L)) return '';
   return biText(p.nickname, L) || autoKunya(p, L, graph);
@@ -223,7 +236,9 @@ export function displayName(p, lang = 'ar', graph = null, { kunya = true, nick: 
   if (given && !withNick) return given; // the name alone (callers render the kunya separately, low-key)
   // A recorded nickname/kunya wins; otherwise the automatic kunya from the eldest son (or daughter) —
   // left out where a plain name reads better (kinship sentences: «عمّ علي», not «عمّ علي (أبو زياد)»).
-  const nick = biText(p.nickname, L) || (kunya ? autoKunya(p, L, graph) : '');
+  // hideKunya: no kunya at all; people who would be shown BY their kunya get the polite relational label.
+  const hidden = p.hideKunya === true;
+  const nick = hidden ? '' : (biText(p.nickname, L) || (kunya ? autoKunya(p, L, graph) : ''));
   if (given) return nick && nick !== given ? `${given} (${nick})` : given;
   const status = nameStatusOf(p);
   if (status === 'known' && nick) return nick; // kunya-only ("أبو خالد")
@@ -243,7 +258,7 @@ export function fullName(p, lang = 'ar', graph = null) {
   if (!p) return '';
   const L = langOf(lang);
   const given = personName(p, L);
-  const nick = biText(p.nickname, L);
+  const nick = shownNick(p, L);
   const sur = biText(p.surname, L, 'surname');
   if (given) {
     const base = sur ? `${given} ${sur}` : given;
@@ -256,7 +271,7 @@ export function fullName(p, lang = 'ar', graph = null) {
 /** The name a person contributes to a lineage chain: given name, or kunya for kunya-only people. */
 function lineagePart(p, lang) {
   if (!p || nameStatusOf(p) !== 'known') return '';
-  return personName(p, lang) || biText(p.nickname, lang);
+  return personName(p, lang) || shownNick(p, lang);
 }
 
 /** First non-empty own surname along the whole paternal chain (unbounded, cycle-safe). */
@@ -341,7 +356,7 @@ export function lineageName(graph, id, lang = 'ar', { depth = 3, style } = {}) {
 export function initials(p, lang = 'ar') {
   if (!p) return '';
   const L = langOf(lang);
-  const base = personName(p, L) || biText(p.nickname, L);
+  const base = personName(p, L) || shownNick(p, L);
   if (!base) return '';
   const firstLetter = (s) => (String(s).match(/\p{L}/u) || [''])[0];
   const f = firstLetter(base);

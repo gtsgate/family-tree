@@ -4,7 +4,11 @@
 // leaf with their FIRST name written inside it. The skeleton is the male line; mothers, wives, daughters and
 // "others" can be added as leaves in their own colour (and outline/pattern, for colour-blind readers).
 //
-//   abstractTree(graph, { lang }) → <section> element (call .dispose() when the view goes away)
+//   abstractTree(graph, { lang, home, owner }) → <section> element (call .dispose() when the view goes away)
+//     home  = config.json "home" ({hiddenTrees: [head ids], hiddenBridges: ["<husbandId>|<wifeId>"]}): hidden trees
+//             and «يلتقي» captions are shown to nobody (SPEC §7.2).
+//     owner = {save(patch)} in owner mode only: small hide buttons on each tree and caption, and a row listing what
+//             is hidden with «إظهار» / "Show" (patch = {hideTrees|showTrees|hideBridges|showBridges: [...]}).
 //
 // Layout (per family, in tree units — the SVG scales to its column): a polar fan centred a little above the fork.
 //   Every crown item (tag or leaf) gets an angular sector in proportion to the room it and its descendants need;
@@ -55,6 +59,15 @@ register({
     'ht.summary': '{tree}: {generations}, {men} and {women}. Founding grandfather: {founder}.',
     'ht.counts': '{men} · {women}',
     'ht.empty': 'The family trees will appear here once the first family is added.',
+    'ht.own.hide': 'Hide from the home page',
+    'ht.own.hideTree': 'Hide {tree} from the home page',
+    'ht.own.hideLine': 'Hide',
+    'ht.own.hideLineLabel': 'Hide this line from the home page',
+    'ht.own.hidden': 'Hidden from the home page:',
+    'ht.own.hiddenNote': 'Owner mode — only the keeper sees this',
+    'ht.own.show': 'Show',
+    'ht.own.showItem': 'Show {item} on the home page',
+    'ht.own.marriage': 'Marriage of {husband} and {wife}',
   },
   ar: {
     'ht.sectionTitle': 'أشجار العائلة',
@@ -90,6 +103,15 @@ register({
     'ht.summary': '{tree}: {generations}، تضمّ {men} و{women}. الجدّ المؤسّس: {founder}.',
     'ht.counts': '{men} · {women}',
     'ht.empty': 'ستظهر أشجار العائلة هنا عند إضافة أول عائلة.',
+    'ht.own.hide': 'إخفاء من الصفحة الرئيسية',
+    'ht.own.hideTree': 'إخفاء {tree} من الصفحة الرئيسية',
+    'ht.own.hideLine': 'إخفاء',
+    'ht.own.hideLineLabel': 'إخفاء هذا السطر من الصفحة الرئيسية',
+    'ht.own.hidden': 'مخفيّ من الصفحة الرئيسية:',
+    'ht.own.hiddenNote': 'وضع المشرف — لا يرى هذا غير المشرف',
+    'ht.own.show': 'إظهار',
+    'ht.own.showItem': 'إظهار {item} في الصفحة الرئيسية',
+    'ht.own.marriage': 'زواج {husband} و{wife}',
   },
 });
 
@@ -137,7 +159,7 @@ function readShow() {
 function leafName(p, l) {
   const given = personName(p, l);
   if (given) return given;
-  if ((p.nameStatus || 'known') === 'known') {
+  if ((p.nameStatus || 'known') === 'known' && !p.hideKunya) {
     const nick = bi(p.nickname, l);
     if (nick) return nick;
   }
@@ -290,6 +312,69 @@ export function familyBridges(graph, fams) {
     }
   }
   return out;
+}
+
+// ---------------------------------------------------------------------------------------------------------
+// Home-page settings (config.json "home"): hidden trees and «يلتقي» captions
+
+/** The key of a «يلتقي» caption in config.home.hiddenBridges: "<husbandId>|<wifeId>". */
+export const bridgeKey = (b) => `${b.husband.id}|${b.wife.id}`;
+
+/**
+ * The keys of config.home.hiddenBridges that hide this caption: "<husbandId>|<wifeId>", or the same couple written
+ * the other way round (config.json edited by hand). [] = shown.
+ */
+export function bridgeHiddenBy(b, hidden) {
+  return [bridgeKey(b), `${b.wife.id}|${b.husband.id}`].filter((k) => hidden.bridges.has(k));
+}
+
+/**
+ * Only people already saved in the tree (ids "p…") can be named in config.home: someone added a moment ago still
+ * has a temporary id until the save lands, and a setting naming that id would hide nothing.
+ */
+const savedId = (id) => /^p[a-z0-9]{3,24}$/.test(String(id || ''));
+export const canHideTree = (fam) => savedId(fam?.head?.id);
+export const canHideBridge = (b) => savedId(b?.husband?.id) && savedId(b?.wife?.id);
+
+/** config.home → {trees: Set(person ids), bridges: Set(keys)} (absent / malformed = nothing hidden). */
+export function homeHidden(home) {
+  const list = (v) => (Array.isArray(v) ? v.filter((x) => typeof x === 'string' && x) : []);
+  const h0 = home && typeof home === 'object' && !Array.isArray(home) ? home : {};
+  return { trees: new Set(list(h0.hiddenTrees)), bridges: new Set(list(h0.hiddenBridges)) };
+}
+
+/**
+ * The ids of config.home.hiddenTrees that hide this tree: its head — or a man of its trunk, so a tree stays hidden
+ * when an older ancestor is added above the founder later. [] = shown.
+ */
+export function treeHiddenBy(fam, hidden) {
+  const ids = [fam.head, ...(fam.chain || [])].map((p) => p && p.id).filter(Boolean);
+  return [...new Set(ids)].filter((id) => hidden.trees.has(id));
+}
+
+/** Trees and captions as the home page shows them. → {trees, hiddenTrees, bridges, hiddenBridges} (all bridges, unsliced) */
+export function homeView(fams, bridges, home) {
+  const hidden = homeHidden(home);
+  const isHidden = (f) => treeHiddenBy(f, hidden).length > 0;
+  const lineHidden = (b) => bridgeHiddenBy(b, hidden).length > 0;
+  return {
+    trees: fams.filter((f) => !isHidden(f)),
+    hiddenTrees: fams.filter(isHidden),
+    bridges: bridges.filter((b) => !lineHidden(b)),
+    hiddenBridges: bridges.filter(lineHidden),
+  };
+}
+
+/**
+ * Parts of a «يلتقي» caption: strings and the two people rendered by `person(p)` (links on the home page, plain
+ * text elsewhere). `fams` = every family tree (the indexes of familyBridges).
+ */
+export function bridgeParts(b, fams, l, person) {
+  const a = bi(fams[b.from].family);
+  let c = bi(fams[b.to].family);
+  if (l === 'en') c = c.replace(/^The /, 'the ');
+  const tpl = t('ht.bridge', { a, b: c, husband: '\u0001', wife: '\u0002' });
+  return tpl.split(/([\u0001\u0002])/).filter((x) => x !== '').map((x) => (x === '\u0001' ? person(b.husband) : x === '\u0002' ? person(b.wife) : x));
 }
 
 // ---------------------------------------------------------------------------------------------------------
@@ -1087,24 +1172,84 @@ function openViewer(lay, title, { at = null, opener = null } = {}) {
 let grownOnce = false;
 const narrow = () => { try { return matchMedia('(max-width: 700px)').matches; } catch { return false; } };
 
+/** Owner mode: «مخفيّ من الصفحة الرئيسية: …» with «إظهار» for each hidden tree / caption (null when nothing is hidden). */
+function ownerHiddenRow(view, home, save) {
+  if (!view.hiddenTrees.length && !view.hiddenBridges.length) return null;
+  const hidden = homeHidden(home);
+  const item = (label, patch, data, back) => h('li', { class: 'ht-own-item' },
+    h('span', { class: 'ht-own-label' }, label),
+    h('button', {
+      type: 'button', class: 'btn btn-sm ht-own-show', dataset: data,
+      attrs: { 'aria-label': t('ht.own.showItem', { item: label }) },
+      on: { click: () => save(patch, back) },
+    }, icon('eye', { size: 14 }), h('span', null, t('ht.own.show'))));
+  const shortName = (p) => lineageOf(p, { depth: 2 });
+  return h('div', { class: 'ht-own-row', attrs: { role: 'region', 'aria-label': t('ht.own.hidden') } },
+    h('p', { class: 'ht-own-head small', title: t('ht.own.hiddenNote') },
+      icon('key', { size: 14 }), h('span', null, t('ht.own.hidden'))),
+    h('ul', { class: 'ht-own-list' },
+      view.hiddenTrees.map((f) => item(t('ht.treeOf', { family: bi(f.family) }), { showTrees: treeHiddenBy(f, hidden) },
+        { head: f.head.id }, `.ht-own-hide[data-head="${f.head.id}"]`)),
+      view.hiddenBridges.map((b) => item(t('ht.own.marriage', { husband: shortName(b.husband), wife: shortName(b.wife) }), { showBridges: bridgeHiddenBy(b, hidden) },
+        { key: bridgeKey(b) }, `.ht-bridge-hide[data-key="${bridgeKey(b)}"]`))));
+}
+
+/**
+ * Owner mode: save a hide / show patch. The page re-renders at once (store.setHome), so the button that was pressed
+ * is gone: the keyboard focus moves to its counterpart («إظهار» ↔ «إخفاء»), else to the section title.
+ */
+function ownerSaver(owner) {
+  return (patch, focusSel) => {
+    const old = document.querySelector('.home-trees');
+    const done = owner.save(patch);
+    // The app re-renders asynchronously: wait (a few frames at most) for the new section before moving the focus.
+    let frames = 0;
+    const step = () => {
+      const sec = document.querySelector('.home-trees');
+      if (!sec || sec === old) { if (++frames < 30) requestAnimationFrame(step); return; }
+      let el = null;
+      try { el = focusSel ? sec.querySelector(focusSel) : null; } catch { el = null; } // an odd id in a hand-edited config
+      el = el || sec.querySelector('#ht-title') || sec.querySelector('.ht-own-show');
+      if (!el) return;
+      if (el.id === 'ht-title') el.tabIndex = -1;
+      el.focus({ preventScroll: true });
+    };
+    try { requestAnimationFrame(step); } catch { /* no rAF (tests) */ }
+    return done;
+  };
+}
+
 /**
  * The family-trees section of the home page (one illustrated tree per family branch).
  */
-export function abstractTree(graph, { lang: l = currentLang() } = {}) {
+export function abstractTree(graph, { lang: l = currentLang(), home = store.config?.home, owner = null } = {}) {
   const rtl = l === 'ar';
   const section = h('section', { class: 'home-trees', attrs: { 'aria-labelledby': 'ht-title' } });
   const disposers = [];
   section.dispose = () => { closePop(); for (const fn of disposers.splice(0)) { try { fn(); } catch { /* ignore */ } } };
 
   const show = readShow();
-  let fams = familyTrees(graph, show);
-  if (!fams.length) {
+  let all = familyTrees(graph, show);
+  if (!all.length) {
     section.append(
       h('div', { class: 'section-title' }, h('h2', { id: 'ht-title' }, t('ht.sectionTitle'))),
       h('p', { class: 'muted' }, t('ht.empty')));
     return section;
   }
   const famTitle = (f) => t('ht.treeOf', { family: bi(f.family) });
+  // Trees and «يلتقي» captions the keeper hid from the home page (config.home) are shown to nobody.
+  const view = homeView(all, familyBridges(graph, all), home);
+  const visible = (list) => { const keep = new Set(view.trees.map((f) => f.head.id)); return list.filter((f) => keep.has(f.head.id)); };
+  let fams = view.trees;
+  const save = owner ? ownerSaver(owner) : null;
+  const hiddenRow = owner ? ownerHiddenRow(view, home, save) : null;
+  if (!fams.length) {
+    // Every tree is hidden: nothing of this section — except, for the keeper, the way to show them again.
+    section.classList.add('is-all-hidden');
+    if (hiddenRow) section.append(hiddenRow);
+    else section.hidden = true;
+    return section;
+  }
 
   // Selected family on phones (remembered).
   let selected = readPref('family');
@@ -1134,7 +1279,8 @@ export function abstractTree(graph, { lang: l = currentLang() } = {}) {
           show[c] = !show[c];
           writePref(c, show[c] ? '1' : '0');
           e.currentTarget.setAttribute('aria-pressed', String(show[c]));
-          fams = familyTrees(graph, show);
+          all = familyTrees(graph, show);
+          fams = visible(all);
           draw({ leavesOnly: true });
         },
       },
@@ -1194,7 +1340,14 @@ export function abstractTree(graph, { lang: l = currentLang() } = {}) {
         stage),
       h('div', { class: 'ht-tree-foot' },
         enlarge,
-        h('a', { class: 'btn btn-sm btn-ghost', href: `#/tree/${encodeURIComponent(fam.head.id)}` }, icon('tree', { size: 16 }), h('span', null, t('ht.detailed')))));
+        h('a', { class: 'btn btn-sm btn-ghost', href: `#/tree/${encodeURIComponent(fam.head.id)}` }, icon('tree', { size: 16 }), h('span', null, t('ht.detailed'))),
+        owner && canHideTree(fam) ? h('button', {
+          type: 'button', class: 'btn btn-sm btn-ghost ht-own-hide',
+          dataset: { head: fam.head.id },
+          title: t('ht.own.hideTree', { tree: title }),
+          attrs: { 'aria-label': t('ht.own.hideTree', { tree: title }) },
+          on: { click: () => save({ hideTrees: [fam.head.id] }, `.ht-own-show[data-head="${fam.head.id}"]`) },
+        }, icon('eyeOff', { size: 16 }), h('span', null, t('ht.own.hide'))) : null));
       // Interaction: phones open the viewer at the tapped spot; wider screens open the popover.
       svg.addEventListener('click', (e) => {
         if (narrow()) {
@@ -1229,27 +1382,32 @@ export function abstractTree(graph, { lang: l = currentLang() } = {}) {
     hint.textContent = narrow() ? t('ht.hintTap') : t('ht.hintClick');
   }
 
-  // Marriages that join two families.
-  const bridges = familyBridges(graph, fams).slice(0, 3);
+  // Marriages that join two families (captions the keeper hid are left out).
+  const bridges = view.bridges.slice(0, 3);
   const person = (p) => h('a', { href: `#/p/${encodeURIComponent(p.id)}` }, bdi(lineageOf(p, { depth: 2 })));
   for (const b of bridges) {
-    const a = bi(fams[b.from].family);
-    let c = bi(fams[b.to].family);
-    if (l === 'en') c = c.replace(/^The /, 'the ');
-    const tpl = t('ht.bridge', { a, b: c, husband: '\u0001', wife: '\u0002' });
-    const parts = tpl.split(/([\u0001\u0002])/).map((x) => (x === '\u0001' ? person(b.husband) : x === '\u0002' ? person(b.wife) : x));
-    bridgesLine.appendChild(h('p', { class: 'ht-bridge small' }, h('span', { class: 'ht-rings', attrs: { 'aria-hidden': 'true' } }, icon('heart', { size: 14 })), h('span', null, ...parts)));
+    const parts = bridgeParts(b, all, l, person);
+    bridgesLine.appendChild(h('p', { class: 'ht-bridge small', dataset: { key: bridgeKey(b) } },
+      h('span', { class: 'ht-rings', attrs: { 'aria-hidden': 'true' } }, icon('heart', { size: 14 })),
+      h('span', null, ...parts),
+      owner && canHideBridge(b) ? h('button', {
+        type: 'button', class: 'btn btn-sm btn-ghost ht-own-hide ht-bridge-hide', dataset: { key: bridgeKey(b) },
+        title: t('ht.own.hideLineLabel'), attrs: { 'aria-label': t('ht.own.hideLineLabel') },
+        on: { click: () => save({ hideBridges: [bridgeKey(b)] }, `.ht-own-show[data-key="${bridgeKey(b)}"]`) },
+      }, icon('eyeOff', { size: 14 }), h('span', null, t('ht.own.hideLine'))) : null));
   }
 
   draw();
-  section.append(
+  section.append(...[
     h('div', { class: 'section-title' }, h('h2', { id: 'ht-title' }, t('ht.sectionTitle'))),
     h('p', { class: 'ht-lead muted' }, t('ht.lead')),
     h('div', { class: 'ht-controls' }, switcher, chips),
     grid,
     hint,
     bridges.length ? bridgesLine : null,
-    summary);
+    hiddenRow,
+    summary,
+  ].filter(Boolean)); // (Element.append would turn a null into the text "null")
 
   // Fonts arriving after the first layout change the name widths: lay out again once.
   try {

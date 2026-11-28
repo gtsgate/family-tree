@@ -9,7 +9,7 @@ import { fileURLToPath } from 'node:url';
 import { normalizeData } from '../js/core/schema.js';
 import { buildGraph } from '../js/core/graph.js';
 import { personName } from '../js/core/names.js';
-import { familyTrees, familyBridges, layoutFamily } from '../js/views/home-tree.js';
+import { familyTrees, familyBridges, layoutFamily, homeView, homeHidden, bridgeKey, bridgeHiddenBy, treeHiddenBy, canHideTree, canHideBridge } from '../js/views/home-tree.js';
 
 const raw = JSON.parse(readFileSync(fileURLToPath(new URL('../data/family.json', import.meta.url)), 'utf8'));
 const G = buildGraph(normalizeData(raw));
@@ -109,6 +109,61 @@ describe('familyTrees — real data', () => {
     assert.equal(personName(bridges[0].husband, 'ar'), 'علي');
     assert.equal(bridges[0].wife.id, 'p10p5jzy');
     assert.deepEqual([bridges[0].from, bridges[0].to], [0, 1]);
+  });
+});
+
+describe('home page settings (config.json "home": hidden trees and «يلتقي» lines)', () => {
+  const fams = familyTrees(G, {});
+  const bridges = familyBridges(G, fams);
+  const [alam, mahmoud] = fams;
+  test('absent or malformed settings hide nothing', () => {
+    for (const home of [undefined, null, {}, [], 'x', { hiddenTrees: 'p1', hiddenBridges: [3] }]) {
+      const v = homeView(fams, bridges, home);
+      assert.equal(v.trees.length, 2);
+      assert.equal(v.bridges.length, 1);
+      assert.deepEqual([v.hiddenTrees.length, v.hiddenBridges.length], [0, 0]);
+    }
+  });
+  test('a hidden tree (by its founder) disappears; the others and the captions stay', () => {
+    const v = homeView(fams, bridges, { hiddenTrees: [mahmoud.head.id] });
+    assert.deepEqual(v.trees.map((f) => f.family.ar), ['آل عالم']);
+    assert.deepEqual(v.hiddenTrees.map((f) => f.family.ar), ['آل محمود']);
+    assert.equal(v.bridges.length, 1, 'captions are hidden on their own');
+    assert.deepEqual(treeHiddenBy(mahmoud, homeHidden({ hiddenTrees: [mahmoud.head.id] })), [mahmoud.head.id]);
+    assert.deepEqual(treeHiddenBy(alam, homeHidden({ hiddenTrees: [mahmoud.head.id] })), []);
+  });
+  test('a man of the trunk hides the tree too (an older ancestor added later keeps it hidden)', () => {
+    assert.ok(alam.chain.length >= 2);
+    const v = homeView(fams, bridges, { hiddenTrees: [alam.chain[1].id] });
+    assert.deepEqual(v.trees.map((f) => f.family.ar), ['آل محمود']);
+    // a man outside the trunk hides nothing
+    const son = alam.items[0].p; // a son of the top of the trunk: on the crown, not on the trunk
+    assert.ok(!alam.chain.some((x) => x.id === son.id));
+    assert.equal(homeView(fams, bridges, { hiddenTrees: [son.id, 'pnobody0'] }).trees.length, 2);
+  });
+  test('every tree hidden → none shown', () => {
+    const v = homeView(fams, bridges, { hiddenTrees: fams.map((f) => f.head.id) });
+    assert.deepEqual([v.trees.length, v.hiddenTrees.length], [0, 2]);
+  });
+  test('a hidden «يلتقي» caption: key "<husbandId>|<wifeId>"', () => {
+    const key = bridgeKey(bridges[0]);
+    assert.equal(key, `${bridges[0].husband.id}|p10p5jzy`);
+    const v = homeView(fams, bridges, { hiddenBridges: [key] });
+    assert.deepEqual([v.bridges.length, v.hiddenBridges.length, v.trees.length], [0, 1, 2]);
+    assert.deepEqual(bridgeHiddenBy(bridges[0], homeHidden({ hiddenBridges: [key] })), [key]);
+  });
+  test('the same couple written the other way round ("<wifeId>|<husbandId>", config.json edited by hand) hides it too', () => {
+    const rev = `p10p5jzy|${bridges[0].husband.id}`;
+    const v = homeView(fams, bridges, { hiddenBridges: [rev] });
+    assert.deepEqual([v.bridges.length, v.hiddenBridges.length], [0, 1]);
+    // «إظهار» removes whichever spelling hides it
+    assert.deepEqual(bridgeHiddenBy(bridges[0], homeHidden({ hiddenBridges: [rev, bridgeKey(bridges[0]), 'pzzzz|pyyyy'] })), [bridgeKey(bridges[0]), rev]);
+  });
+  test('people not saved yet (temporary ids) cannot be named in the settings: no hide control for them', () => {
+    assert.equal(canHideTree(alam), true);
+    assert.equal(canHideBridge(bridges[0]), true);
+    assert.equal(canHideTree({ ...alam, head: { ...alam.head, id: 'new3' } }), false);
+    assert.equal(canHideBridge({ ...bridges[0], wife: { ...bridges[0].wife, id: 'new1' } }), false);
   });
 });
 
