@@ -10,11 +10,13 @@
 // * Checks the string registry: every key in both languages; no Arabic string starts with a masculine imperative.
 // * Runs the main flows end to end: wizard → draft → WhatsApp code that applies in FINAL mode; person-page dialogs;
 //   send via "copy code" → #/me → simulated approval (new family.json + changelog + applied ledger) → toast;
-//   admin paste → preview → approve-issue URL; home family trees (options, popover, keyboard, viewer, no overlaps);
+//   admin paste → preview → approve-issue URL; home family trees (options, popover, keyboard, viewer, no overlaps;
+//   families without a crown named in the «عائلات أخرى» line instead of drawn);
 //   owner mode (api.github.com routed to tests/fake-github-api.mjs): sign in, a child added from the person page is
 //   committed at once and shown without a proposal, "Apply now" on a preview; signed out → the proposal flow again;
-//   home-page settings (hide a family tree and a «يلتقي» line → one commit of config.json only; a visitor loading that
-//   config does not see them; the #/admin "Home page" card) and «إخفاء الكنية» from the edit form.
+//   home-page settings (hide a family tree and a «يلتقي» line → one commit of config.json only; the lines naming a
+//   hidden family go with it; a visitor loading that config does not see them; hide / show a family of the «عائلات
+//   أخرى» line; the #/admin "Home page" card) and «إخفاء الكنية» from the edit form.
 // Needs Playwright with Chromium (`require('playwright')` must resolve, e.g. via NODE_PATH or a global install).
 // --flow=<text> runs only the flows whose name contains <text> (with the i18n check and route sweep unless --flows-only).
 import { createRequire } from 'node:module';
@@ -31,6 +33,7 @@ import { buildGraph } from '../../js/core/graph.js';
 import { describeProposal } from '../../js/core/describe.js';
 import { lineageName, displayName, autoKunya, personName } from '../../js/core/names.js';
 import { createFakeGitHub, FAKE_TOKEN } from '../fake-github-api.mjs';
+import { familyTrees, familyBridges, hasCrown } from '../../js/views/home-tree.js';
 
 const require = createRequire(import.meta.url);
 let chromium;
@@ -803,20 +806,34 @@ const OVERLAPS = () => {
   return out;
 };
 
-flow('home family trees: options, popover, keyboard, viewer (ar 1280px + 360px)', async (browser) => {
+flow('home family trees: options, popover, keyboard, viewer, other families (ar 1280px + 360px)', async (browser) => {
   const W = 'home-trees';
-  const branches = G.branches();
+  // Only families with a crown are drawn; the others (a single line of men) are named under the trees.
+  const fams = familyTrees(G, {});
+  const branches = fams.filter(hasCrown).map((f) => ({ person: f.head, family: f.family }));
+  const named = fams.filter((f) => !hasCrown(f));
   // --- desktop ---
   let context = await newContext(browser, { lang: 'ar', width: 1280, height: 800 });
   let page = await context.newPage();
   let problems = watch(page);
   await load(page, '#/');
   check(await page.locator('#app .home-help').count() === 0, W, 'the home page still shows "help complete the tree"');
-  check(await page.locator('.ht-tree').count() === branches.length, W, `${await page.locator('.ht-tree').count()} trees for ${branches.length} families`);
+  check(await page.locator('.ht-tree').count() === branches.length, W, `${await page.locator('.ht-tree').count()} trees for ${branches.length} families with a crown`);
   const titles = await page.locator('.ht-name').allInnerTexts();
   check(branches.every((b) => titles.some((x) => x.includes(`شجرة ${b.family.ar}`))), W, `tree titles: ${titles.join(' | ')}`);
   check(await page.locator('.ht-leaf').count() > 0 && await page.locator('.ht-leaf:not(.ht-c-man)').count() === 0, W, 'by default the trees should show the men only');
   check(await page.locator('.ht-trunk-name').count() >= branches.length, W, 'no names on the trunks');
+  // «عائلات أخرى: …»: each family without a crown, once, as a link to its detailed tree — never a bare trunk.
+  const others = await page.locator('.ht-others .ht-other a').evaluateAll((as) => as.map((a) => [a.getAttribute('href'), a.textContent]));
+  check(JSON.stringify(others) === JSON.stringify(named.map((f) => [`#/tree/${f.head.id}`, f.family.ar])), W, `other families line: ${JSON.stringify(others)}`);
+  if (named.length) {
+    const line = await page.locator('.ht-others').innerText();
+    check(/^عائلات أخرى:/.test(line.trim()) && line.includes('،'), W, `other families line text «${line}»`);
+    check(await page.locator(named.map((f) => `.ht-tree[data-head="${f.head.id}"]`).join(', ')).count() === 0, W, 'a family without a crown is drawn as a tree');
+    check(await page.locator('.ht-others .ht-other-hide').count() === 0, W, 'visitor: hide controls on the other families');
+    await page.locator('.ht-others').scrollIntoViewIfNeeded();
+    await shot(page, 'home-trees-0-other-families');
+  }
   // Options: daughters on → rose leaves, remembered across a reload; off again.
   await page.locator('.ht-chip[data-cat="daughters"]').click();
   await page.waitForTimeout(150);
@@ -865,6 +882,7 @@ flow('home family trees: options, popover, keyboard, viewer (ar 1280px + 360px)'
   await load(page, '#/');
   const visible = () => page.locator('.ht-tree').evaluateAll((els) => els.filter((e) => e.offsetParent !== null).map((e) => e.dataset.head));
   check((await visible()).length === 1, W, 'phone: more than one tree visible');
+  check(await page.locator('.ht-switch button').count() === (branches.length > 1 ? branches.length : 0), W, 'phone: the family switch does not list exactly the drawn families');
   if (branches.length > 1) {
     await page.locator(`.ht-switch button[data-head="${branches[1].person.id}"]`).click();
     check((await visible())[0] === branches[1].person.id, W, 'phone: the family switch does not change the tree');
@@ -1081,6 +1099,14 @@ flow('owner home settings: hide a tree and a «يلتقي» line (config.json on
   const mahmoud = G.branches().find((b) => b.family?.ar === 'آل محمود')?.person.id;
   const alam = G.branches().find((b) => b.family?.ar === 'آل عالم')?.person.id;
   if (!check(mahmoud && alam, W, 'the real data has no «آل عالم» / «آل محمود» trees')) { await context.close(); return; }
+  // The keeper keeps adding families: what to expect comes from the data (drawn = with a crown; named = without).
+  const fams = familyTrees(G, {});
+  const bridges = familyBridges(G, fams);
+  const drawn = fams.filter(hasCrown);
+  const named = fams.filter((f) => !hasCrown(f));
+  const mahmoudFam = fams.find((f) => f.head.id === mahmoud);
+  const touching = (f) => bridges.filter((b) => b.from === f.index || b.to === f.index).map((b) => `${b.husband.id}|${b.wife.id}`);
+  const shownKeys = () => page.locator('.ht-bridge').evaluateAll((els) => els.map((e) => e.dataset.key));
   /** Wait until the fake repository has `n` commits after the initial one and the save is over → exactly n? */
   const waitCommits = async (n) => {
     for (let i = 0; i < 150 && gh.commitsOf().length - 1 < n; i++) await page.waitForTimeout(100);
@@ -1093,8 +1119,9 @@ flow('owner home settings: hide a tree and a «يلتقي» line (config.json on
   await load(page, '#/');
   await page.waitForSelector('.ht-tree');
   check(await page.locator('.owner-pill').count() === 1, W, 'not in owner mode');
-  check(await page.locator('.ht-tree .ht-own-hide').count() === 2, W, 'no «إخفاء من الصفحة الرئيسية» button on each tree');
-  check(await page.locator('.ht-bridge .ht-bridge-hide').count() === 1, W, 'no «إخفاء» button on the «يلتقي» line');
+  check(await page.locator('.ht-tree .ht-own-hide').count() === drawn.length, W, 'no «إخفاء من الصفحة الرئيسية» button on each tree');
+  check(await page.locator('.ht-bridge .ht-bridge-hide').count() === Math.min(3, bridges.length), W, 'no «إخفاء» button on each «يلتقي» line');
+  check(await page.locator('.ht-others .ht-other-hide').count() === named.length, W, 'no hide button on each of the other families');
   check(await page.locator('.ht-own-row').count() === 0, W, 'the hidden row is shown while nothing is hidden');
   check(/إخفاء من الصفحة الرئيسية/.test(await page.locator('.ht-own-hide').first().innerText()), W, 'hide button label');
   await page.locator(`.ht-tree[data-head="${mahmoud}"] .ht-tree-foot`).scrollIntoViewIfNeeded().catch(() => {});
@@ -1110,14 +1137,16 @@ flow('owner home settings: hide a tree and a «يلتقي» line (config.json on
   check(JSON.stringify(remoteConfig().home) === JSON.stringify({ hiddenTrees: [mahmoud] }), W, `config.home ${JSON.stringify(remoteConfig().home)}`);
   const toastText = await page.locator('.toast-success').last().innerText().catch(() => '');
   check(/تم الحفظ — يصل التغيير إلى الجميع خلال دقيقة/.test(toastText), W, `toast says "${toastText}"`);
-  check(await page.locator('.ht-switch').count() === 0, W, 'the phone family switch still lists the hidden tree');
-  check(await page.locator('.ht-tree').count() === 1, W, 'more than one tree left');
+  check(await page.locator(`.ht-switch button[data-head="${mahmoud}"]`).count() === 0, W, 'the phone family switch still lists the hidden tree');
+  check(await page.locator('.ht-tree').count() === drawn.length - 1, W, 'not exactly one tree fewer');
   check(/شجرة آل محمود/.test(await page.locator('.ht-own-row').innerText().catch(() => '')), W, 'the hidden row does not list «شجرة آل محمود»');
+  // the «يلتقي» lines naming آل محمود are hidden with it (not listed in the hidden row: they come back with it)
+  check(!(await shownKeys()).some((k) => touching(mahmoudFam).includes(k)), W, `a «يلتقي» line still names the hidden family: ${await shownKeys()}`);
 
-  // (3) Hide the «يلتقي» line.
+  // (3) Hide a «يلتقي» line.
   const key = await page.locator('.ht-bridge').first().getAttribute('data-key');
-  await page.locator('.ht-bridge .ht-bridge-hide').click();
-  await page.waitForFunction(() => !document.querySelector('.ht-bridge'), null, { timeout: 3000 });
+  await page.locator(`.ht-bridge[data-key="${key}"] .ht-bridge-hide`).click();
+  await page.waitForFunction((k) => !document.querySelector(`.ht-bridge[data-key="${k}"]`), key, { timeout: 3000 });
   check(await waitCommits(2), W, `${gh.commitsOf().length - 1} commits after hiding the line`);
   c = gh.commitsOf()[0];
   check(JSON.stringify(c.files) === JSON.stringify(['config.json']), W, `the second commit changed ${c.files}`);
@@ -1140,8 +1169,12 @@ flow('owner home settings: hide a tree and a «يلتقي» line (config.json on
   await vpage.waitForSelector('.ht-tree');
   check(await vpage.locator(`.ht-tree[data-head="${mahmoud}"]`).count() === 0, W, 'visitor: «شجرة آل محمود» is shown');
   check(await vpage.locator(`.ht-tree[data-head="${alam}"]`).count() === 1, W, 'visitor: «شجرة آل عالم» is missing');
-  check(await vpage.locator('.ht-bridge').count() === 0, W, 'visitor: the «يلتقي» line is shown');
-  check(await vpage.locator('.ht-own-hide, .ht-own-row, .ht-switch').count() === 0, W, 'visitor: owner controls or the family switch are shown');
+  const vkeys = await vpage.locator('.ht-bridge').evaluateAll((els) => els.map((e) => e.dataset.key));
+  check(!vkeys.includes(key), W, 'visitor: the hidden «يلتقي» line is shown');
+  check(!vkeys.some((k) => touching(mahmoudFam).includes(k)), W, 'visitor: a «يلتقي» line names the hidden family');
+  check(await vpage.locator('.ht-others .ht-other').count() === named.length, W, 'visitor: the other families line changed');
+  check(await vpage.locator('.ht-own-hide, .ht-own-row').count() === 0, W, 'visitor: owner controls are shown');
+  check(await vpage.locator('.ht-switch').count() === (drawn.length - 1 > 1 ? 1 : 0), W, 'visitor: the family switch lists a hidden tree');
   await shot(vpage, 'owner-home-2-visitor');
   problemsOf(`${W} (visitor)`, vproblems);
   await visitor.close();
@@ -1149,9 +1182,31 @@ flow('owner home settings: hide a tree and a «يلتقي» line (config.json on
   // (5) «إظهار» from the hidden row brings the tree back.
   await page.locator('.ht-own-row .ht-own-show').first().click();
   await page.waitForSelector(`.ht-tree[data-head="${mahmoud}"]`, { state: 'attached', timeout: 3000 });
-  check(await page.locator('.ht-switch button').count() === 2, W, 'the family switch does not list the tree shown again');
+  check(await page.locator('.ht-switch button').count() === drawn.length, W, 'the family switch does not list the tree shown again');
   check(await waitCommits(3), W, `${gh.commitsOf().length - 1} commits after showing the tree`);
   check(JSON.stringify(remoteConfig().home) === JSON.stringify({ hiddenBridges: [key] }), W, `config.home after «إظهار» ${JSON.stringify(remoteConfig().home)}`);
+  let commits = 3;
+
+  // (5b) A family named in «عائلات أخرى»: its small hide button → gone from the line (and its «يلتقي» lines), listed
+  // in the hidden row; «إظهار» brings it back. Focus moves to the counterpart button each time.
+  if (named.length) {
+    const other = named[0];
+    await page.locator(`.ht-other[data-head="${other.head.id}"] .ht-other-hide`).click();
+    await page.waitForFunction((id) => !document.querySelector(`.ht-other[data-head="${id}"]`), other.head.id, { timeout: 3000 });
+    check(await waitCommits(++commits), W, `${gh.commitsOf().length - 1} commits after hiding ${other.family.ar}`);
+    check(JSON.stringify(remoteConfig().home) === JSON.stringify({ hiddenBridges: [key], hiddenTrees: [other.head.id] }), W, `config.home after hiding an other family ${JSON.stringify(remoteConfig().home)}`);
+    check(await page.locator('.ht-others .ht-other').count() === named.length - 1, W, 'the other families line still lists the hidden family');
+    check(!(await shownKeys()).some((k) => touching(other).includes(k)), W, 'a «يلتقي» line still names the hidden other family');
+    check(await page.locator(`.ht-own-row .ht-own-show[data-head="${other.head.id}"]`).count() === 1, W, 'the hidden row does not list the other family');
+    check((await page.locator('.ht-own-row').innerText()).includes(other.family.ar), W, 'the hidden row does not name the other family');
+    check(await page.evaluate((id) => document.activeElement?.matches?.(`.ht-own-show[data-head="${id}"]`), other.head.id), W, 'focus did not move to «إظهار»');
+    await page.locator('.ht-own-row').scrollIntoViewIfNeeded();
+    await shot(page, 'owner-home-1b-other-hidden');
+    await page.locator(`.ht-own-row .ht-own-show[data-head="${other.head.id}"]`).click();
+    await page.waitForSelector(`.ht-other[data-head="${other.head.id}"]`, { state: 'attached', timeout: 3000 });
+    check(await waitCommits(++commits), W, `${gh.commitsOf().length - 1} commits after showing ${other.family.ar} again`);
+    check(JSON.stringify(remoteConfig().home) === JSON.stringify({ hiddenBridges: [key] }), W, `config.home after showing the other family ${JSON.stringify(remoteConfig().home)}`);
+  }
 
   // (6) #/admin «الصفحة الرئيسية» card: every tree and line with a toggle.
   await load(page, '#/admin');
@@ -1161,14 +1216,14 @@ flow('owner home settings: hide a tree and a «يلتقي» line (config.json on
   const homeStatus = await page.locator('.admin-home-status').innerText().catch(() => '');
   check(/المخفيّ: (1|١)/.test(homeStatus), W, `admin: home card status «${homeStatus}»`);
   await page.locator('.admin-home > summary').click();
-  check(await page.locator('.admin-home .admin-home-row').count() === 3, W, `admin card rows: ${await page.locator('.admin-home .admin-home-row').count()}`);
+  check(await page.locator('.admin-home .admin-home-row').count() === fams.length + bridges.length, W, `admin card rows: ${await page.locator('.admin-home .admin-home-row').count()}`);
   const lineBox = page.locator(`.admin-home .admin-home-row[data-key="${key}"] input[type=checkbox]`);
   check(await lineBox.count() === 1 && !(await lineBox.isChecked()), W, 'admin: the hidden line is not unchecked');
   check(await page.locator(`.admin-home .admin-home-row[data-head="${mahmoud}"] input[type=checkbox]`).isChecked(), W, 'admin: the shown tree is not checked');
   await page.locator('.admin-home').scrollIntoViewIfNeeded();
   await shot(page, 'owner-home-3-admin');
   await lineBox.check();
-  check(await waitCommits(4), W, `${gh.commitsOf().length - 1} commits after the admin toggle`);
+  check(await waitCommits(++commits), W, `${gh.commitsOf().length - 1} commits after the admin toggle`);
   check(!('home' in remoteConfig()), W, `config.home left after showing everything: ${JSON.stringify(remoteConfig().home)}`);
   check(await page.locator(`.admin-home .admin-home-row[data-key="${key}"] input[type=checkbox]`).isChecked(), W, 'admin: the line toggle did not follow');
   check(await page.evaluate(() => document.querySelector('.admin-home')?.open === true), W, 'admin: the home card closed after a toggle');
@@ -1191,7 +1246,7 @@ flow('owner home settings: hide a tree and a «يلتقي» line (config.json on
     await primaryAction(page).click();
     await modalClosed(page);
     await page.waitForFunction(() => globalThis.__gft.saving.length === 0, null, { timeout: 15000 });
-    check(await waitCommits(5), W, `${gh.commitsOf().length - 1} commits after hiding the kunya`);
+    check(await waitCommits(++commits), W, `${gh.commitsOf().length - 1} commits after hiding the kunya`);
     const committed = normalizeData(JSON.parse(gh.file('data/family.json'))).people[KUNYA_MAN];
     check(committed?.hideKunya === true, W, 'hideKunya not committed');
     const entry = JSON.parse(gh.file('data/changelog.json')).entries[0];

@@ -8,7 +8,8 @@
 //   saveItems(api, items, opts)                read the branch head → plan → ONE commit (blobs → tree → commit → ref),
 //                                              re-reading and re-applying on a non-fast-forward (≤ SAVE_TRIES tries)
 //   planHomeConfig(text, patch) / patchHome     pure: the home-page settings of config.json ("home": hidden trees and
-//                                              «يلتقي» lines) after a patch {hideTrees, showTrees, hideBridges, showBridges}
+//                                              «يلتقي» lines) after a patch {hideTrees, showTrees, hideBridges, showBridges,
+//                                              keepBridges, unkeepBridges}
 //   saveHomeConfig(api, patch, opts)           read config.json at the head → patch "home" only → ONE commit (retry on
 //                                              a non-fast-forward, like the data saves)
 //   owner                                      the controller: credentials, the save queue (one save at a time),
@@ -454,18 +455,23 @@ export async function saveItems(api, items, { config, actor = '', now = () => ne
 }
 
 // ---------------------------------------------------------------------------------------------------------------
-// Home-page settings (config.json "home": {hiddenTrees: [head person ids], hiddenBridges: ["<husbandId>|<wifeId>"]})
+// Home-page settings (config.json "home": {hiddenTrees: [head person ids], hiddenBridges: ["<husbandId>|<wifeId>"],
+// shownBridges: ["<husbandId>|<wifeId>"]}). shownBridges = «يلتقي» lines the keeper shows although one of their
+// families is hidden (otherwise such a line is hidden with its family — js/views/home-tree.js homeView).
 
 export const HOME_COMMIT_MESSAGE = 'family-tree: owner home settings\n';
-const HOME_LISTS = { hiddenTrees: ['hideTrees', 'showTrees'], hiddenBridges: ['hideBridges', 'showBridges'] };
-const PID_RE = /^p[a-z0-9]{3,24}$/;
-const HOME_ITEM = {
-  hiddenTrees: (x) => PID_RE.test(x),
-  hiddenBridges: (x) => { const [a, b, ...rest] = x.split('|'); return !rest.length && PID_RE.test(a || '') && PID_RE.test(b || ''); },
+const HOME_LISTS = {
+  hiddenTrees: ['hideTrees', 'showTrees'],
+  hiddenBridges: ['hideBridges', 'showBridges'],
+  shownBridges: ['keepBridges', 'unkeepBridges'],
 };
+const PID_RE = /^p[a-z0-9]{3,24}$/;
+const coupleKey = (x) => { const [a, b, ...rest] = x.split('|'); return !rest.length && PID_RE.test(a || '') && PID_RE.test(b || ''); };
+const HOME_ITEM = { hiddenTrees: (x) => PID_RE.test(x), hiddenBridges: coupleKey, shownBridges: coupleKey };
 
 /**
- * The "home" settings after `patch` = {hideTrees?, showTrees?, hideBridges?, showBridges?} (lists of ids / keys).
+ * The "home" settings after `patch` = {hideTrees?, showTrees?, hideBridges?, showBridges?, keepBridges?,
+ * unkeepBridges?} (lists of ids / keys; keep/unkeep add to / remove from shownBridges).
  * Applied to the LATEST settings, so changes made meanwhile on another device are kept. Other keys of "home" are kept;
  * empty lists are dropped; → undefined when nothing is left (absent = nothing hidden). Malformed ids are never written.
  */
@@ -904,7 +910,7 @@ export const owner = {
   /**
    * Home-page settings (keeper only): hide / show family trees and «يلتقي» lines for everyone. The page changes at
    * once (store.setHome), then ONE commit changes config.json ("home" only). patch = {hideTrees?, showTrees?,
-   * hideBridges?, showBridges?}. → Promise<{ok:true, committed, sha} | {ok:false, error:{kind}}>
+   * hideBridges?, showBridges?, keepBridges?, unkeepBridges?}. → Promise<{ok:true, committed, sha} | {ok:false, error:{kind}}>
    */
   saveHome(patch) {
     if (!creds) return Promise.resolve({ ok: false, error: { kind: 'auth' } });

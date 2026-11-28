@@ -3,7 +3,8 @@
 //
 //   (a) every Issue code that schema.js / ops.js / codec.js can emit has Arabic and English text in messages.js;
 //   (b) describeOp describes every op type (and every mark and link variant) in both languages;
-//   (c) the real data/family.json normalizes, validates, builds a graph, and has the two expected branches;
+//   (c) the real data/family.json normalizes, validates, builds a graph, and has the two main branches first (the
+//       keeper keeps adding the families of those who married in, so more may follow);
 //   (d) a browser-like flow: a "sent" proposal overlaid by the real store, a draft depending on it (refMap /
 //       dependsOn), both travelling as codes, then applied in final mode with refMap from the first idMap;
 //   (e) the final data serializes, re-validates and is a fixed point of normalize → serialize;
@@ -200,7 +201,7 @@ describe('(b) describeOp covers every op type in both languages', () => {
 // (c) The real data file
 
 describe('(c) the real data/family.json', () => {
-  test('normalizes, validates (stored and normalized forms), builds a graph; branches are سالم and محمد علي', () => {
+  test('normalizes, validates (stored and normalized forms), builds a graph; the first branches are سالم and محمد علي', () => {
     const raw = rawData();
     assert.equal(raw.schema, 1);
     const vRaw = validateData(raw);
@@ -215,11 +216,13 @@ describe('(c) the real data/family.json', () => {
     assert.deepEqual(normalizeData(compactData(data)), data);
 
     const g = buildGraph(data);
-    assert.equal(g.people().length, Object.keys(raw.people).length);
+    // people removed through owner-mode edits stay in the file (soft removal) but are not in the graph
+    assert.equal(g.people().length, Object.values(raw.people).filter((p) => !p.removed).length);
     const branches = g.branches();
-    assert.equal(branches.length, 2);
-    assert.deepEqual(branches.map((b) => personName(b.person, 'ar')), ['سالم', 'محمد علي']);
+    assert.ok(branches.length >= 2);
+    assert.deepEqual(branches.slice(0, 2).map((b) => personName(b.person, 'ar')), ['سالم', 'محمد علي']);
     assert.equal(branches[0].person.id, raw.meta.rootPersonId, 'the root person’s branch comes first');
+    assert.equal(new Set(branches.map((b) => b.person.id)).size, branches.length);
     for (const b of branches) {
       assert.equal(b.person.gender, 'm');
       assert.ok(b.label.ar && b.label.en && !ARABIC.test(b.label.en), JSON.stringify(b.label));
@@ -227,9 +230,9 @@ describe('(c) the real data/family.json', () => {
     }
     const s = g.stats();
     assert.equal(s.people, g.people().length);
-    assert.equal(s.branches, 2);
-    // the two families meet: someone has an ancestor in each branch
-    const meet = g.people().find((p) => branches.every((b) => g.isAncestor(b.person.id, p.id)));
+    assert.equal(s.branches, branches.length);
+    // the two main families meet: someone has an ancestor in each of them
+    const meet = g.people().find((p) => branches.slice(0, 2).every((b) => g.isAncestor(b.person.id, p.id)));
     assert.ok(meet, 'a grandchild of both branches exists');
     const rel = findRelationship(g, meet.id, branches[1].person.id);
     assert.equal(rel.type, 'blood');

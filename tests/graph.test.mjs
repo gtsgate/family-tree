@@ -585,14 +585,15 @@ describe('real data', () => {
     assert.equal(lineageName(compact, faiza.id, 'ar'), 'فايزة محمد علي محمود');
   });
 
-  test('exactly two branches, represented by سالم and محمد علي (not by wives who married in)', () => {
+  test('the two main branches come first, represented by سالم and محمد علي (not by wives who married in)', () => {
     const br = g.branches();
-    assert.equal(br.length, 2);
-    assert.deepEqual(br.map((x) => x.person.id), [salem.id, head2.id]);
+    // The keeper keeps adding the families of those who married in, so more branches follow these two.
+    assert.ok(br.length >= 2);
+    assert.deepEqual(br.slice(0, 2).map((x) => x.person.id), [salem.id, head2.id]);
     for (const x of br) assert.equal(x.person.gender, 'm');
     assert.deepEqual(br[0].label, { ar: 'سالم عالم', en: 'Salem Alam' });
     assert.deepEqual(br[1].label, { ar: 'محمد علي محمود', en: 'Muhammad Ali Mahmoud' }); // automatic English
-    assert.ok(br.every((x) => x.count > 40));
+    assert.ok(br.slice(0, 2).every((x) => x.count > 40));
   });
 
   test('stats', () => {
@@ -600,7 +601,8 @@ describe('real data', () => {
     assert.equal(s.people, ACTIVE);
     assert.equal(s.unions, Object.values(realData().unions).filter((u) => !u.removed).length);
     assert.ok(s.unions >= 60);
-    assert.equal(s.branches, 2);
+    assert.equal(s.branches, g.branches().length);
+    assert.ok(s.branches >= 2);
     assert.equal(s.living + s.deceased, ACTIVE);
     assert.ok(s.generations >= 5);
   });

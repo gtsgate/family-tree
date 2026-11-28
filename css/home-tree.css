@@ -207,6 +207,20 @@
 .ht-bridge { display: flex; align-items: center; justify-content: center; gap: 8px; margin: 0; color: var(--ink-2); text-align: center; }
 .ht-rings { display: inline-grid; place-items: center; flex: none; inline-size: 24px; block-size: 24px; border-radius: 50%; background: var(--gold-soft); color: var(--gold-ink); }
 .ht-bridge a { font-weight: 600; }
+/* «عائلات أخرى: …» — families without a crown (a single line of men), named rather than drawn as bare trunks */
+.ht-others {
+  display: flex; flex-wrap: wrap; align-items: baseline; justify-content: center; gap: 2px 6px;
+  margin-block-start: var(--s3); color: var(--ink-2); text-align: center; line-height: 1.8;
+}
+.ht-others-lead { color: var(--ink-3); }
+.ht-others-list { display: contents; }
+.ht-other { display: inline-flex; align-items: center; list-style: none; }
+.ht-others.is-owner { column-gap: 14px; }
+.ht-other a { color: var(--ink-2); font-weight: 600; text-decoration-thickness: 1px; text-decoration-color: color-mix(in srgb, currentColor 40%, transparent); text-underline-offset: 4px; }
+@media (hover: hover) { .ht-other a:hover { color: var(--accent); } }
+.btn.btn-icon.btn-sm.ht-other-hide { inline-size: 28px; min-block-size: 28px; block-size: 28px; margin-inline-start: 2px; border-radius: 8px; }
+@media (pointer: coarse) { .btn.btn-icon.btn-sm.ht-other-hide { inline-size: var(--tap); min-block-size: var(--tap); block-size: var(--tap); } }
+.home-trees.is-names-only .ht-others { justify-content: flex-start; margin-block-start: 0; text-align: start; }
 
 /* ---- Owner mode: hide / show (config.json "home"; only the keeper sees these) ---- */
 .ht-own-hide { --btn-ink: var(--ink-2); font-weight: 500; }
@@ -389,6 +403,6 @@ dialog.ht-viewer::backdrop { background: rgba(10, 16, 13, .55); }
 }
 
 @media print {
-  .ht-controls, .ht-tree-foot, .ht-hint, .ht-own-row, .ht-bridge-hide { display: none !important; }
+  .ht-controls, .ht-tree-foot, .ht-hint, .ht-own-row, .ht-bridge-hide, .ht-other-hide { display: none !important; }
   .ht-tree:not(.is-selected) { display: flex !important; }
 }

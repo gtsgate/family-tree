@@ -429,12 +429,14 @@ The one exception to "the site never holds a GitHub credential": the keeper's ow
   number: a bilingual note (no "/"), label `applied`, close (best effort). Hash already applied → "already in the tree"; an id
   already used under another hash → refused. A relative's temp refs never become aliases (other devices' counters).
 * **Home-page settings** (keeper only; `config.json` `"home"`, §6.1): in owner mode each family tree on the home page carries a small
-  low-key «إخفاء من الصفحة الرئيسية» / "Hide from the home page" button (eye-off icon) and each «يلتقي» caption a small «إخفاء» /
-  "Hide"; a compact row «مخفيّ من الصفحة الرئيسية: …» lists what is hidden with «إظهار» / "Show"; `#/admin` has a «الصفحة الرئيسية» /
+  low-key «إخفاء من الصفحة الرئيسية» / "Hide from the home page" button (eye-off icon), each family of the «عائلات أخرى» line a small
+  eye-off icon button and each «يلتقي» caption a small «إخفاء» / "Hide"; a compact row «مخفيّ من الصفحة الرئيسية: …» lists what the keeper
+  hid with «إظهار» / "Show" (captions hidden only with their family are not listed: they come back with it); `#/admin` has a «الصفحة الرئيسية» /
   "Home page" disclosure listing every tree and «يلتقي» line with show/hide toggles (§7.8). After a hide / show the keyboard focus moves
   to the counterpart button (the page re-renders). People not saved yet (temporary ids) get no hide control (an id that is not `p…`
   would hide nothing). `owner.saveHome(patch)` (`patch` =
-  `{hideTrees|showTrees|hideBridges|showBridges: [...]}`) changes `store.config.home` at once (`store.setHome` → event `config`, the
+  `{hideTrees|showTrees|hideBridges|showBridges|keepBridges|unkeepBridges: [...]}`; keep/unkeep add to / remove from `shownBridges`;
+  `home-tree.js bridgeToggle` builds a caption's patch: showing one that names a hidden family keeps it, hiding a kept one unkeeps it) changes `store.config.home` at once (`store.setHome` → event `config`, the
   page re-renders), then queues ONE save job: `GET git/ref` → `GET contents/<portalPath>config.json?ref=<head>` → `planHomeConfig`
   applies the patch to the LATEST `"home"` only (other keys and their order untouched; empty lists and an empty `"home"` dropped;
   malformed ids never written) → a commit changing only `config.json`, message `family-tree: owner home settings` (no personal text);
@@ -458,11 +460,13 @@ The one exception to "the site never holds a GitHub credential": the keeper's ow
   "defaultLanguage":"ar", "arabicDigits":false, "arabicMonthNames":"standard", "primaryCalendar":"gregorian",
   "lineageStyle":"plain", "showDivorce":false, "treeDefaultDepth":3,
   "privacyDefaults": {"femaleNameStatus":"known", "photos":"all"},
-  "home": {"hiddenTrees": ["<head personId>"], "hiddenBridges": ["<husbandId>|<wifeId>"]} }   // optional; absent = nothing hidden
+  "home": {"hiddenTrees": ["<head personId>"], "hiddenBridges": ["<husbandId>|<wifeId>"],
+           "shownBridges": ["<husbandId>|<wifeId>"]} }   // optional; absent = nothing hidden
 ```
 `home` is written by owner mode (§5.1). A tree is hidden when `hiddenTrees` holds its founder (head) or a man of its trunk (so adding an
 older ancestor later keeps it hidden). A caption is hidden by `"<husbandId>|<wifeId>"` or the same couple the other way round (a hand
-edit); «إظهار» removes either. `validate-data` warns on entries naming unknown/removed people, non-founders, non-couples or
+edit); «إظهار» removes either. A caption naming a hidden family is hidden with it unless `shownBridges` names it (either spelling;
+`hiddenBridges` wins over it). `validate-data` warns on entries naming unknown/removed people, non-founders, non-couples or
 wrong shapes (they hide nothing).
 Label names are constants in `scripts/lib/labels.mjs` (not config): `family-tree, approve, approve-deletion, needs-changes, applied,
 deletion-request, duplicate, undone`.
@@ -622,7 +626,7 @@ trigger and sends a test e-mail; `stopRelay()` removes the trigger; `doGet` → 
 ### 7.2 Routes
 | hash | module | purpose |
 |---|---|---|
-| `#/` | home | owner welcome (config.owner) + "get to know me" link; search; primary actions (Explore tree, Add my family); "Who are you?" (set me); then one illustrated tree per family branch (`home-tree.js`, titled «شجرة آل عالم» / "The Alam family tree" from `branches()[i].family`): trunk = founder + the single line of sons above him (names written on it), male line as branches, sons who have families as name tags, everyone else as a leaf with their first name («؟» when unknown); option chips (remembered, `gft.hometree.*`) add mothers / wives without children / daughters / others (unknown-gender children, daughters' husbands) as leaves in their own colour + outline/pattern; leaves never overlap; pending people dashed; tap → popover (profile, "show in the detailed tree" `#/tree/<head>?focus=<id>`); phones: family switch (visible trees only) + full-screen pan/zoom viewer. Under the trees, up to three «يلتقي آل X وآل Y بزواج …» captions (marriages joining two families). Trees and captions listed in `config.home` (§6.1) are shown to nobody; when every tree is hidden the section shows nothing — except, in owner mode, the «مخفيّ من الصفحة الرئيسية» row; the keeper's hide/show controls are §5.1. No suggestions list (it lives on `#/me`), no birthdays. |
+| `#/` | home | owner welcome (config.owner) + "get to know me" link; search; primary actions (Explore tree, Add my family); "Who are you?" (set me); then one illustrated tree per family branch that has a crown (`home-tree.js`, titled «شجرة آل عالم» / "The Alam family tree" from `branches()[i].family`): trunk = founder + the single line of sons above him (names written on it), male line as branches, sons who have families as name tags, everyone else as a leaf with their first name («؟» when unknown); option chips (remembered, `gft.hometree.*`) add mothers / wives without children / daughters / others (unknown-gender children, daughters' husbands) as leaves in their own colour + outline/pattern; leaves never overlap; pending people dashed; tap → popover (profile, "show in the detailed tree" `#/tree/<head>?focus=<id>`); phones: family switch (visible drawn trees only) + full-screen pan/zoom viewer. A family whose male line has NO crown (every man on the trunk: no tags/leaves with men only — typically a family added for someone who married in) is not drawn as a bare trunk: under the trees one compact low-key line «عائلات أخرى: عائلة أحمد الريس، آل عيد» / "Other families: …" names each such family (its `branches()[i].family` title) as a link to `#/tree/<head>` (the test ignores the leaf options; when no shown family has a crown the line reads «العائلات: …» and nothing is drawn). Under that, up to three «يلتقي آل X وآل Y بزواج …» captions (marriages joining two families), those between two drawn families first, then a drawn and a named one, then two named ones. Families and captions listed in `config.home` (§6.1) are shown to nobody, and a caption naming a hidden family is hidden with it unless `home.shownBridges` names it; when every family is hidden the section shows nothing — except, in owner mode, the «مخفيّ من الصفحة الرئيسية» row; the keeper's hide/show controls are §5.1. No suggestions list (it lives on `#/me`), no birthdays. |
 | `#/tree/:id?` `?view=chart\|list&dir=down\|up` | tree | descendants chart, ancestors (`dir=up`), outline list (default when width < 700px) |
 | `#/p/:id` | person | family card (§7.5) |
 | `#/search?q=` | search | results with lineage & years |
@@ -714,8 +718,9 @@ name "family-tree keeper", 1 year, only this repository, Contents + Issues: Read
 a link to the owner guide; signed in → "Signed in as {login} on this device" + "Sign out". With owner mode on, every preview
 offers "Apply now" and restores/photo paths save directly, and a **«الصفحة الرئيسية» / "Home page" disclosure** follows the owner card,
 closed by default with a one-line status («المخفيّ: n» / "Hidden: n", or «كلّ الأشجار والسطور ظاهرة» / "Every family tree and line is
-shown"); opened (it stays open across the re-render after a toggle), it lists every family tree (with its counts) and every «يلتقي» line,
-each with a checkbox «تظهر/يظهر في الصفحة الرئيسية» / "Shown on the home page" (saved as in §5.1).
+shown"); opened (it stays open across the re-render after a toggle), it lists every family tree (with its counts; a family without a crown notes that it is named under the trees) and every «يلتقي»
+line, each with a checkbox «تظهر/يظهر في الصفحة الرئيسية» / "Shown on the home page" (saved as in §5.1); a line hidden with its family
+says so, and ticking it shows it anyway (`shownBridges`). The status counts what the keeper hid.
 Paste code(s) → preview → **"Create issue and approve"** (issue-form URL with `&labels=family-tree,approve` or `approve-deletion` — GitHub
 honours labels only for users with triage rights; noted "needs a computer browser", as the GitHub app empties the form). With
 `config.relayUrl` set, the primary action is **"Send for approval by e-mail"** instead (same payload as the draft send, §5.0; "Sent ✓ —
@@ -757,6 +762,7 @@ links) and "weekly family news" generator from the changelog · photo tool: pick
 * E2E (local): `tests/e2e/smoke.mjs` — serve folder, visit every route in both languages at 360px and 1280px, add a family through the
   wizard, check the draft, the WhatsApp/GitHub URLs, the relay send (a routed fake relayUrl: failure → other ways, success → sent with
   the request number), owner mode (api.github.com routed to the fake: sign in, a child added from the person dialog is committed at
-  once and shown without a proposal, "Apply now", sign out → proposals again; hiding «شجرة آل محمود» and the «يلتقي» line commits
-  config.json only and a visitor loading that config does not see them; the #/admin "Home page" card; «إخفاء الكنية» from the edit form
+  once and shown without a proposal, "Apply now", sign out → proposals again; hiding «شجرة آل محمود» and a «يلتقي» line commits
+  config.json only, the lines naming آل محمود go with it, and a visitor loading that config does not see them; a family of the «عائلات
+  أخرى» line hidden and shown again; the #/admin "Home page" card; «إخفاء الكنية» from the edit form
   removes the kunya from the person's page and card), and that there are no console errors.

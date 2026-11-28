@@ -233,7 +233,7 @@ export const store = {
   },
 
   /**
-   * Home-page settings (config.json "home": {hiddenTrees, hiddenBridges}) — changed by the keeper in owner mode
+   * Home-page settings (config.json "home": {hiddenTrees, hiddenBridges, shownBridges}) — changed by the keeper in owner mode
    * (js/owner.js saveHome: at once, before the commit lands). Emits "config" when they differ. → changed?
    */
   setHome(home) {

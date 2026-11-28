@@ -38,7 +38,8 @@
 **ما يظهر في الصفحة الرئيسية، والكنى (في وضع المشرف)**
 
 - **إخفاء شجرة عائلة:** تحت كل شجرة في الصفحة الرئيسية زر صغير **«إخفاء من الصفحة الرئيسية»**. تختفي الشجرة فوراً عند الجميع (خلال دقيقة تقريباً)، ولا يُحذف أحد من الشجرة.
-- **إخفاء سطر «يلتقي…»:** بجانب كل سطر «يلتقي آل … وآل … بزواج …» زر صغير **«إخفاء»**.
+- **العائلات الصغيرة:** العائلة التي رجالها خطّ واحد (كعائلة من تزوّج من العائلة، تُضاف لنسبها) لا تُرسم جذعاً بلا أغصان، بل تُذكر بالاسم في سطر هادئ تحت الأشجار: **«عائلات أخرى: …»**، وكل اسم رابط إلى شجرتها المفصّلة. تُرسم شجرتها تلقائياً عندما يصبح لرجالها فروع. وبجانب كل اسم (للمشرف وحده) زر إخفاء صغير على شكل عين مشطوبة.
+- **إخفاء سطر «يلتقي…»:** بجانب كل سطر «يلتقي آل … وآل … بزواج …» زر صغير **«إخفاء»**. وعند إخفاء عائلة تختفي معها سطور «يلتقي» التي تذكرها، وتعود عند إظهارها؛ ويمكن إظهار سطر منها رغم ذلك من بطاقة «الصفحة الرئيسية» في أدوات المشرف. تعرض الصفحة ثلاثة سطور على الأكثر، أولها ما يجمع عائلتين مرسومتين.
 - **الإظهار من جديد:** يظهر للمشرف وحده سطر **«مخفيّ من الصفحة الرئيسية: …»** وفيه زر **«إظهار»** لكل ما أُخفي. وفي **أدوات المشرف** بطاقة مطويّة **«الصفحة الرئيسية»** (يظهر عليها عدد المخفيّ)، وعند فتحها تعرض كل الأشجار وكل سطور «يلتقي» مع مربع اختيار للإظهار أو الإخفاء.
 - يُحفظ هذا الاختيار في `config.json` (المفتاح `home`) بإيداع عنوانه `family-tree: owner home settings`، وتظهر رسالة **«تم الحفظ — يصل التغيير إلى الجميع خلال دقيقة»**.
 - **إخفاء الكنية:** يعرض الموقع بجانب الاسم الكنية المكتوبة، أو كنية تلقائية من الابن الأكبر (أو البنت). لإخفائها عند شخص: صفحته ← **تصحيح المعلومات** ← تحت حقل «الكنية أو اللقب» مربع **«إخفاء الكنية»** ← **حفظ في الشجرة**. لا تظهر بعدها أي كنية بجانب اسمه، ويبقى البحث بالكنية المكتوبة ممكناً. وإلغاء المربع يعيدها.
@@ -89,7 +90,8 @@ In owner mode there are no proposals and no approval step: every addition or cor
 **What the home page shows, and kunyas (owner mode)**
 
 - **Hide a family tree:** under each tree on the home page there is a small **“Hide from the home page”** button. The tree disappears for everyone (within about a minute); nobody is removed from the tree.
-- **Hide a “… meet through the marriage of …” line:** each such line has a small **“Hide”** button.
+- **Small families:** a family whose men form a single line (such as the family of someone who married in, added for her lineage) is not drawn as a bare trunk: it is named in a quiet line under the trees, **“Other families: …”**, each name a link to its detailed tree. Its tree is drawn by itself once its men have branches. Each name has (for the keeper only) a small eye-off hide button.
+- **Hide a “… meet through the marriage of …” line:** each such line has a small **“Hide”** button. Hiding a family also hides the lines that name it; they come back when it is shown again, and one of them can still be shown on its own from the “Home page” card in Owner tools. The page shows at most three lines, those joining two drawn families first.
 - **Show again:** only the keeper sees a row **“Hidden from the home page: …”** with a **“Show”** button for each hidden item. **Owner tools** also has a folded **“Home page”** card (it shows how many items are hidden); opened, it lists every tree and every such line with a show/hide checkbox.
 - The choice is saved in `config.json` (the `home` key) as a commit `family-tree: owner home settings`; the message **“Saved — the change reaches everyone in about a minute”** confirms it.
 - **Hide a kunya:** next to a name the site shows the recorded kunya, or an automatic one from the eldest son (or daughter). To hide it for someone: their page → **Correct info** → under “Nickname or kunya”, tick **“Don’t show a kunya”** → **Save to the tree**. No kunya then appears beside the name; search still finds a kunya written there. Unticking brings it back.

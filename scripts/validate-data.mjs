@@ -27,7 +27,8 @@ function readJson(file, problems, label) {
 }
 
 /**
- * config.json "home" (home-page settings, SPEC §5.1/§6.1): {hiddenTrees: [person ids], hiddenBridges: ["<husbandId>|<wifeId>"]}.
+ * config.json "home" (home-page settings, SPEC §5.1/§6.1): {hiddenTrees: [person ids], hiddenBridges: ["<husbandId>|<wifeId>"],
+ * shownBridges: ["<husbandId>|<wifeId>"]}.
  * Unknown or removed people (a stale entry hides nothing) and wrong shapes → warnings. `data` = raw family.json or undefined.
  */
 export function homeConfigWarnings(home, data, graph = null) {
@@ -38,7 +39,7 @@ export function homeConfigWarnings(home, data, graph = null) {
   const active = (id) => !people || (Object.prototype.hasOwnProperty.call(people, id) && people[id] && !people[id].removed);
   const unions = data && typeof data.unions === 'object' && data.unions ? Object.values(data.unions) : null;
   const married = (a, b) => !unions || unions.some((u) => u && !u.removed && Array.isArray(u.partners) && u.partners.includes(a) && u.partners.includes(b));
-  for (const k of Object.keys(home)) if (!['hiddenTrees', 'hiddenBridges'].includes(k)) out.push(`"home.${k}" is not a known setting (ignored)`);
+  for (const k of Object.keys(home)) if (!['hiddenTrees', 'hiddenBridges', 'shownBridges'].includes(k)) out.push(`"home.${k}" is not a known setting (ignored)`);
   const list = (k) => {
     const v = home[k];
     if (v === undefined) return [];
@@ -65,11 +66,13 @@ export function homeConfigWarnings(home, data, graph = null) {
     else if (!active(id)) out.push(`"home.hiddenTrees": unknown person ${id} (hides nothing)`);
     else if (trunks && !trunks.has(id)) out.push(`"home.hiddenTrees": ${id} is not the founder of a family tree (hides nothing)`);
   }
-  for (const key of list('hiddenBridges')) {
-    const [a, b, ...rest] = key.split('|');
-    if (rest.length || !/^p[a-z0-9]{3,24}$/.test(a || '') || !/^p[a-z0-9]{3,24}$/.test(b || '')) out.push(`"home.hiddenBridges": ${JSON.stringify(key)} is not "<husbandId>|<wifeId>"`);
-    else if (!active(a) || !active(b)) out.push(`"home.hiddenBridges": unknown person in ${key} (hides nothing)`);
-    else if (!married(a, b)) out.push(`"home.hiddenBridges": ${key} are not a married couple (hides nothing)`);
+  for (const [k, does] of [['hiddenBridges', 'hides'], ['shownBridges', 'shows']]) {
+    for (const key of list(k)) {
+      const [a, b, ...rest] = key.split('|');
+      if (rest.length || !/^p[a-z0-9]{3,24}$/.test(a || '') || !/^p[a-z0-9]{3,24}$/.test(b || '')) out.push(`"home.${k}": ${JSON.stringify(key)} is not "<husbandId>|<wifeId>"`);
+      else if (!active(a) || !active(b)) out.push(`"home.${k}": unknown person in ${key} (${does} nothing)`);
+      else if (!married(a, b)) out.push(`"home.${k}": ${key} are not a married couple (${does} nothing)`);
+    }
   }
   return out;
 }

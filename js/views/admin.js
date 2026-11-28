@@ -15,7 +15,7 @@ import { t, register, lang, fmtNumber, bi } from '../i18n.js';
 import { store } from '../store.js';
 import { personChip, ownerName, spinner, nameOf, avatar, whatsappUrl, notifyAdded, ownerMode, lineageOf } from '../ui.js';
 import { ownerCard, saveHomeSetting } from '../owner-ui.js';
-import { familyTrees, familyBridges, homeView, bridgeParts, bridgeKey, bridgeHiddenBy, treeHiddenBy, homeHidden, canHideTree, canHideBridge } from './home-tree.js';
+import { familyTrees, familyBridges, homeView, bridgeParts, bridgeKey, bridgeToggle, treeHiddenBy, homeHidden, canHideTree, canHideBridge, hasCrown } from './home-tree.js';
 import { personPicker } from '../forms/picker.js';
 import { buildGraph } from '../core/graph.js';
 import { validateData, serializeData } from '../core/schema.js';
@@ -125,6 +125,8 @@ register({
     'admin.home.counts': '{men} men · {women} women',
     'admin.home.statusAll': 'Every family tree and line is shown',
     'admin.home.statusHidden': 'Hidden: {n}',
+    'admin.home.named': 'Named under the trees (a single line of men, nothing to draw yet)',
+    'admin.home.withFamily': 'Hidden with {family} — tick to show it anyway',
     'admin.data.download': 'Download family.json',
     'admin.data.downloadHint': 'The published data (revision {rev}, {n} people) as a file — handy as a personal backup.',
     'admin.data.links': 'Useful links',
@@ -235,6 +237,8 @@ register({
     'admin.home.counts': 'الرجال: {men} · النساء: {women}',
     'admin.home.statusAll': 'كلّ الأشجار والسطور ظاهرة',
     'admin.home.statusHidden': 'المخفيّ: {n}',
+    'admin.home.named': 'تُذكر بالاسم تحت الأشجار (خطّ واحد من الرجال، لا أغصان تُرسم بعد)',
+    'admin.home.withFamily': 'مخفيّ مع {family}، ويمكن إظهاره رغم ذلك',
     'admin.data.download': 'تنزيل family.json',
     'admin.data.downloadHint': 'البيانات المنشورة (النسخة {rev}، عدد الأفراد {n}) في ملف، وهو نسخة احتياطية شخصية مفيدة.',
     'admin.data.links': 'روابط مفيدة',
@@ -785,23 +789,28 @@ function homeCard() {
       h('span', { class: 'admin-home-icon', attrs: { 'aria-hidden': 'true' } }, icon(shown ? 'tree' : 'eyeOff', { size: 18 })),
       h('div', { class: 'admin-home-main' },
         h('p', { class: 'admin-home-name' }, title),
-        h('p', { class: 'small muted' }, t('admin.home.counts', { men: fmtNumber(f.stats.men), women: fmtNumber(f.stats.women) }))),
+        h('p', { class: 'small muted' }, t('admin.home.counts', { men: fmtNumber(f.stats.men), women: fmtNumber(f.stats.women) })),
+        hasCrown(f) ? null : h('p', { class: 'small muted admin-home-note' }, t('admin.home.named'))),
       toggle(`admin-home-t-${f.head.id}`, t('admin.home.showTree'), shown,
         (on) => (on ? { showTrees: treeHiddenBy(f, hidden) } : { hideTrees: [f.head.id] }), shown && !canHideTree(f)));
   };
+  // A line naming a hidden family is hidden with it unless the keeper ticks it (home.shownBridges; home-tree.js).
   const lineRow = (b) => {
     const key = bridgeKey(b);
     const shown = !hiddenLines.has(key);
     const parts = bridgeParts(b, all, lang(), (p) => bdi(lineageOf(p, { depth: 2 })));
+    const famOff = view.withFamily.has(b) ? [all[b.from], all[b.to]].find((f) => treeHiddenBy(f, hidden).length) : null;
     return h('li', { class: ['list-item', 'admin-home-row', shown ? '' : 'is-hidden'], dataset: { key } },
       h('span', { class: 'admin-home-icon', attrs: { 'aria-hidden': 'true' } }, icon(shown ? 'heart' : 'eyeOff', { size: 18 })),
-      h('div', { class: 'admin-home-main' }, h('p', { class: 'admin-home-name small' }, ...parts)),
+      h('div', { class: 'admin-home-main' },
+        h('p', { class: 'admin-home-name small' }, ...parts),
+        famOff ? h('p', { class: 'small muted admin-home-note' }, t('admin.home.withFamily', { family: bi(famOff.family) })) : null),
       toggle(`admin-home-b-${key.replace('|', '-')}`, t('admin.home.showLine'), shown,
-        (on) => (on ? { showBridges: bridgeHiddenBy(b, hidden) } : { hideBridges: [key] }), shown && !canHideBridge(b)));
+        (on) => bridgeToggle(b, all, home, on), shown && !canHideBridge(b)));
   };
   // Low-key: a closed disclosure with a one-line status (the everyday controls are on the home page itself); it
   // stays open across the re-renders that follow a toggle.
-  const nHidden = hiddenTrees.size + hiddenLines.size;
+  const nHidden = hiddenTrees.size + view.hiddenBridges.filter((b) => !view.withFamily.has(b)).length; // what the keeper hid
   const status = nHidden ? t('admin.home.statusHidden', { n: fmtNumber(nHidden) }) : t('admin.home.statusAll');
   return h('details', {
     class: 'card admin-section admin-home', open: homeOpen,

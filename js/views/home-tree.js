@@ -5,10 +5,26 @@
 // "others" can be added as leaves in their own colour (and outline/pattern, for colour-blind readers).
 //
 //   abstractTree(graph, { lang, home, owner }) → <section> element (call .dispose() when the view goes away)
-//     home  = config.json "home" ({hiddenTrees: [head ids], hiddenBridges: ["<husbandId>|<wifeId>"]}): hidden trees
-//             and «يلتقي» captions are shown to nobody (SPEC §7.2).
-//     owner = {save(patch)} in owner mode only: small hide buttons on each tree and caption, and a row listing what
-//             is hidden with «إظهار» / "Show" (patch = {hideTrees|showTrees|hideBridges|showBridges: [...]}).
+//     home  = config.json "home" ({hiddenTrees: [head ids], hiddenBridges: ["<husbandId>|<wifeId>"],
+//             shownBridges: ["<husbandId>|<wifeId>"]}): hidden trees and «يلتقي» captions are shown to nobody (SPEC §7.2).
+//     owner = {save(patch)} in owner mode only: small hide buttons on each tree, family name and caption, and a row
+//             listing what is hidden with «إظهار» / "Show" (patch = {hideTrees|showTrees|hideBridges|showBridges|
+//             keepBridges|unkeepBridges: [...]}, see bridgeToggle).
+//
+// Which families get a drawing: only those whose male line has a CROWN (the top of the trunk has sons, so there are
+// name tags / leaves even with men only). A family that is a single line of men (every man on the trunk — typically
+// the family of someone who married in, added for her lineage) would be a bare trunk: it is named instead in one
+// compact line under the trees, «عائلات أخرى: …» / "Other families: …", each name a link to its detailed tree. The
+// test is independent of the leaf options, so toggling "daughters" never moves a family between the two. The phone
+// family switch lists the drawn families only.
+//
+// «يلتقي» captions (marriages joining two families), at most three on the page, preferred in this order: between two
+// drawn families, then a drawn and a listed one, then two listed ones. A caption is shown when
+//   • it is not in home.hiddenBridges (an explicit hide always wins), and
+//   • both of its families are shown — a caption naming a family the keeper hid is hidden with it (it would name
+//     that family on the page), unless the keeper showed that caption explicitly: home.shownBridges (written by
+//     «إظهار» on such a caption, e.g. from #/admin). Showing the family again brings its captions back by itself;
+//     the owner row lists only what the keeper hid explicitly, so hiding one family does not flood it.
 //
 // Layout (per family, in tree units — the SVG scales to its column): a polar fan centred a little above the fork.
 //   Every crown item (tag or leaf) gets an angular sector in proportion to the room it and its descendants need;
@@ -68,6 +84,9 @@ register({
     'ht.own.show': 'Show',
     'ht.own.showItem': 'Show {item} on the home page',
     'ht.own.marriage': 'Marriage of {husband} and {wife}',
+    'ht.own.hideFamily': 'Hide {family} from the home page',
+    'ht.others': 'Other families:',
+    'ht.othersOnly': 'Families:',
   },
   ar: {
     'ht.sectionTitle': 'أشجار العائلة',
@@ -112,6 +131,9 @@ register({
     'ht.own.show': 'إظهار',
     'ht.own.showItem': 'إظهار {item} في الصفحة الرئيسية',
     'ht.own.marriage': 'زواج {husband} و{wife}',
+    'ht.own.hideFamily': 'إخفاء {family} من الصفحة الرئيسية',
+    'ht.others': 'عائلات أخرى:',
+    'ht.othersOnly': 'العائلات:',
   },
 });
 
@@ -179,7 +201,9 @@ const sonsOf = (graph, id) => (graph.children(id) || []).filter((c) => c && c.ge
  * Families with their trees for the current options.
  *   show: {mothers, wives, daughters, others}
  * → [{ index, head, family:{ar,en}, chain:[persons bottom→top], top, items:[crown roots], side:[{person, items}],
- *      stats:{men, women, gens}, maleIds:Set }]
+ *      crown, stats:{men, women, gens} }]
+ *   crown = the male line goes on above the trunk (the top of the trunk has sons): false for a family that is a single
+ *   line of men, whatever the options (then `items` holds only the options' leaves) — see hasCrown.
  * Crown item: { kind:'tag'|'leaf', p, cat:'man'|'mother'|'wife'|'daughter'|'other', rel (related person), children }
  */
 export function familyTrees(graph, show = {}) {
@@ -277,6 +301,7 @@ function buildFamily(graph, fam, show, maleLine) {
   }
   fam.chain = chain;
   fam.top = cur;
+  fam.crown = sonsOf(graph, cur.id).some((s) => !chain.some((x) => x.id === s.id));
   fam.side = [];
   for (let i = 0; i < chain.length - 1; i++) {
     const items = membersOf(chain[i], 0, chain[i + 1].id);
@@ -284,6 +309,12 @@ function buildFamily(graph, fam, show, maleLine) {
   }
   fam.items = membersOf(fam.top, 0);
 }
+
+/**
+ * Is this family drawn as an illustrated tree on the home page? Only when its male line has a crown: a single line of
+ * men would be a bare trunk, so such a family is named in the «عائلات أخرى» line instead (independent of the options).
+ */
+export const hasCrown = (fam) => !!fam?.crown;
 
 /** A trunk ancestor's son can only be the trunk itself, so side shoots carry leaves only. */
 function flattenTag(item) { return { kind: 'leaf', p: item.p, cat: item.cat, rel: item.rel }; }
@@ -317,15 +348,21 @@ export function familyBridges(graph, fams) {
 // ---------------------------------------------------------------------------------------------------------
 // Home-page settings (config.json "home"): hidden trees and «يلتقي» captions
 
-/** The key of a «يلتقي» caption in config.home.hiddenBridges: "<husbandId>|<wifeId>". */
+/** The key of a «يلتقي» caption in config.home.hiddenBridges / shownBridges: "<husbandId>|<wifeId>". */
 export const bridgeKey = (b) => `${b.husband.id}|${b.wife.id}`;
+const bridgeKeys = (b) => [bridgeKey(b), `${b.wife.id}|${b.husband.id}`];
 
 /**
  * The keys of config.home.hiddenBridges that hide this caption: "<husbandId>|<wifeId>", or the same couple written
- * the other way round (config.json edited by hand). [] = shown.
+ * the other way round (config.json edited by hand). [] = not hidden explicitly.
  */
 export function bridgeHiddenBy(b, hidden) {
-  return [bridgeKey(b), `${b.wife.id}|${b.husband.id}`].filter((k) => hidden.bridges.has(k));
+  return bridgeKeys(b).filter((k) => hidden.bridges.has(k));
+}
+
+/** The keys of config.home.shownBridges that show this caption although one of its families is hidden (either spelling). */
+export function bridgeShownBy(b, hidden) {
+  return bridgeKeys(b).filter((k) => hidden.shown.has(k));
 }
 
 /**
@@ -336,11 +373,14 @@ const savedId = (id) => /^p[a-z0-9]{3,24}$/.test(String(id || ''));
 export const canHideTree = (fam) => savedId(fam?.head?.id);
 export const canHideBridge = (b) => savedId(b?.husband?.id) && savedId(b?.wife?.id);
 
-/** config.home → {trees: Set(person ids), bridges: Set(keys)} (absent / malformed = nothing hidden). */
+/**
+ * config.home → {trees: Set(person ids), bridges: Set(keys), shown: Set(keys)} (absent / malformed = nothing hidden).
+ * shown = home.shownBridges: captions the keeper showed explicitly although one of their families is hidden.
+ */
 export function homeHidden(home) {
   const list = (v) => (Array.isArray(v) ? v.filter((x) => typeof x === 'string' && x) : []);
   const h0 = home && typeof home === 'object' && !Array.isArray(home) ? home : {};
-  return { trees: new Set(list(h0.hiddenTrees)), bridges: new Set(list(h0.hiddenBridges)) };
+  return { trees: new Set(list(h0.hiddenTrees)), bridges: new Set(list(h0.hiddenBridges)), shown: new Set(list(h0.shownBridges)) };
 }
 
 /**
@@ -352,18 +392,72 @@ export function treeHiddenBy(fam, hidden) {
   return [...new Set(ids)].filter((id) => hidden.trees.has(id));
 }
 
-/** Trees and captions as the home page shows them. → {trees, hiddenTrees, bridges, hiddenBridges} (all bridges, unsliced) */
+/**
+ * Families and captions as the home page shows them (`fams` = every family, the indexes of `bridges`):
+ * → { trees:        the families the keeper did not hide (drawn or listed)
+ *     illustrated:  …of those, the ones with a crown: drawn as trees (and listed in the phone family switch)
+ *     others:       …the ones without: named in the «عائلات أخرى» line
+ *     hiddenTrees:  the families the keeper hid
+ *     bridges:      the captions shown, preferred first (between two drawn families, then one, then none) — unsliced
+ *     hiddenBridges: the captions not shown: hidden explicitly, or naming a hidden family (and not shown explicitly)
+ *     withFamily:   Set of the hiddenBridges hidden only because one of their families is hidden }
+ * See the header comment for the rule.
+ */
 export function homeView(fams, bridges, home) {
   const hidden = homeHidden(home);
   const isHidden = (f) => treeHiddenBy(f, hidden).length > 0;
-  const lineHidden = (b) => bridgeHiddenBy(b, hidden).length > 0;
+  const famHidden = new Set(fams.filter(isHidden).map((f) => f.index));
+  const trees = fams.filter((f) => !famHidden.has(f.index));
+  const drawn = new Set(trees.filter(hasCrown).map((f) => f.index));
+  const withFamily = new Set();
+  const shown = [];
+  const hiddenBridges = [];
+  for (const b of bridges) {
+    const byFamily = famHidden.has(b.from) || famHidden.has(b.to);
+    if (bridgeHiddenBy(b, hidden).length) hiddenBridges.push(b);
+    else if (byFamily && !bridgeShownBy(b, hidden).length) { hiddenBridges.push(b); withFamily.add(b); } else shown.push(b);
+  }
+  const rank = (b) => 2 - drawn.has(b.from) - drawn.has(b.to);
+  const order = new Map(shown.map((b, i) => [b, i]));
+  const lo = (b) => Math.min(b.from, b.to);
+  const hi = (b) => Math.max(b.from, b.to);
+  shown.sort((a, b) => rank(a) - rank(b) || lo(a) - lo(b) || hi(a) - hi(b) || order.get(a) - order.get(b));
   return {
-    trees: fams.filter((f) => !isHidden(f)),
-    hiddenTrees: fams.filter(isHidden),
-    bridges: bridges.filter((b) => !lineHidden(b)),
-    hiddenBridges: bridges.filter(lineHidden),
+    trees,
+    illustrated: trees.filter(hasCrown),
+    others: trees.filter((f) => !hasCrown(f)),
+    hiddenTrees: fams.filter((f) => famHidden.has(f.index)),
+    bridges: shown,
+    hiddenBridges,
+    withFamily,
   };
 }
+
+/**
+ * The owner's patch that shows (`on`) or hides a «يلتقي» caption, for the home page and #/admin alike:
+ *   show: drop the explicit hides (showBridges) and, when one of its families is hidden, show it anyway (keepBridges →
+ *         home.shownBridges);
+ *   hide: when it is shown only thanks to home.shownBridges (a family hidden), drop that (unkeepBridges) — it then
+ *         follows its family again; otherwise hide it explicitly (hideBridges), clearing any stale shownBridges entry.
+ * `fams` = every family (the indexes of b.from / b.to).
+ */
+export function bridgeToggle(b, fams, home, on) {
+  const hidden = homeHidden(home);
+  const byFamily = [fams[b.from], fams[b.to]].some((f) => f && treeHiddenBy(f, hidden).length > 0);
+  const kept = bridgeShownBy(b, hidden);
+  if (on) {
+    const patch = {};
+    const explicit = bridgeHiddenBy(b, hidden);
+    if (explicit.length) patch.showBridges = explicit;
+    if (byFamily && !kept.length) patch.keepBridges = [bridgeKey(b)];
+    return patch;
+  }
+  if (byFamily && kept.length && !bridgeHiddenBy(b, hidden).length) return { unkeepBridges: kept };
+  return kept.length ? { hideBridges: [bridgeKey(b)], unkeepBridges: kept } : { hideBridges: [bridgeKey(b)] };
+}
+
+/** A family title inside an English sentence or list: "The Eid family" → "the Eid family", "Family of X" → "the family of X". */
+const inSentence = (title, l) => (l === 'en' ? title.replace(/^The /, 'the ').replace(/^Family of /, 'the family of ') : title);
 
 /**
  * Parts of a «يلتقي» caption: strings and the two people rendered by `person(p)` (links on the home page, plain
@@ -371,8 +465,7 @@ export function homeView(fams, bridges, home) {
  */
 export function bridgeParts(b, fams, l, person) {
   const a = bi(fams[b.from].family);
-  let c = bi(fams[b.to].family);
-  if (l === 'en') c = c.replace(/^The /, 'the ');
+  const c = inSentence(bi(fams[b.to].family), l);
   const tpl = t('ht.bridge', { a, b: c, husband: '\u0001', wife: '\u0002' });
   return tpl.split(/([\u0001\u0002])/).filter((x) => x !== '').map((x) => (x === '\u0001' ? person(b.husband) : x === '\u0002' ? person(b.wife) : x));
 }
@@ -1172,9 +1265,13 @@ function openViewer(lay, title, { at = null, opener = null } = {}) {
 let grownOnce = false;
 const narrow = () => { try { return matchMedia('(max-width: 700px)').matches; } catch { return false; } };
 
-/** Owner mode: «مخفيّ من الصفحة الرئيسية: …» with «إظهار» for each hidden tree / caption (null when nothing is hidden). */
-function ownerHiddenRow(view, home, save) {
-  if (!view.hiddenTrees.length && !view.hiddenBridges.length) return null;
+/**
+ * Owner mode: «مخفيّ من الصفحة الرئيسية: …» with «إظهار» for each hidden family / caption (null when nothing is
+ * hidden). Captions hidden only with their family are not listed (they come back with it; #/admin lists them).
+ */
+function ownerHiddenRow(view, all, home, save) {
+  const lines = view.hiddenBridges.filter((b) => !view.withFamily.has(b));
+  if (!view.hiddenTrees.length && !lines.length) return null;
   const hidden = homeHidden(home);
   const item = (label, patch, data, back) => h('li', { class: 'ht-own-item' },
     h('span', { class: 'ht-own-label' }, label),
@@ -1188,10 +1285,36 @@ function ownerHiddenRow(view, home, save) {
     h('p', { class: 'ht-own-head small', title: t('ht.own.hiddenNote') },
       icon('key', { size: 14 }), h('span', null, t('ht.own.hidden'))),
     h('ul', { class: 'ht-own-list' },
-      view.hiddenTrees.map((f) => item(t('ht.treeOf', { family: bi(f.family) }), { showTrees: treeHiddenBy(f, hidden) },
+      view.hiddenTrees.map((f) => item(hasCrown(f) ? t('ht.treeOf', { family: bi(f.family) }) : bi(f.family), { showTrees: treeHiddenBy(f, hidden) },
         { head: f.head.id }, `.ht-own-hide[data-head="${f.head.id}"]`)),
-      view.hiddenBridges.map((b) => item(t('ht.own.marriage', { husband: shortName(b.husband), wife: shortName(b.wife) }), { showBridges: bridgeHiddenBy(b, hidden) },
+      lines.map((b) => item(t('ht.own.marriage', { husband: shortName(b.husband), wife: shortName(b.wife) }), bridgeToggle(b, all, home, true),
         { key: bridgeKey(b) }, `.ht-bridge-hide[data-key="${bridgeKey(b)}"]`))));
+}
+
+/**
+ * «عائلات أخرى: آل عيد، آل الفواز» / "Other families: …" — the shown families without a crown, each name a link to
+ * its detailed tree; in owner mode each name carries a small hide button (null when there are none).
+ */
+function othersRow(others, { lead, l, owner, save }) {
+  if (!others.length) return null;
+  // «، » between the names (the line's gap does the spacing); in owner mode each name's hide button separates them.
+  const sep = owner ? null : l === 'ar' ? '،' : ',';
+  return h('div', { class: ['ht-others', 'small', owner ? 'is-owner' : ''], attrs: { role: 'group', 'aria-label': lead.replace(/[:：]\s*$/, '') } },
+    h('span', { class: 'ht-others-lead' }, lead),
+    h('ul', { class: 'ht-others-list', attrs: { role: 'list' } }, // display: contents (the names flow after the lead)
+      others.map((f, i) => {
+        const name = bi(f.family);
+        return h('li', { class: 'ht-other', dataset: { head: f.head.id }, attrs: { role: 'listitem' } },
+          h('a', { href: `#/tree/${encodeURIComponent(f.head.id)}` }, bdi(inSentence(name, l))),
+          owner && canHideTree(f) ? h('button', {
+            type: 'button', class: 'btn btn-sm btn-ghost btn-icon ht-own-hide ht-other-hide',
+            dataset: { head: f.head.id },
+            title: t('ht.own.hideFamily', { family: name }),
+            attrs: { 'aria-label': t('ht.own.hideFamily', { family: name }) },
+            on: { click: () => save({ hideTrees: [f.head.id] }, `.ht-own-show[data-head="${f.head.id}"]`) },
+          }, icon('eyeOff', { size: 14 })) : null,
+          sep && i < others.length - 1 ? h('span', { class: 'ht-other-sep', attrs: { 'aria-hidden': 'true' } }, sep) : null);
+      })));
 }
 
 /**
@@ -1237,17 +1360,41 @@ export function abstractTree(graph, { lang: l = currentLang(), home = store.conf
     return section;
   }
   const famTitle = (f) => t('ht.treeOf', { family: bi(f.family) });
-  // Trees and «يلتقي» captions the keeper hid from the home page (config.home) are shown to nobody.
+  // Trees and «يلتقي» captions the keeper hid from the home page (config.home) are shown to nobody. Only families
+  // with a crown are drawn; the others are named in one line under the trees (see the header comment).
   const view = homeView(all, familyBridges(graph, all), home);
-  const visible = (list) => { const keep = new Set(view.trees.map((f) => f.head.id)); return list.filter((f) => keep.has(f.head.id)); };
-  let fams = view.trees;
+  const drawnIds = new Set(view.illustrated.map((f) => f.head.id));
+  const visible = (list) => list.filter((f) => drawnIds.has(f.head.id));
+  let fams = view.illustrated;
   const save = owner ? ownerSaver(owner) : null;
-  const hiddenRow = owner ? ownerHiddenRow(view, home, save) : null;
-  if (!fams.length) {
-    // Every tree is hidden: nothing of this section — except, for the keeper, the way to show them again.
+  const hiddenRow = owner ? ownerHiddenRow(view, all, home, save) : null;
+  if (!view.trees.length) {
+    // Every family is hidden: nothing of this section — except, for the keeper, the way to show them again.
     section.classList.add('is-all-hidden');
     if (hiddenRow) section.append(hiddenRow);
     else section.hidden = true;
+    return section;
+  }
+  const othersLine = othersRow(view.others, { lead: fams.length ? t('ht.others') : t('ht.othersOnly'), l, owner, save });
+  const title = h('div', { class: 'section-title' }, h('h2', { id: 'ht-title' }, t('ht.sectionTitle')));
+
+  // Marriages that join two families (captions the keeper hid, or naming a hidden family, are left out; those
+  // between two drawn families come first).
+  const bridges = view.bridges.slice(0, 3);
+  const person = (p) => h('a', { href: `#/p/${encodeURIComponent(p.id)}` }, bdi(lineageOf(p, { depth: 2 })));
+  const bridgesLine = bridges.length ? h('div', { class: 'ht-bridges' }, bridges.map((b) => h('p', { class: 'ht-bridge small', dataset: { key: bridgeKey(b) } },
+    h('span', { class: 'ht-rings', attrs: { 'aria-hidden': 'true' } }, icon('heart', { size: 14 })),
+    h('span', null, ...bridgeParts(b, all, l, person)),
+    owner && canHideBridge(b) ? h('button', {
+      type: 'button', class: 'btn btn-sm btn-ghost ht-own-hide ht-bridge-hide', dataset: { key: bridgeKey(b) },
+      title: t('ht.own.hideLineLabel'), attrs: { 'aria-label': t('ht.own.hideLineLabel') },
+      on: { click: () => save(bridgeToggle(b, all, home, false), `.ht-own-show[data-key="${bridgeKey(b)}"]`) },
+    }, icon('eyeOff', { size: 14 }), h('span', null, t('ht.own.hideLine'))) : null))) : null;
+
+  if (!fams.length) {
+    // No shown family has a crown (each is a single line of men): no drawing, just the names — never bare trunks.
+    section.classList.add('is-names-only');
+    section.append(...[title, othersLine, bridgesLine, hiddenRow].filter(Boolean));
     return section;
   }
 
@@ -1288,7 +1435,6 @@ export function abstractTree(graph, { lang: l = currentLang(), home = store.conf
 
   const hint = h('p', { class: 'ht-hint muted small' });
   const summary = h('div', { class: 'sr-only' });
-  const bridgesLine = h('div', { class: 'ht-bridges' });
 
   function select(id) {
     selected = id;
@@ -1382,29 +1528,15 @@ export function abstractTree(graph, { lang: l = currentLang(), home = store.conf
     hint.textContent = narrow() ? t('ht.hintTap') : t('ht.hintClick');
   }
 
-  // Marriages that join two families (captions the keeper hid are left out).
-  const bridges = view.bridges.slice(0, 3);
-  const person = (p) => h('a', { href: `#/p/${encodeURIComponent(p.id)}` }, bdi(lineageOf(p, { depth: 2 })));
-  for (const b of bridges) {
-    const parts = bridgeParts(b, all, l, person);
-    bridgesLine.appendChild(h('p', { class: 'ht-bridge small', dataset: { key: bridgeKey(b) } },
-      h('span', { class: 'ht-rings', attrs: { 'aria-hidden': 'true' } }, icon('heart', { size: 14 })),
-      h('span', null, ...parts),
-      owner && canHideBridge(b) ? h('button', {
-        type: 'button', class: 'btn btn-sm btn-ghost ht-own-hide ht-bridge-hide', dataset: { key: bridgeKey(b) },
-        title: t('ht.own.hideLineLabel'), attrs: { 'aria-label': t('ht.own.hideLineLabel') },
-        on: { click: () => save({ hideBridges: [bridgeKey(b)] }, `.ht-own-show[data-key="${bridgeKey(b)}"]`) },
-      }, icon('eyeOff', { size: 14 }), h('span', null, t('ht.own.hideLine'))) : null));
-  }
-
   draw();
   section.append(...[
-    h('div', { class: 'section-title' }, h('h2', { id: 'ht-title' }, t('ht.sectionTitle'))),
+    title,
     h('p', { class: 'ht-lead muted' }, t('ht.lead')),
     h('div', { class: 'ht-controls' }, switcher, chips),
     grid,
     hint,
-    bridges.length ? bridgesLine : null,
+    othersLine,
+    bridgesLine,
     hiddenRow,
     summary,
   ].filter(Boolean)); // (Element.append would turn a null into the text "null")

@@ -72,7 +72,10 @@ describe('validate-data: config.json "home" (home-page settings)', () => {
       const f = join(p.portalDir, 'config.json');
       const cfg = JSON.parse(readFileSync(f, 'utf8'));
       assert.equal(validateAll({ portalDir: p.portalDir }).warnings.filter((w) => w.includes('"home')).length, 0);
-      cfg.home = { hiddenTrees: ['pgrand01', 'pmona001', 'pnobody1', 'x'], hiddenBridges: ['pahmed01|pwife001', 'pahmed01|pmona001', 'bad'], extra: 1 };
+      cfg.home = {
+        hiddenTrees: ['pgrand01', 'pmona001', 'pnobody1', 'x'], hiddenBridges: ['pahmed01|pwife001', 'pahmed01|pmona001', 'bad'],
+        shownBridges: ['pahmed01|pwife001', 'pnobody1|pwife001', 'a|b'], extra: 1,
+      };
       writeFileSync(f, `${JSON.stringify(cfg, null, 2)}\n`);
       const res = validateAll({ portalDir: p.portalDir });
       assert.equal(res.ok, true, res.errors.join('\n'));
@@ -84,6 +87,8 @@ describe('validate-data: config.json "home" (home-page settings)', () => {
         '"home.hiddenTrees": "x" is not a person id',
         '"home.hiddenBridges": pahmed01|pmona001 are not a married couple (hides nothing)',
         '"home.hiddenBridges": "bad" is not "<husbandId>|<wifeId>"',
+        '"home.shownBridges": unknown person in pnobody1|pwife001 (shows nothing)',
+        '"home.shownBridges": "a|b" is not "<husbandId>|<wifeId>"',
       ]);
       cfg.home = [];
       writeFileSync(f, `${JSON.stringify(cfg, null, 2)}\n`);
