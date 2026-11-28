@@ -6,8 +6,8 @@
       "en": "The Grand Family Tree"
     },
     "rootPersonId": "pg8caja6",
-    "revision": 36,
-    "updatedAt": "2026-11-27T14:04:22.486Z"
+    "revision": 37,
+    "updatedAt": "2026-11-28T12:39:55.309Z"
   },
   "people": {
     "pg8caja6": {
@@ -3574,6 +3574,23 @@
           "action": "edit-person"
         }
       ]
+    },
+    "p2mlwwnp": {
+      "id": "p2mlwwnp",
+      "name": {
+        "ar": "أحمد صدقي",
+        "en": "Ahmad Sidqi"
+      },
+      "gender": "m",
+      "deceased": true,
+      "history": [
+        {
+          "issue": null,
+          "rev": 37,
+          "at": "2026-11-28T12:39:55.309Z",
+          "action": "add-person"
+        }
+      ]
     }
   },
   "unions": {
@@ -4360,6 +4377,15 @@
       "children": [
         "po3n142y",
         "polekh5u"
+      ]
+    },
+    "uhw46i34": {
+      "id": "uhw46i34",
+      "partners": [
+        "p2mlwwnp"
+      ],
+      "children": [
+        "petlxraf"
       ]
     }
   }

@@ -2,6 +2,45 @@
   "entries": [
     {
       "issue": null,
+      "proposalId": "3btnkx14s6",
+      "hash": "",
+      "commit": "",
+      "rev": 37,
+      "at": "2026-11-28T12:39:55.309Z",
+      "title": "Add “Ahmad Sidqi” as father of Zulfa Al-Rayyis (deceased)",
+      "summary": {
+        "en": [
+          "Add “Ahmad Sidqi” as father of Zulfa Al-Rayyis (deceased)"
+        ],
+        "ar": [
+          "إضافة «أحمد صدقي» والداً لـ زلفى الريس (متوفى)"
+        ]
+      },
+      "submitter": {
+        "name": "",
+        "relation": ""
+      },
+      "approvedBy": "gtsgate",
+      "people": [
+        "p2mlwwnp"
+      ],
+      "touched": {
+        "people": [
+          "p2mlwwnp"
+        ],
+        "unions": [
+          "uhw46i34"
+        ]
+      },
+      "destructive": false,
+      "action": "owner-edit",
+      "idMap": {
+        "new1": "p2mlwwnp",
+        "newu2": "uhw46i34"
+      }
+    },
+    {
+      "issue": null,
       "proposalId": "kzaqlap1kp",
       "hash": "",
       "commit": "",
