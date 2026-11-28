@@ -6,8 +6,8 @@
       "en": "The Grand Family Tree"
     },
     "rootPersonId": "pg8caja6",
-    "revision": 41,
-    "updatedAt": "2026-11-28T12:44:27.722Z"
+    "revision": 42,
+    "updatedAt": "2026-11-28T12:45:06.619Z"
   },
   "people": {
     "pg8caja6": {
@@ -3655,6 +3655,23 @@
           "action": "add-person"
         }
       ]
+    },
+    "p64etdsw": {
+      "id": "p64etdsw",
+      "name": {
+        "ar": "أحمد الريس",
+        "en": "Ahmad Al-Rayess"
+      },
+      "gender": "m",
+      "deceased": true,
+      "history": [
+        {
+          "issue": null,
+          "rev": 42,
+          "at": "2026-11-28T12:45:06.619Z",
+          "action": "add-person"
+        }
+      ]
     }
   },
   "unions": {
@@ -4486,6 +4503,15 @@
       ],
       "children": [
         "pe5gsvod"
+      ]
+    },
+    "u0138qrf": {
+      "id": "u0138qrf",
+      "partners": [
+        "p64etdsw"
+      ],
+      "children": [
+        "poeh9c3d"
       ]
     }
   }

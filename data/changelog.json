@@ -2,6 +2,45 @@
   "entries": [
     {
       "issue": null,
+      "proposalId": "11dd9nrwf2",
+      "hash": "",
+      "commit": "",
+      "rev": 42,
+      "at": "2026-11-28T12:45:06.619Z",
+      "title": "Add “Ahmad Al-Rayess” as father of Dawood (deceased)",
+      "summary": {
+        "en": [
+          "Add “Ahmad Al-Rayess” as father of Dawood (deceased)"
+        ],
+        "ar": [
+          "إضافة «أحمد الريس» والداً لـ داود (متوفى)"
+        ]
+      },
+      "submitter": {
+        "name": "",
+        "relation": ""
+      },
+      "approvedBy": "gtsgate",
+      "people": [
+        "p64etdsw"
+      ],
+      "touched": {
+        "people": [
+          "p64etdsw"
+        ],
+        "unions": [
+          "u0138qrf"
+        ]
+      },
+      "destructive": false,
+      "action": "owner-edit",
+      "idMap": {
+        "new15": "p64etdsw",
+        "newu16": "u0138qrf"
+      }
+    },
+    {
+      "issue": null,
       "proposalId": "bi5dpelfab",
       "hash": "",
       "commit": "",
