@@ -6,8 +6,8 @@
       "en": "The Grand Family Tree"
     },
     "rootPersonId": "pg8caja6",
-    "revision": 38,
-    "updatedAt": "2026-11-28T12:40:48.431Z"
+    "revision": 39,
+    "updatedAt": "2026-11-28T12:43:00.971Z"
   },
   "people": {
     "pg8caja6": {
@@ -3607,6 +3607,22 @@
           "action": "add-person"
         }
       ]
+    },
+    "psnp1ygv": {
+      "id": "psnp1ygv",
+      "name": {
+        "ar": "مصطفى"
+      },
+      "gender": "m",
+      "deceased": true,
+      "history": [
+        {
+          "issue": null,
+          "rev": 39,
+          "at": "2026-11-28T12:43:00.971Z",
+          "action": "add-person"
+        }
+      ]
     }
   },
   "unions": {
@@ -4411,6 +4427,15 @@
       ],
       "children": [
         "p2mlwwnp"
+      ]
+    },
+    "uibaybq9": {
+      "id": "uibaybq9",
+      "partners": [
+        "psnp1ygv"
+      ],
+      "children": [
+        "psh5z4cu"
       ]
     }
   }

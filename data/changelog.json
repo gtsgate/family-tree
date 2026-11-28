@@ -2,6 +2,45 @@
   "entries": [
     {
       "issue": null,
+      "proposalId": "u73axfq6ew",
+      "hash": "",
+      "commit": "",
+      "rev": 39,
+      "at": "2026-11-28T12:43:00.971Z",
+      "title": "Add “Mustafa” as father of Al-Abaseeri (deceased)",
+      "summary": {
+        "en": [
+          "Add “Mustafa” as father of Al-Abaseeri (deceased)"
+        ],
+        "ar": [
+          "إضافة «مصطفى» والداً لـ الأباصيري (متوفى)"
+        ]
+      },
+      "submitter": {
+        "name": "",
+        "relation": ""
+      },
+      "approvedBy": "gtsgate",
+      "people": [
+        "psnp1ygv"
+      ],
+      "touched": {
+        "people": [
+          "psnp1ygv"
+        ],
+        "unions": [
+          "uibaybq9"
+        ]
+      },
+      "destructive": false,
+      "action": "owner-edit",
+      "idMap": {
+        "new9": "psnp1ygv",
+        "newu10": "uibaybq9"
+      }
+    },
+    {
+      "issue": null,
       "proposalId": "g6n0x7qs0h",
       "hash": "",
       "commit": "",
