@@ -2,6 +2,1328 @@
   "entries": [
     {
       "issue": null,
+      "proposalId": "11dd9nrwf2",
+      "hash": "",
+      "commit": "",
+      "rev": 42,
+      "at": "2026-11-28T12:45:06.619Z",
+      "title": "Add “Ahmad Al-Rayess” as father of Dawood (deceased)",
+      "summary": {
+        "en": [
+          "Add “Ahmad Al-Rayess” as father of Dawood (deceased)"
+        ],
+        "ar": [
+          "إضافة «أحمد الريس» والداً لـ داود (متوفى)"
+        ]
+      },
+      "submitter": {
+        "name": "",
+        "relation": ""
+      },
+      "approvedBy": "gtsgate",
+      "people": [
+        "p64etdsw"
+      ],
+      "touched": {
+        "people": [
+          "p64etdsw"
+        ],
+        "unions": [
+          "u0138qrf"
+        ]
+      },
+      "destructive": false,
+      "action": "owner-edit",
+      "idMap": {
+        "new15": "p64etdsw",
+        "newu16": "u0138qrf"
+      }
+    },
+    {
+      "issue": null,
+      "proposalId": "bi5dpelfab",
+      "hash": "",
+      "commit": "",
+      "rev": 41,
+      "at": "2026-11-28T12:44:27.722Z",
+      "title": "Add “Dawood” as father of Muhammad (deceased)",
+      "summary": {
+        "en": [
+          "Add “Dawood” as father of Muhammad (deceased)"
+        ],
+        "ar": [
+          "إضافة «داود» والداً لـ محمد (متوفى)"
+        ]
+      },
+      "submitter": {
+        "name": "",
+        "relation": ""
+      },
+      "approvedBy": "gtsgate",
+      "people": [
+        "poeh9c3d"
+      ],
+      "touched": {
+        "people": [
+          "poeh9c3d"
+        ],
+        "unions": [
+          "uar6cg9r"
+        ]
+      },
+      "destructive": false,
+      "action": "owner-edit",
+      "idMap": {
+        "new13": "poeh9c3d",
+        "newu14": "uar6cg9r"
+      }
+    },
+    {
+      "issue": null,
+      "proposalId": "kaz8ao87fe",
+      "hash": "",
+      "commit": "",
+      "rev": 40,
+      "at": "2026-11-28T12:43:53.856Z",
+      "title": "Add “Muhammad” as father of Mustafa (deceased)",
+      "summary": {
+        "en": [
+          "Add “Muhammad” as father of Mustafa (deceased)"
+        ],
+        "ar": [
+          "إضافة «محمد» والداً لـ مصطفى (متوفى)"
+        ]
+      },
+      "submitter": {
+        "name": "",
+        "relation": ""
+      },
+      "approvedBy": "gtsgate",
+      "people": [
+        "pe5gsvod"
+      ],
+      "touched": {
+        "people": [
+          "pe5gsvod"
+        ],
+        "unions": [
+          "udipwmo8"
+        ]
+      },
+      "destructive": false,
+      "action": "owner-edit",
+      "idMap": {
+        "new11": "pe5gsvod",
+        "newu12": "udipwmo8"
+      }
+    },
+    {
+      "issue": null,
+      "proposalId": "u73axfq6ew",
+      "hash": "",
+      "commit": "",
+      "rev": 39,
+      "at": "2026-11-28T12:43:00.971Z",
+      "title": "Add “Mustafa” as father of Al-Abaseeri (deceased)",
+      "summary": {
+        "en": [
+          "Add “Mustafa” as father of Al-Abaseeri (deceased)"
+        ],
+        "ar": [
+          "إضافة «مصطفى» والداً لـ الأباصيري (متوفى)"
+        ]
+      },
+      "submitter": {
+        "name": "",
+        "relation": ""
+      },
+      "approvedBy": "gtsgate",
+      "people": [
+        "psnp1ygv"
+      ],
+      "touched": {
+        "people": [
+          "psnp1ygv"
+        ],
+        "unions": [
+          "uibaybq9"
+        ]
+      },
+      "destructive": false,
+      "action": "owner-edit",
+      "idMap": {
+        "new9": "psnp1ygv",
+        "newu10": "uibaybq9"
+      }
+    },
+    {
+      "issue": null,
+      "proposalId": "g6n0x7qs0h",
+      "hash": "",
+      "commit": "",
+      "rev": 38,
+      "at": "2026-11-28T12:40:48.431Z",
+      "title": "Add “Al-Abaseeri” as father of Ahmad Sidqi (deceased)",
+      "summary": {
+        "en": [
+          "Add “Al-Abaseeri” as father of Ahmad Sidqi (deceased)"
+        ],
+        "ar": [
+          "إضافة «الأباصيري» والداً لـ أحمد صدقي (متوفى)"
+        ]
+      },
+      "submitter": {
+        "name": "",
+        "relation": ""
+      },
+      "approvedBy": "gtsgate",
+      "people": [
+        "psh5z4cu"
+      ],
+      "touched": {
+        "people": [
+          "psh5z4cu"
+        ],
+        "unions": [
+          "u343x6sc"
+        ]
+      },
+      "destructive": false,
+      "action": "owner-edit",
+      "idMap": {
+        "new3": "psh5z4cu",
+        "newu4": "u343x6sc"
+      }
+    },
+    {
+      "issue": null,
+      "proposalId": "3btnkx14s6",
+      "hash": "",
+      "commit": "",
+      "rev": 37,
+      "at": "2026-11-28T12:39:55.309Z",
+      "title": "Add “Ahmad Sidqi” as father of Zulfa Al-Rayyis (deceased)",
+      "summary": {
+        "en": [
+          "Add “Ahmad Sidqi” as father of Zulfa Al-Rayyis (deceased)"
+        ],
+        "ar": [
+          "إضافة «أحمد صدقي» والداً لـ زلفى الريس (متوفى)"
+        ]
+      },
+      "submitter": {
+        "name": "",
+        "relation": ""
+      },
+      "approvedBy": "gtsgate",
+      "people": [
+        "p2mlwwnp"
+      ],
+      "touched": {
+        "people": [
+          "p2mlwwnp"
+        ],
+        "unions": [
+          "uhw46i34"
+        ]
+      },
+      "destructive": false,
+      "action": "owner-edit",
+      "idMap": {
+        "new1": "p2mlwwnp",
+        "newu2": "uhw46i34"
+      }
+    },
+    {
+      "issue": null,
+      "proposalId": "kzaqlap1kp",
+      "hash": "",
+      "commit": "",
+      "rev": 36,
+      "at": "2026-11-27T14:04:22.486Z",
+      "title": "Change the parents of Nawal Eid to Muhammad Eid",
+      "summary": {
+        "en": [
+          "Change the parents of Nawal Eid to Muhammad Eid"
+        ],
+        "ar": [
+          "تغيير والدَي نوال عيد إلى محمد عيد"
+        ]
+      },
+      "submitter": {
+        "name": "",
+        "relation": ""
+      },
+      "approvedBy": "gtsgate",
+      "people": [
+        "polekh5u"
+      ],
+      "touched": {
+        "people": [
+          "polekh5u"
+        ],
+        "unions": [
+          "usyw0jc7"
+        ]
+      },
+      "destructive": false,
+      "action": "owner-edit",
+      "idMap": {
+        "newu61": "usyw0jc7"
+      }
+    },
+    {
+      "issue": null,
+      "proposalId": "lunky7nl8q",
+      "hash": "",
+      "commit": "",
+      "rev": 35,
+      "at": "2026-11-27T14:03:39.432Z",
+      "title": "Edit Muhammad: Arabic family name: “عيد”",
+      "summary": {
+        "en": [
+          "Edit Muhammad: Arabic family name: “عيد”"
+        ],
+        "ar": [
+          "تعديل بيانات محمد: اسم العائلة بالعربية: «عيد»"
+        ]
+      },
+      "submitter": {
+        "name": "",
+        "relation": ""
+      },
+      "approvedBy": "gtsgate",
+      "people": [
+        "p8g4n5jf"
+      ],
+      "touched": {
+        "people": [
+          "p8g4n5jf"
+        ],
+        "unions": []
+      },
+      "destructive": false,
+      "action": "owner-edit"
+    },
+    {
+      "issue": null,
+      "proposalId": "94nrv1lwiv",
+      "hash": "",
+      "commit": "",
+      "rev": 34,
+      "at": "2026-11-27T14:02:59.707Z",
+      "title": "Edit Nawal Muhammad Eid: Arabic family name: “عيد”",
+      "summary": {
+        "en": [
+          "Edit Nawal Muhammad Eid: Arabic family name: “عيد”"
+        ],
+        "ar": [
+          "تعديل بيانات نوال محمد عيد: اسم العائلة بالعربية: «عيد»"
+        ]
+      },
+      "submitter": {
+        "name": "",
+        "relation": ""
+      },
+      "approvedBy": "gtsgate",
+      "people": [
+        "polekh5u"
+      ],
+      "touched": {
+        "people": [
+          "polekh5u"
+        ],
+        "unions": []
+      },
+      "destructive": false,
+      "action": "owner-edit"
+    },
+    {
+      "issue": null,
+      "proposalId": "nvd50d446b",
+      "hash": "",
+      "commit": "",
+      "rev": 33,
+      "at": "2026-11-27T14:01:59.160Z",
+      "title": "Add “Muhammad” as father of Sawsan Eid (deceased)",
+      "summary": {
+        "en": [
+          "Add “Muhammad” as father of Sawsan Eid (deceased)"
+        ],
+        "ar": [
+          "إضافة «محمد» والداً لـ سوسن عيد (متوفى)"
+        ]
+      },
+      "submitter": {
+        "name": "",
+        "relation": ""
+      },
+      "approvedBy": "gtsgate",
+      "people": [
+        "p8g4n5jf"
+      ],
+      "touched": {
+        "people": [
+          "p8g4n5jf"
+        ],
+        "unions": [
+          "usyw0jc7"
+        ]
+      },
+      "destructive": false,
+      "action": "owner-edit",
+      "idMap": {
+        "new59": "p8g4n5jf",
+        "newu60": "usyw0jc7"
+      }
+    },
+    {
+      "issue": null,
+      "proposalId": "bkkrldlnzn",
+      "hash": "",
+      "commit": "",
+      "rev": 32,
+      "at": "2026-11-27T14:01:25.676Z",
+      "title": "Edit Sawsan Muhammad Eid: Arabic family name: “عيد”",
+      "summary": {
+        "en": [
+          "Edit Sawsan Muhammad Eid: Arabic family name: “عيد”"
+        ],
+        "ar": [
+          "تعديل بيانات سوسن محمد عيد: اسم العائلة بالعربية: «عيد»"
+        ]
+      },
+      "submitter": {
+        "name": "",
+        "relation": ""
+      },
+      "approvedBy": "gtsgate",
+      "people": [
+        "po3n142y"
+      ],
+      "touched": {
+        "people": [
+          "po3n142y"
+        ],
+        "unions": []
+      },
+      "destructive": false,
+      "action": "owner-edit"
+    },
+    {
+      "issue": null,
+      "proposalId": "pbvv742jf1",
+      "hash": "",
+      "commit": "",
+      "rev": 31,
+      "at": "2026-11-27T13:58:45.555Z",
+      "title": "Edit the marriage of Essam Ali Alam and Zulfa Al-Rayyis: date of marriage: 1985; approximate date o…",
+      "summary": {
+        "en": [
+          "Edit the marriage of Essam Ali Alam and Zulfa Al-Rayyis: date of marriage: 1985; approximate date of marriage: approximate; date of divorce: 1994"
+        ],
+        "ar": [
+          "تعديل بيانات زواج عصام علي عالم وزلفى الريس: تاريخ الزواج: 1985؛ تقريب تاريخ الزواج: تقريبي؛ تاريخ الطلاق: 1994"
+        ]
+      },
+      "submitter": {
+        "name": "",
+        "relation": ""
+      },
+      "approvedBy": "gtsgate",
+      "people": [],
+      "touched": {
+        "people": [],
+        "unions": [
+          "u65hmgln"
+        ]
+      },
+      "destructive": false,
+      "action": "owner-edit"
+    },
+    {
+      "issue": null,
+      "proposalId": "06gdkwbqsm",
+      "hash": "",
+      "commit": "",
+      "rev": 30,
+      "at": "2026-11-27T13:53:45.344Z",
+      "title": "Edit the marriage of Essam Ali Alam and Zulfa Al-Rayyis: approximate date of divorce: approximate",
+      "summary": {
+        "en": [
+          "Edit the marriage of Essam Ali Alam and Zulfa Al-Rayyis: approximate date of divorce: approximate"
+        ],
+        "ar": [
+          "تعديل بيانات زواج عصام علي عالم وزلفى الريس: تقريب تاريخ الطلاق: تقريبي"
+        ]
+      },
+      "submitter": {
+        "name": "",
+        "relation": ""
+      },
+      "approvedBy": "gtsgate",
+      "people": [],
+      "touched": {
+        "people": [],
+        "unions": [
+          "u65hmgln"
+        ]
+      },
+      "destructive": false,
+      "action": "owner-edit"
+    },
+    {
+      "issue": null,
+      "proposalId": "368gmz9glt",
+      "hash": "",
+      "commit": "",
+      "rev": 29,
+      "at": "2026-11-27T13:50:35.524Z",
+      "title": "Edit Abdulrahman Al-Rayess: date of birth: 31 Dec 1959; approximate date of birth: exact",
+      "summary": {
+        "en": [
+          "Edit Abdulrahman Al-Rayess: date of birth: 31 Dec 1959; approximate date of birth: exact"
+        ],
+        "ar": [
+          "تعديل بيانات عبدالرحمن الريس: تاريخ الميلاد: 31 ديسمبر 1959؛ تقريب تاريخ الميلاد: دقيق"
+        ]
+      },
+      "submitter": {
+        "name": "",
+        "relation": ""
+      },
+      "approvedBy": "gtsgate",
+      "people": [
+        "pfi4d2li"
+      ],
+      "touched": {
+        "people": [
+          "pfi4d2li"
+        ],
+        "unions": []
+      },
+      "destructive": false,
+      "action": "owner-edit"
+    },
+    {
+      "issue": null,
+      "proposalId": "q2s2bambip",
+      "hash": "",
+      "commit": "",
+      "rev": 28,
+      "at": "2026-11-26T17:04:25.778Z",
+      "title": "Edit the marriage of Essam Ali Alam and Sawsan Muhammad Eid: marriage status: divorced",
+      "summary": {
+        "en": [
+          "Edit the marriage of Essam Ali Alam and Sawsan Muhammad Eid: marriage status: divorced"
+        ],
+        "ar": [
+          "تعديل بيانات زواج عصام علي عالم وسوسن محمد عيد: حالة الزواج: طلاق"
+        ]
+      },
+      "submitter": {
+        "name": "",
+        "relation": ""
+      },
+      "approvedBy": "gtsgate",
+      "people": [],
+      "touched": {
+        "people": [],
+        "unions": [
+          "u5bbbyq6"
+        ]
+      },
+      "destructive": false,
+      "action": "owner-edit"
+    },
+    {
+      "issue": null,
+      "proposalId": "hle8on854e",
+      "hash": "",
+      "commit": "",
+      "rev": 27,
+      "at": "2026-11-26T17:02:03.539Z",
+      "title": "Edit Reema Adnan Al-Fawaz: Arabic nickname: “أم دان”",
+      "summary": {
+        "en": [
+          "Edit Reema Adnan Al-Fawaz: Arabic nickname: “أم دان”"
+        ],
+        "ar": [
+          "تعديل بيانات ريما عدنان الفواز: الكنية أو اللقب بالعربية: «أم دان»"
+        ]
+      },
+      "submitter": {
+        "name": "",
+        "relation": ""
+      },
+      "approvedBy": "gtsgate",
+      "people": [
+        "psy6unmh"
+      ],
+      "touched": {
+        "people": [
+          "psy6unmh"
+        ],
+        "unions": []
+      },
+      "destructive": false,
+      "action": "owner-edit"
+    },
+    {
+      "issue": null,
+      "proposalId": "41mhu6taxj",
+      "hash": "",
+      "commit": "",
+      "rev": 26,
+      "at": "2026-11-26T17:00:48.331Z",
+      "title": "Edit Majed Qadan: Arabic nickname: “أبو أحمد”",
+      "summary": {
+        "en": [
+          "Edit Majed Qadan: Arabic nickname: “أبو أحمد”"
+        ],
+        "ar": [
+          "تعديل بيانات ماجد قعدان: الكنية أو اللقب بالعربية: «أبو أحمد»"
+        ]
+      },
+      "submitter": {
+        "name": "",
+        "relation": ""
+      },
+      "approvedBy": "gtsgate",
+      "people": [
+        "p9c6efj9"
+      ],
+      "touched": {
+        "people": [
+          "p9c6efj9"
+        ],
+        "unions": []
+      },
+      "destructive": false,
+      "action": "owner-edit"
+    },
+    {
+      "issue": null,
+      "proposalId": "08rgh4tqxp",
+      "hash": "",
+      "commit": "",
+      "rev": 25,
+      "at": "2026-11-26T16:57:53.263Z",
+      "title": "Add “Majed Qadan” as former husband of Zulfa Al-Rayyis",
+      "summary": {
+        "en": [
+          "Add “Majed Qadan” as former husband of Zulfa Al-Rayyis"
+        ],
+        "ar": [
+          "إضافة «ماجد قعدان» زوجاً سابقاً لـ زلفى الريس"
+        ]
+      },
+      "submitter": {
+        "name": "",
+        "relation": ""
+      },
+      "approvedBy": "gtsgate",
+      "people": [
+        "p9c6efj9"
+      ],
+      "touched": {
+        "people": [
+          "p9c6efj9"
+        ],
+        "unions": [
+          "uktgsf2i"
+        ]
+      },
+      "destructive": false,
+      "action": "owner-edit",
+      "idMap": {
+        "new57": "p9c6efj9",
+        "newu58": "uktgsf2i"
+      }
+    },
+    {
+      "issue": null,
+      "proposalId": "btbnoabsxv",
+      "hash": "",
+      "commit": "",
+      "rev": 24,
+      "at": "2026-11-26T16:57:05.730Z",
+      "title": "Edit the marriage of Essam Ali Alam and Zulfa Al-Rayyis: marriage status: divorced",
+      "summary": {
+        "en": [
+          "Edit the marriage of Essam Ali Alam and Zulfa Al-Rayyis: marriage status: divorced"
+        ],
+        "ar": [
+          "تعديل بيانات زواج عصام علي عالم وزلفى الريس: حالة الزواج: طلاق"
+        ]
+      },
+      "submitter": {
+        "name": "",
+        "relation": ""
+      },
+      "approvedBy": "gtsgate",
+      "people": [],
+      "touched": {
+        "people": [],
+        "unions": [
+          "u65hmgln"
+        ]
+      },
+      "destructive": false,
+      "action": "owner-edit"
+    },
+    {
+      "issue": null,
+      "proposalId": "ro2z16kway",
+      "hash": "",
+      "commit": "",
+      "rev": 23,
+      "at": "2026-11-26T16:56:50.327Z",
+      "title": "Edit the marriage of Zulfa Al-Rayyis and Abdulrahman Al-Rayess: marriage status: divorced",
+      "summary": {
+        "en": [
+          "Edit the marriage of Zulfa Al-Rayyis and Abdulrahman Al-Rayess: marriage status: divorced"
+        ],
+        "ar": [
+          "تعديل بيانات زواج زلفى الريس وعبدالرحمن الريس: حالة الزواج: طلاق"
+        ]
+      },
+      "submitter": {
+        "name": "",
+        "relation": ""
+      },
+      "approvedBy": "gtsgate",
+      "people": [],
+      "touched": {
+        "people": [],
+        "unions": [
+          "ujwhkxjd"
+        ]
+      },
+      "destructive": false,
+      "action": "owner-edit"
+    },
+    {
+      "issue": null,
+      "proposalId": "e9l1m4gn63",
+      "hash": "",
+      "commit": "",
+      "rev": 22,
+      "at": "2026-11-26T16:55:29.086Z",
+      "title": "Edit Abdulrahman: Arabic family name: “الريس”; English family name: “Al-Rayess”",
+      "summary": {
+        "en": [
+          "Edit Abdulrahman: Arabic family name: “الريس”; English family name: “Al-Rayess”"
+        ],
+        "ar": [
+          "تعديل بيانات عبدالرحمن: اسم العائلة بالعربية: «الريس»؛ اسم العائلة بالإنجليزية: «Al-Rayess»"
+        ]
+      },
+      "submitter": {
+        "name": "",
+        "relation": ""
+      },
+      "approvedBy": "gtsgate",
+      "people": [
+        "pfi4d2li"
+      ],
+      "touched": {
+        "people": [
+          "pfi4d2li"
+        ],
+        "unions": []
+      },
+      "destructive": false,
+      "action": "owner-edit"
+    },
+    {
+      "issue": null,
+      "proposalId": "ootmo02l0d",
+      "hash": "",
+      "commit": "",
+      "rev": 21,
+      "at": "2026-11-26T16:54:01.143Z",
+      "title": "Add “Abdulrahman” as father of Nouf Al-Rayess (c. 1960–2023)",
+      "summary": {
+        "en": [
+          "Add “Abdulrahman” as father of Nouf Al-Rayess (c. 1960–2023)"
+        ],
+        "ar": [
+          "إضافة «عبدالرحمن» والداً لـ نوف الريس (حوالي 1960–2023)"
+        ]
+      },
+      "submitter": {
+        "name": "",
+        "relation": ""
+      },
+      "approvedBy": "gtsgate",
+      "people": [
+        "pfi4d2li"
+      ],
+      "touched": {
+        "people": [
+          "pfi4d2li"
+        ],
+        "unions": [
+          "ujwhkxjd"
+        ]
+      },
+      "destructive": false,
+      "action": "owner-edit",
+      "idMap": {
+        "new55": "pfi4d2li",
+        "newu56": "ujwhkxjd"
+      }
+    },
+    {
+      "issue": null,
+      "proposalId": "gp79gk2afj",
+      "hash": "",
+      "commit": "",
+      "rev": 20,
+      "at": "2026-11-26T16:44:10.286Z",
+      "title": "Add “Nouf Al-Rayess” as sister of Ali Essam Alam (same mother; b. 2000)",
+      "summary": {
+        "en": [
+          "Add “Nouf Al-Rayess” as sister of Ali Essam Alam (same mother; b. 2000)"
+        ],
+        "ar": [
+          "إضافة «نوف الريس» أختاً لـ علي عصام عالم من الأم (م 2000)"
+        ]
+      },
+      "submitter": {
+        "name": "",
+        "relation": ""
+      },
+      "approvedBy": "gtsgate",
+      "people": [
+        "ptiafno2"
+      ],
+      "touched": {
+        "people": [
+          "ptiafno2"
+        ],
+        "unions": [
+          "ujwhkxjd"
+        ]
+      },
+      "destructive": false,
+      "action": "owner-edit",
+      "idMap": {
+        "new53": "ptiafno2",
+        "newu54": "ujwhkxjd"
+      }
+    },
+    {
+      "issue": null,
+      "proposalId": "mlu6n8fmf0",
+      "hash": "",
+      "commit": "",
+      "rev": 19,
+      "at": "2026-11-26T16:43:11.519Z",
+      "title": "Add “Jaman” as daughter of Ali Essam Alam and Reema Adnan Al-Fawaz (b. 2024)",
+      "summary": {
+        "en": [
+          "Add “Jaman” as daughter of Ali Essam Alam and Reema Adnan Al-Fawaz (b. 2024)"
+        ],
+        "ar": [
+          "إضافة «جمان» ابنةً لـ علي عصام عالم وريما عدنان الفواز (م 2024)"
+        ]
+      },
+      "submitter": {
+        "name": "",
+        "relation": ""
+      },
+      "approvedBy": "gtsgate",
+      "people": [
+        "pn81y3cb"
+      ],
+      "touched": {
+        "people": [
+          "pn81y3cb"
+        ],
+        "unions": [
+          "u8uddl58"
+        ]
+      },
+      "destructive": false,
+      "action": "owner-edit",
+      "idMap": {
+        "new51": "pn81y3cb",
+        "newu52": "u8uddl58"
+      }
+    },
+    {
+      "issue": null,
+      "proposalId": "4h0kmj0h2b",
+      "hash": "",
+      "commit": "",
+      "rev": 18,
+      "at": "2026-11-26T16:42:39.488Z",
+      "title": "Add “Al-Rayyan” as son of Ali Essam Alam and Reema Adnan Al-Fawaz (b. 2023)",
+      "summary": {
+        "en": [
+          "Add “Al-Rayyan” as son of Ali Essam Alam and Reema Adnan Al-Fawaz (b. 2023)"
+        ],
+        "ar": [
+          "إضافة «الريان» ابناً لـ علي عصام عالم وريما عدنان الفواز (م 2023)"
+        ]
+      },
+      "submitter": {
+        "name": "",
+        "relation": ""
+      },
+      "approvedBy": "gtsgate",
+      "people": [
+        "pje7dray"
+      ],
+      "touched": {
+        "people": [
+          "pje7dray"
+        ],
+        "unions": [
+          "u8uddl58"
+        ]
+      },
+      "destructive": false,
+      "action": "owner-edit",
+      "idMap": {
+        "new49": "pje7dray",
+        "newu50": "u8uddl58"
+      }
+    },
+    {
+      "issue": null,
+      "proposalId": "1zxk8wj0b1",
+      "hash": "",
+      "commit": "",
+      "rev": 17,
+      "at": "2026-11-26T16:41:41.752Z",
+      "title": "Add “Aleen” as daughter of Ali Essam Alam and Reema Adnan Al-Fawaz (b. 2018)",
+      "summary": {
+        "en": [
+          "Add “Aleen” as daughter of Ali Essam Alam and Reema Adnan Al-Fawaz (b. 2018)"
+        ],
+        "ar": [
+          "إضافة «ألين» ابنةً لـ علي عصام عالم وريما عدنان الفواز (م 2018)"
+        ]
+      },
+      "submitter": {
+        "name": "",
+        "relation": ""
+      },
+      "approvedBy": "gtsgate",
+      "people": [
+        "py05um8r"
+      ],
+      "touched": {
+        "people": [
+          "py05um8r"
+        ],
+        "unions": [
+          "u8uddl58"
+        ]
+      },
+      "destructive": false,
+      "action": "owner-edit",
+      "idMap": {
+        "new47": "py05um8r",
+        "newu48": "u8uddl58"
+      }
+    },
+    {
+      "issue": null,
+      "proposalId": "7k4cx36jra",
+      "hash": "",
+      "commit": "",
+      "rev": 16,
+      "at": "2026-11-26T16:41:15.180Z",
+      "title": "Add “Dan” as daughter of Ali Essam Alam and Reema Adnan Al-Fawaz (b. 2016)",
+      "summary": {
+        "en": [
+          "Add “Dan” as daughter of Ali Essam Alam and Reema Adnan Al-Fawaz (b. 2016)"
+        ],
+        "ar": [
+          "إضافة «دان» ابنةً لـ علي عصام عالم وريما عدنان الفواز (م 2016)"
+        ]
+      },
+      "submitter": {
+        "name": "",
+        "relation": ""
+      },
+      "approvedBy": "gtsgate",
+      "people": [
+        "p8lut0o5"
+      ],
+      "touched": {
+        "people": [
+          "p8lut0o5"
+        ],
+        "unions": [
+          "u8uddl58"
+        ]
+      },
+      "destructive": false,
+      "action": "owner-edit",
+      "idMap": {
+        "new45": "p8lut0o5",
+        "newu46": "u8uddl58"
+      }
+    },
+    {
+      "issue": null,
+      "proposalId": "iz98zrskae",
+      "hash": "",
+      "commit": "",
+      "rev": 15,
+      "at": "2026-11-26T16:37:47.171Z",
+      "title": "Edit Nasser: Arabic family name: “الفواز”",
+      "summary": {
+        "en": [
+          "Edit Nasser: Arabic family name: “الفواز”"
+        ],
+        "ar": [
+          "تعديل بيانات ناصر: اسم العائلة بالعربية: «الفواز»"
+        ]
+      },
+      "submitter": {
+        "name": "",
+        "relation": ""
+      },
+      "approvedBy": "gtsgate",
+      "people": [
+        "psxe8lwh"
+      ],
+      "touched": {
+        "people": [
+          "psxe8lwh"
+        ],
+        "unions": []
+      },
+      "destructive": false,
+      "action": "owner-edit"
+    },
+    {
+      "issue": null,
+      "proposalId": "avkl79wvmn",
+      "hash": "",
+      "commit": "",
+      "rev": 14,
+      "at": "2026-11-26T16:37:01.169Z",
+      "title": "Add “Nasser” as father of Abdulzaraq",
+      "summary": {
+        "en": [
+          "Add “Nasser” as father of Abdulzaraq"
+        ],
+        "ar": [
+          "إضافة «ناصر» والداً لـ عبدالزراق"
+        ]
+      },
+      "submitter": {
+        "name": "",
+        "relation": ""
+      },
+      "approvedBy": "gtsgate",
+      "people": [
+        "psxe8lwh"
+      ],
+      "touched": {
+        "people": [
+          "psxe8lwh"
+        ],
+        "unions": [
+          "udobz0xw"
+        ]
+      },
+      "destructive": false,
+      "action": "owner-edit",
+      "idMap": {
+        "new43": "psxe8lwh",
+        "newu44": "udobz0xw"
+      }
+    },
+    {
+      "issue": null,
+      "proposalId": "i0blq6dxlz",
+      "hash": "",
+      "commit": "",
+      "rev": 13,
+      "at": "2026-11-26T16:36:36.053Z",
+      "title": "Add “Abdulzaraq” as father of Adnan Al-Fawaz",
+      "summary": {
+        "en": [
+          "Add “Abdulzaraq” as father of Adnan Al-Fawaz"
+        ],
+        "ar": [
+          "إضافة «عبدالزراق» والداً لـ عدنان الفواز"
+        ]
+      },
+      "submitter": {
+        "name": "",
+        "relation": ""
+      },
+      "approvedBy": "gtsgate",
+      "people": [
+        "p4ir3fj1"
+      ],
+      "touched": {
+        "people": [
+          "p4ir3fj1"
+        ],
+        "unions": [
+          "uzk7hcb6"
+        ]
+      },
+      "destructive": false,
+      "action": "owner-edit",
+      "idMap": {
+        "new41": "p4ir3fj1",
+        "newu42": "uzk7hcb6"
+      }
+    },
+    {
+      "issue": null,
+      "proposalId": "o9gc81m7l3",
+      "hash": "",
+      "commit": "",
+      "rev": 12,
+      "at": "2026-11-26T16:35:55.712Z",
+      "title": "Mark Adnan Al-Fawaz as deceased (died 19 Feb 2022)",
+      "summary": {
+        "en": [
+          "Mark Adnan Al-Fawaz as deceased (died 19 Feb 2022)"
+        ],
+        "ar": [
+          "تسجيل وفاة عدنان الفواز (تاريخ الوفاة: 19 فبراير 2022)"
+        ]
+      },
+      "submitter": {
+        "name": "",
+        "relation": ""
+      },
+      "approvedBy": "gtsgate",
+      "people": [
+        "ps6tfskb"
+      ],
+      "touched": {
+        "people": [
+          "ps6tfskb"
+        ],
+        "unions": []
+      },
+      "destructive": false,
+      "action": "owner-edit"
+    },
+    {
+      "issue": null,
+      "proposalId": "oovrjfvt78",
+      "hash": "",
+      "commit": "",
+      "rev": 11,
+      "at": "2026-11-26T16:35:07.832Z",
+      "title": "Add “Adnan Al-Fawaz (Abu Sultan)” as father of Reema (b. 1947)",
+      "summary": {
+        "en": [
+          "Add “Adnan Al-Fawaz (Abu Sultan)” as father of Reema (b. 1947)"
+        ],
+        "ar": [
+          "إضافة «عدنان الفواز (أبو سلطان)» والداً لـ ريما (م 1947)"
+        ]
+      },
+      "submitter": {
+        "name": "",
+        "relation": ""
+      },
+      "approvedBy": "gtsgate",
+      "people": [
+        "ps6tfskb"
+      ],
+      "touched": {
+        "people": [
+          "ps6tfskb"
+        ],
+        "unions": [
+          "u5x0eo2y"
+        ]
+      },
+      "destructive": false,
+      "action": "owner-edit",
+      "idMap": {
+        "new39": "ps6tfskb",
+        "newu40": "u5x0eo2y"
+      }
+    },
+    {
+      "issue": null,
+      "proposalId": "nizs0r3dnw",
+      "hash": "",
+      "commit": "",
+      "rev": 10,
+      "at": "2026-11-26T16:34:10.951Z",
+      "title": "Add “Reema” as wife of Ali Essam Alam",
+      "summary": {
+        "en": [
+          "Add “Reema” as wife of Ali Essam Alam"
+        ],
+        "ar": [
+          "إضافة «ريما» زوجةً لـ علي عصام عالم"
+        ]
+      },
+      "submitter": {
+        "name": "",
+        "relation": ""
+      },
+      "approvedBy": "gtsgate",
+      "people": [
+        "psy6unmh"
+      ],
+      "touched": {
+        "people": [
+          "psy6unmh"
+        ],
+        "unions": [
+          "u8uddl58"
+        ]
+      },
+      "destructive": false,
+      "action": "owner-edit",
+      "idMap": {
+        "new37": "psy6unmh",
+        "newu38": "u8uddl58"
+      }
+    },
+    {
+      "issue": null,
+      "proposalId": "5qlzuat95w",
+      "hash": "",
+      "commit": "",
+      "rev": 9,
+      "at": "2026-11-26T14:32:11.201Z",
+      "title": "Mark Hussein Ali Alam as deceased",
+      "summary": {
+        "en": [
+          "Mark Hussein Ali Alam as deceased"
+        ],
+        "ar": [
+          "تسجيل وفاة حسين علي عالم"
+        ]
+      },
+      "submitter": {
+        "name": "",
+        "relation": ""
+      },
+      "approvedBy": "gtsgate",
+      "people": [
+        "pv4fdb68"
+      ],
+      "touched": {
+        "people": [
+          "pv4fdb68"
+        ],
+        "unions": []
+      },
+      "destructive": false,
+      "action": "owner-edit"
+    },
+    {
+      "issue": null,
+      "proposalId": "qtk16ac9n7",
+      "hash": "",
+      "commit": "",
+      "rev": 8,
+      "at": "2026-11-26T14:31:44.280Z",
+      "title": "Mark Adel Ali Alam as deceased",
+      "summary": {
+        "en": [
+          "Mark Adel Ali Alam as deceased"
+        ],
+        "ar": [
+          "تسجيل وفاة عادل علي عالم"
+        ]
+      },
+      "submitter": {
+        "name": "",
+        "relation": ""
+      },
+      "approvedBy": "gtsgate",
+      "people": [
+        "psa46soz"
+      ],
+      "touched": {
+        "people": [
+          "psa46soz"
+        ],
+        "unions": []
+      },
+      "destructive": false,
+      "action": "owner-edit"
+    },
+    {
+      "issue": null,
+      "proposalId": "126h8tnwgz",
+      "hash": "",
+      "commit": "",
+      "rev": 7,
+      "at": "2026-11-26T14:31:23.874Z",
+      "title": "Remove Lama and erase their personal details (reason: entered by mistake)",
+      "summary": {
+        "en": [
+          "Remove Lama and erase their personal details (reason: entered by mistake)"
+        ],
+        "ar": [
+          "حذف لمى مع مسح بياناتها الشخصية (السبب: إدخال عن طريق الخطأ)"
+        ]
+      },
+      "submitter": {
+        "name": "",
+        "relation": ""
+      },
+      "approvedBy": "gtsgate",
+      "people": [],
+      "touched": {
+        "people": [
+          "pglussip"
+        ],
+        "unions": [
+          "uckqhthy"
+        ]
+      },
+      "destructive": true,
+      "action": "owner-edit"
+    },
+    {
+      "issue": null,
+      "proposalId": "45r0ozroq3",
+      "hash": "",
+      "commit": "",
+      "rev": 6,
+      "at": "2026-11-26T14:30:53.439Z",
+      "title": "Remove Hassan Adel Alam and erase their personal details (reason: entered by mistake)",
+      "summary": {
+        "en": [
+          "Remove Hassan Adel Alam and erase their personal details (reason: entered by mistake)"
+        ],
+        "ar": [
+          "حذف حسن عادل عالم مع مسح بياناته الشخصية (السبب: إدخال عن طريق الخطأ)"
+        ]
+      },
+      "submitter": {
+        "name": "",
+        "relation": ""
+      },
+      "approvedBy": "gtsgate",
+      "people": [],
+      "touched": {
+        "people": [
+          "pzp4ktxd"
+        ],
+        "unions": []
+      },
+      "destructive": true,
+      "action": "owner-edit"
+    },
+    {
+      "issue": null,
       "proposalId": "l0e6s94lfe",
       "hash": "",
       "commit": "",

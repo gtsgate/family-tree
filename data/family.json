@@ -6,8 +6,8 @@
       "en": "The Grand Family Tree"
     },
     "rootPersonId": "pg8caja6",
-    "revision": 5,
-    "updatedAt": "2026-11-26T13:17:27.748Z"
+    "revision": 42,
+    "updatedAt": "2026-11-28T12:45:06.619Z"
   },
   "people": {
     "pg8caja6": {
@@ -1035,12 +1035,19 @@
         "ar": "حسين"
       },
       "gender": "m",
+      "deceased": true,
       "privacy": "year",
       "history": [
         {
           "issue": null,
           "at": "2026-11-25T00:00:00Z",
           "action": "import"
+        },
+        {
+          "issue": null,
+          "rev": 9,
+          "at": "2026-11-26T14:32:11.201Z",
+          "action": "mark"
         }
       ]
     },
@@ -1075,12 +1082,19 @@
         "ar": "عادل"
       },
       "gender": "m",
+      "deceased": true,
       "privacy": "year",
       "history": [
         {
           "issue": null,
           "at": "2026-11-25T00:00:00Z",
           "action": "import"
+        },
+        {
+          "issue": null,
+          "rev": 8,
+          "at": "2026-11-26T14:31:44.280Z",
+          "action": "mark"
         }
       ]
     },
@@ -1138,7 +1152,7 @@
         "ar": "سوسن"
       },
       "surname": {
-        "ar": "محمد عيد"
+        "ar": "عيد"
       },
       "gender": "f",
       "privacy": "year",
@@ -1147,6 +1161,12 @@
           "issue": null,
           "at": "2026-11-25T00:00:00Z",
           "action": "import"
+        },
+        {
+          "issue": null,
+          "rev": 32,
+          "at": "2026-11-27T14:01:25.676Z",
+          "action": "edit-person"
         }
       ]
     },
@@ -2518,7 +2538,7 @@
         "ar": "نوال"
       },
       "surname": {
-        "ar": "محمد عيد"
+        "ar": "عيد"
       },
       "gender": "f",
       "privacy": "year",
@@ -2527,6 +2547,18 @@
           "issue": null,
           "at": "2026-11-25T00:00:00Z",
           "action": "import"
+        },
+        {
+          "issue": null,
+          "rev": 34,
+          "at": "2026-11-27T14:02:59.707Z",
+          "action": "edit-person"
+        },
+        {
+          "issue": null,
+          "rev": 36,
+          "at": "2026-11-27T14:04:22.486Z",
+          "action": "move-person"
         }
       ]
     },
@@ -3200,35 +3232,443 @@
     },
     "pglussip": {
       "id": "pglussip",
-      "name": {
-        "ar": "لمى"
-      },
+      "nameStatus": "withheld",
       "gender": "f",
-      "privacy": "year",
+      "privacy": "hidden",
+      "removed": {
+        "at": "2026-11-26T14:31:23.874Z",
+        "reasonCode": "entered-by-mistake",
+        "issue": null,
+        "by": "gtsgate"
+      },
       "history": [
         {
           "issue": null,
           "rev": 5,
           "at": "2026-11-26T13:17:27.748Z",
           "action": "add-person"
+        },
+        {
+          "issue": null,
+          "rev": 7,
+          "at": "2026-11-26T14:31:23.874Z",
+          "action": "remove-person"
         }
       ]
     },
     "pzp4ktxd": {
       "id": "pzp4ktxd",
-      "name": {
-        "ar": "حسن"
-      },
+      "nameStatus": "withheld",
       "gender": "m",
-      "birth": {
-        "date": "2026"
+      "privacy": "hidden",
+      "removed": {
+        "at": "2026-11-26T14:30:53.439Z",
+        "reasonCode": "entered-by-mistake",
+        "issue": null,
+        "by": "gtsgate"
       },
-      "privacy": "year",
       "history": [
         {
           "issue": null,
           "rev": 5,
           "at": "2026-11-26T13:17:27.748Z",
+          "action": "add-person"
+        },
+        {
+          "issue": null,
+          "rev": 6,
+          "at": "2026-11-26T14:30:53.439Z",
+          "action": "remove-person"
+        }
+      ]
+    },
+    "psy6unmh": {
+      "id": "psy6unmh",
+      "name": {
+        "ar": "ريما"
+      },
+      "nickname": {
+        "ar": "أم دان"
+      },
+      "gender": "f",
+      "privacy": "year",
+      "history": [
+        {
+          "issue": null,
+          "rev": 10,
+          "at": "2026-11-26T16:34:10.951Z",
+          "action": "add-person"
+        },
+        {
+          "issue": null,
+          "rev": 27,
+          "at": "2026-11-26T17:02:03.539Z",
+          "action": "edit-person"
+        }
+      ]
+    },
+    "ps6tfskb": {
+      "id": "ps6tfskb",
+      "name": {
+        "ar": "عدنان"
+      },
+      "surname": {
+        "ar": "الفواز"
+      },
+      "nickname": {
+        "ar": "أبو سلطان"
+      },
+      "gender": "m",
+      "birth": {
+        "date": "1947"
+      },
+      "deceased": true,
+      "death": {
+        "date": "2022-02-19"
+      },
+      "privacy": "year",
+      "history": [
+        {
+          "issue": null,
+          "rev": 11,
+          "at": "2026-11-26T16:35:07.832Z",
+          "action": "add-person"
+        },
+        {
+          "issue": null,
+          "rev": 12,
+          "at": "2026-11-26T16:35:55.712Z",
+          "action": "mark"
+        }
+      ]
+    },
+    "p4ir3fj1": {
+      "id": "p4ir3fj1",
+      "name": {
+        "ar": "عبدالزراق"
+      },
+      "gender": "m",
+      "privacy": "year",
+      "history": [
+        {
+          "issue": null,
+          "rev": 13,
+          "at": "2026-11-26T16:36:36.053Z",
+          "action": "add-person"
+        }
+      ]
+    },
+    "psxe8lwh": {
+      "id": "psxe8lwh",
+      "name": {
+        "ar": "ناصر"
+      },
+      "surname": {
+        "ar": "الفواز"
+      },
+      "gender": "m",
+      "privacy": "year",
+      "history": [
+        {
+          "issue": null,
+          "rev": 14,
+          "at": "2026-11-26T16:37:01.169Z",
+          "action": "add-person"
+        },
+        {
+          "issue": null,
+          "rev": 15,
+          "at": "2026-11-26T16:37:47.171Z",
+          "action": "edit-person"
+        }
+      ]
+    },
+    "p8lut0o5": {
+      "id": "p8lut0o5",
+      "name": {
+        "ar": "دان"
+      },
+      "gender": "f",
+      "birth": {
+        "date": "2016"
+      },
+      "privacy": "year",
+      "history": [
+        {
+          "issue": null,
+          "rev": 16,
+          "at": "2026-11-26T16:41:15.180Z",
+          "action": "add-person"
+        }
+      ]
+    },
+    "py05um8r": {
+      "id": "py05um8r",
+      "name": {
+        "ar": "ألين",
+        "en": "Aleen"
+      },
+      "gender": "f",
+      "birth": {
+        "date": "2018"
+      },
+      "privacy": "year",
+      "history": [
+        {
+          "issue": null,
+          "rev": 17,
+          "at": "2026-11-26T16:41:41.752Z",
+          "action": "add-person"
+        }
+      ]
+    },
+    "pje7dray": {
+      "id": "pje7dray",
+      "name": {
+        "ar": "الريان",
+        "en": "Al-Rayyan"
+      },
+      "gender": "m",
+      "birth": {
+        "date": "2023"
+      },
+      "privacy": "year",
+      "history": [
+        {
+          "issue": null,
+          "rev": 18,
+          "at": "2026-11-26T16:42:39.488Z",
+          "action": "add-person"
+        }
+      ]
+    },
+    "pn81y3cb": {
+      "id": "pn81y3cb",
+      "name": {
+        "ar": "جمان"
+      },
+      "gender": "f",
+      "birth": {
+        "date": "2024"
+      },
+      "privacy": "year",
+      "history": [
+        {
+          "issue": null,
+          "rev": 19,
+          "at": "2026-11-26T16:43:11.519Z",
+          "action": "add-person"
+        }
+      ]
+    },
+    "ptiafno2": {
+      "id": "ptiafno2",
+      "name": {
+        "ar": "نوف"
+      },
+      "surname": {
+        "ar": "الريس",
+        "en": "Al-Rayess"
+      },
+      "gender": "f",
+      "birth": {
+        "date": "2000"
+      },
+      "privacy": "year",
+      "history": [
+        {
+          "issue": null,
+          "rev": 20,
+          "at": "2026-11-26T16:44:10.286Z",
+          "action": "add-person"
+        }
+      ]
+    },
+    "pfi4d2li": {
+      "id": "pfi4d2li",
+      "name": {
+        "ar": "عبدالرحمن"
+      },
+      "surname": {
+        "ar": "الريس",
+        "en": "Al-Rayess"
+      },
+      "gender": "m",
+      "birth": {
+        "date": "1959-12-31"
+      },
+      "deceased": true,
+      "death": {
+        "date": "2023-10-07"
+      },
+      "history": [
+        {
+          "issue": null,
+          "rev": 21,
+          "at": "2026-11-26T16:54:01.143Z",
+          "action": "add-person"
+        },
+        {
+          "issue": null,
+          "rev": 22,
+          "at": "2026-11-26T16:55:29.086Z",
+          "action": "edit-person"
+        },
+        {
+          "issue": null,
+          "rev": 29,
+          "at": "2026-11-27T13:50:35.524Z",
+          "action": "edit-person"
+        }
+      ]
+    },
+    "p9c6efj9": {
+      "id": "p9c6efj9",
+      "name": {
+        "ar": "ماجد"
+      },
+      "surname": {
+        "ar": "قعدان"
+      },
+      "nickname": {
+        "ar": "أبو أحمد"
+      },
+      "gender": "m",
+      "privacy": "year",
+      "history": [
+        {
+          "issue": null,
+          "rev": 25,
+          "at": "2026-11-26T16:57:53.263Z",
+          "action": "add-person"
+        },
+        {
+          "issue": null,
+          "rev": 26,
+          "at": "2026-11-26T17:00:48.331Z",
+          "action": "edit-person"
+        }
+      ]
+    },
+    "p8g4n5jf": {
+      "id": "p8g4n5jf",
+      "name": {
+        "ar": "محمد"
+      },
+      "surname": {
+        "ar": "عيد"
+      },
+      "gender": "m",
+      "deceased": true,
+      "history": [
+        {
+          "issue": null,
+          "rev": 33,
+          "at": "2026-11-27T14:01:59.160Z",
+          "action": "add-person"
+        },
+        {
+          "issue": null,
+          "rev": 35,
+          "at": "2026-11-27T14:03:39.432Z",
+          "action": "edit-person"
+        }
+      ]
+    },
+    "p2mlwwnp": {
+      "id": "p2mlwwnp",
+      "name": {
+        "ar": "أحمد صدقي",
+        "en": "Ahmad Sidqi"
+      },
+      "gender": "m",
+      "deceased": true,
+      "history": [
+        {
+          "issue": null,
+          "rev": 37,
+          "at": "2026-11-28T12:39:55.309Z",
+          "action": "add-person"
+        }
+      ]
+    },
+    "psh5z4cu": {
+      "id": "psh5z4cu",
+      "name": {
+        "ar": "الأباصيري"
+      },
+      "gender": "m",
+      "deceased": true,
+      "history": [
+        {
+          "issue": null,
+          "rev": 38,
+          "at": "2026-11-28T12:40:48.431Z",
+          "action": "add-person"
+        }
+      ]
+    },
+    "psnp1ygv": {
+      "id": "psnp1ygv",
+      "name": {
+        "ar": "مصطفى"
+      },
+      "gender": "m",
+      "deceased": true,
+      "history": [
+        {
+          "issue": null,
+          "rev": 39,
+          "at": "2026-11-28T12:43:00.971Z",
+          "action": "add-person"
+        }
+      ]
+    },
+    "pe5gsvod": {
+      "id": "pe5gsvod",
+      "name": {
+        "ar": "محمد"
+      },
+      "gender": "m",
+      "deceased": true,
+      "history": [
+        {
+          "issue": null,
+          "rev": 40,
+          "at": "2026-11-28T12:43:53.856Z",
+          "action": "add-person"
+        }
+      ]
+    },
+    "poeh9c3d": {
+      "id": "poeh9c3d",
+      "name": {
+        "ar": "داود"
+      },
+      "gender": "m",
+      "deceased": true,
+      "history": [
+        {
+          "issue": null,
+          "rev": 41,
+          "at": "2026-11-28T12:44:27.722Z",
+          "action": "add-person"
+        }
+      ]
+    },
+    "p64etdsw": {
+      "id": "p64etdsw",
+      "name": {
+        "ar": "أحمد الريس",
+        "en": "Ahmad Al-Rayess"
+      },
+      "gender": "m",
+      "deceased": true,
+      "history": [
+        {
+          "issue": null,
+          "rev": 42,
+          "at": "2026-11-28T12:45:06.619Z",
           "action": "add-person"
         }
       ]
@@ -3445,7 +3885,7 @@
         "pmos5c5h",
         "po3n142y"
       ],
-      "status": "married"
+      "status": "divorced"
     },
     "u65hmgln": {
       "id": "u65hmgln",
@@ -3458,7 +3898,15 @@
         "pcs3v65e",
         "pxf7g9es"
       ],
-      "status": "married"
+      "status": "divorced",
+      "marriage": {
+        "date": "1985",
+        "approx": true
+      },
+      "divorce": {
+        "date": "1994",
+        "approx": true
+      }
     },
     "uocolb5a": {
       "id": "uocolb5a",
@@ -3933,7 +4381,138 @@
       "children": [
         "pzp4ktxd"
       ],
+      "status": "married",
+      "removed": {
+        "at": "2026-11-26T14:31:23.874Z",
+        "reasonCode": "entered-by-mistake",
+        "issue": null,
+        "by": "gtsgate",
+        "with": "pglussip"
+      }
+    },
+    "u8uddl58": {
+      "id": "u8uddl58",
+      "partners": [
+        "pgrp61y2",
+        "psy6unmh"
+      ],
+      "children": [
+        "p8lut0o5",
+        "py05um8r",
+        "pje7dray",
+        "pn81y3cb"
+      ],
       "status": "married"
+    },
+    "u5x0eo2y": {
+      "id": "u5x0eo2y",
+      "partners": [
+        "ps6tfskb"
+      ],
+      "children": [
+        "psy6unmh"
+      ]
+    },
+    "uzk7hcb6": {
+      "id": "uzk7hcb6",
+      "partners": [
+        "p4ir3fj1"
+      ],
+      "children": [
+        "ps6tfskb"
+      ]
+    },
+    "udobz0xw": {
+      "id": "udobz0xw",
+      "partners": [
+        "psxe8lwh"
+      ],
+      "children": [
+        "p4ir3fj1"
+      ]
+    },
+    "ujwhkxjd": {
+      "id": "ujwhkxjd",
+      "partners": [
+        "petlxraf",
+        "pfi4d2li"
+      ],
+      "children": [
+        "ptiafno2"
+      ],
+      "status": "divorced"
+    },
+    "uktgsf2i": {
+      "id": "uktgsf2i",
+      "partners": [
+        "petlxraf",
+        "p9c6efj9"
+      ],
+      "status": "divorced"
+    },
+    "usyw0jc7": {
+      "id": "usyw0jc7",
+      "partners": [
+        "p8g4n5jf"
+      ],
+      "children": [
+        "po3n142y",
+        "polekh5u"
+      ]
+    },
+    "uhw46i34": {
+      "id": "uhw46i34",
+      "partners": [
+        "p2mlwwnp"
+      ],
+      "children": [
+        "petlxraf"
+      ]
+    },
+    "u343x6sc": {
+      "id": "u343x6sc",
+      "partners": [
+        "psh5z4cu"
+      ],
+      "children": [
+        "p2mlwwnp"
+      ]
+    },
+    "uibaybq9": {
+      "id": "uibaybq9",
+      "partners": [
+        "psnp1ygv"
+      ],
+      "children": [
+        "psh5z4cu"
+      ]
+    },
+    "udipwmo8": {
+      "id": "udipwmo8",
+      "partners": [
+        "pe5gsvod"
+      ],
+      "children": [
+        "psnp1ygv"
+      ]
+    },
+    "uar6cg9r": {
+      "id": "uar6cg9r",
+      "partners": [
+        "poeh9c3d"
+      ],
+      "children": [
+        "pe5gsvod"
+      ]
+    },
+    "u0138qrf": {
+      "id": "u0138qrf",
+      "partners": [
+        "p64etdsw"
+      ],
+      "children": [
+        "poeh9c3d"
+      ]
     }
   }
 }
