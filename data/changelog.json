@@ -2,6 +2,45 @@
   "entries": [
     {
       "issue": null,
+      "proposalId": "g6n0x7qs0h",
+      "hash": "",
+      "commit": "",
+      "rev": 38,
+      "at": "2026-11-28T12:40:48.431Z",
+      "title": "Add “Al-Abaseeri” as father of Ahmad Sidqi (deceased)",
+      "summary": {
+        "en": [
+          "Add “Al-Abaseeri” as father of Ahmad Sidqi (deceased)"
+        ],
+        "ar": [
+          "إضافة «الأباصيري» والداً لـ أحمد صدقي (متوفى)"
+        ]
+      },
+      "submitter": {
+        "name": "",
+        "relation": ""
+      },
+      "approvedBy": "gtsgate",
+      "people": [
+        "psh5z4cu"
+      ],
+      "touched": {
+        "people": [
+          "psh5z4cu"
+        ],
+        "unions": [
+          "u343x6sc"
+        ]
+      },
+      "destructive": false,
+      "action": "owner-edit",
+      "idMap": {
+        "new3": "psh5z4cu",
+        "newu4": "u343x6sc"
+      }
+    },
+    {
+      "issue": null,
       "proposalId": "3btnkx14s6",
       "hash": "",
       "commit": "",
