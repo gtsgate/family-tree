@@ -2,6 +2,45 @@
   "entries": [
     {
       "issue": null,
+      "proposalId": "kaz8ao87fe",
+      "hash": "",
+      "commit": "",
+      "rev": 40,
+      "at": "2026-11-28T12:43:53.856Z",
+      "title": "Add “Muhammad” as father of Mustafa (deceased)",
+      "summary": {
+        "en": [
+          "Add “Muhammad” as father of Mustafa (deceased)"
+        ],
+        "ar": [
+          "إضافة «محمد» والداً لـ مصطفى (متوفى)"
+        ]
+      },
+      "submitter": {
+        "name": "",
+        "relation": ""
+      },
+      "approvedBy": "gtsgate",
+      "people": [
+        "pe5gsvod"
+      ],
+      "touched": {
+        "people": [
+          "pe5gsvod"
+        ],
+        "unions": [
+          "udipwmo8"
+        ]
+      },
+      "destructive": false,
+      "action": "owner-edit",
+      "idMap": {
+        "new11": "pe5gsvod",
+        "newu12": "udipwmo8"
+      }
+    },
+    {
+      "issue": null,
       "proposalId": "u73axfq6ew",
       "hash": "",
       "commit": "",
